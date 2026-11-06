@@ -1,0 +1,59 @@
+metadata:
+  task_summary: Fix Django admin displaying non-ASCII unicode characters (e.g., Chinese)
+    as escaped ASCII sequences (\uXXXX) in JSONFields by passing ensure_ascii=False
+    to json.dumps.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the json.dumps call in the prepare_value method of the JSONField
+      class in django/forms/fields.py to include ensure_ascii=False.
+    weight: 3
+  - id: FC2
+    description: Avoids unrelated file churn — changes are confined to files directly
+      responsible for JSONField serialization displayed in admin (such as django/forms/fields.py
+      and/or django/db/models/fields/json.py).
+    weight: 2
+  - id: FC3
+    description: Modifies the json.dumps call in get_prep_value of the JSONField class
+      in django/db/models/fields/json.py to include ensure_ascii=False, or alternatively
+      updates display_for_field in django/contrib/admin/utils.py to use a json.dumps
+      call with ensure_ascii=False instead of field.get_prep_value.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that the fix targets the root cause described in the PR —
+      json.dumps defaulting to ensure_ascii=True — by adding ensure_ascii=False to
+      the relevant json.dumps calls that produce the display string for JSONField
+      values in admin.
+    weight: 3
+  - id: SA2
+    description: Preserves the encoder parameter (cls=self.encoder) alongside the
+      new ensure_ascii=False argument so that custom encoder classes remain functional.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing test assertions are weakened, removed,
+      or skipped as part of the patch.
+    weight: 2
+  - id: I2
+    description: Confirms that the public API of JSONField (both django.forms.fields.JSONField
+      and django.db.models.fields.json.JSONField), including accepted constructor
+      parameters, remains unchanged.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that after the change, calling prepare_value with a Python
+      value containing non-ASCII unicode characters (e.g., Chinese characters) returns
+      a JSON string containing the literal unicode characters rather than backslash-escaped
+      sequences like \u4e2d.
+    weight: 3
+  - id: R2
+    description: Ensures that values not containing non-ASCII characters continue
+      to be serialized correctly by prepare_value without any regressions (e.g., dicts,
+      lists, strings, nulls, booleans still produce valid JSON).
+    weight: 2
+  - id: R3
+    description: Ensures that has_changed comparisons in JSONField remain correct
+      after the fix, since both sides of the comparison use the same serialization
+      settings and symmetry is preserved.
+    weight: 1

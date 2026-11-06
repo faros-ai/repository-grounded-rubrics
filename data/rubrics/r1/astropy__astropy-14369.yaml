@@ -1,0 +1,74 @@
+metadata:
+  task_summary: Fix the CDS unit parser in astropy/units/format/cds.py so that consecutive
+    divisions like J/m/s/kpc2 are parsed left-associatively as J/(m*s*kpc2) instead
+    of right-associatively as J*s*kpc2/m.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the grammar rule in p_division_of_units inside astropy/units/format/cds.py
+      to fix the associativity of consecutive division operators.
+    weight: 3
+  - id: FC2
+    description: Updates cds_parsetab.py (the auto-generated LALR parse table) to
+      reflect the revised grammar, either by committing a regenerated file or by removing
+      it so it is regenerated on first use.
+    weight: 2
+  - id: FC3
+    description: Confines all production-code changes to astropy/units/format/cds.py
+      (and its generated table files), without modifying unrelated format modules
+      such as ogip.py, vounit.py, or generic.py.
+    weight: 2
+  - id: FC4
+    description: Adds or modifies test cases (in astropy/units/tests/test_format.py
+      or astropy/io/ascii/tests/) that exercise multi-division CDS unit strings such
+      as J/m/s/kpc2 or 10-7J/s/kpc2 from the PR description.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Corrects the parsing of unit strings with multiple sequential slashes
+      (e.g., J/m/s/kpc2) so that each slash is treated as an additional denominator
+      factor, matching CDS standard left-associative division.
+    weight: 3
+  - id: SA2
+    description: Ensures that a unit string like 10+3J/m/s/kpc2 (the SBCONT example
+      from the PR description) is parsed so that m, s, and kpc2 all appear in the
+      denominator, not as mixed numerator/denominator.
+    weight: 3
+  - id: SA3
+    description: Ensures that a unit string like 10-7J/s/kpc2 (the SBLINE example
+      from the PR description) is parsed so that both s and kpc2 appear in the denominator.
+    weight: 3
+  - id: SA4
+    description: Preserves correct parsing of simple two-token division strings (e.g.,
+      km/s or mW/m2) that were already correct before the fix.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing test cases in test_cds_grammar (e.g., mW/m2,
+      km/s, km.s-1) are not removed or marked as expected-to-fail as a workaround.
+    weight: 3
+  - id: I2
+    description: Preserves the public API of astropy.units.format.CDS.parse, including
+      its signature, accepted string syntax for parenthesized groups like (m/s), and
+      raised ValueError for invalid inputs.
+    weight: 2
+  - id: I3
+    description: Avoids introducing new third-party dependencies or modifying unrelated
+      files outside the CDS unit format implementation and its tests.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Produces a unit object for J/m/s/kpc2 in which all of m, s, and kpc2
+      appear with negative powers (i.e., in the denominator), matching the CDS standard
+      interpretation of consecutive slashes as successive divisions.
+    weight: 3
+  - id: R2
+    description: Maintains correct parsing of parenthesized sub-expressions such as
+      mW/(m2) or J/(m.s), where the parentheses explicitly group the denominator,
+      so the fix does not alter their semantics.
+    weight: 2
+  - id: R3
+    description: 'Preserves the behavior of leading-slash division strings like /m3,
+      which represent the reciprocal of a unit (division_of_units : DIVISION unit_expression),
+      so that /m3 still yields m**-3.'
+    weight: 2

@@ -1,0 +1,67 @@
+metadata:
+  task_summary: Fix the bug in signature_from_str() where default values for positional-only
+    arguments (separated by /) are ignored, causing them to vanish from rendered output.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the posonlyargs loop inside signature_from_str in sphinx/util/inspect.py
+      to compute and assign a default value for each positional-only argument instead
+      of always omitting it.
+    weight: 3
+  - id: FC2
+    description: Adjusts the default-index calculation in the args loop inside signature_from_str
+      in sphinx/util/inspect.py to account for the length of posonlyargs (e.g., uses
+      len(args.posonlyargs) + len(args.args) - i or an equivalent combined-offset
+      expression) so that regular positional-or-keyword arguments still receive their
+      correct defaults.
+    weight: 3
+  - id: FC3
+    description: Confines changes to signature_from_str (and optionally test files),
+      without modifying unrelated files such as sphinx/domains/python.py, sphinx/pycode/ast.py,
+      or the Sphinx config files.
+    weight: 2
+  - id: FC4
+    description: Adds a test case in the test suite (e.g., extending test_signature_from_str_positionaly_only_args
+      or adding a new test function) that exercises signature_from_str with a signature
+      like '(a, b=0, /, c=1)' and asserts that the default value of the positional-only
+      argument b is correctly captured.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the exact scenario from the PR description: a signature
+      containing a positional-only argument with a default value (e.g., b=0 before
+      the / separator) now has its default preserved in the resulting Parameter object.'
+    weight: 3
+  - id: SA2
+    description: Preserves correct handling of positional-or-keyword arguments with
+      defaults (e.g., c=1 after the / separator) so they are not broken by the posonlyargs
+      offset fix.
+    weight: 2
+  - id: SA3
+    description: Handles the case where no positional-only arguments have defaults
+      (e.g., '(a, /, b=1)') without regression, correctly assigning Parameter.empty
+      to positional-only arguments that have no default.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the existing test_signature_from_str_positionaly_only_args
+      test (which checks kind for '(a, /, b)') is not weakened, removed, or skipped.
+    weight: 2
+  - id: I2
+    description: Confirms that the existing test_signature_from_str_default_values
+      test and related tests for default values are not weakened, removed, or modified
+      in a way that reduces coverage.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that for a signature like '(a, b=0, /, c=1)', the Parameter
+      object for b has kind POSITIONAL_ONLY and default '0', and the Parameter object
+      for c has kind POSITIONAL_OR_KEYWORD and default '1', based on the corrected
+      index arithmetic in signature_from_str.
+    weight: 3
+  - id: R2
+    description: Ensures that positional-only arguments without a default (e.g., a
+      in '(a, b=0, /, c=1)') still receive Parameter.empty as their default, confirming
+      that the default-index boundary condition is handled correctly for the combined
+      posonlyargs+args list.
+    weight: 2

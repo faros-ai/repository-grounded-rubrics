@@ -1,0 +1,65 @@
+metadata:
+  task_summary: Fix django/utils/numberformat.py so that extremely small Decimal values
+    with a negative exponent return a zero-padded decimal string (e.g., '0.00') instead
+    of exponential notation when decimal_pos is provided.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/utils/numberformat.py as the sole production-code
+      change, without touching any other files in the django/ source tree.
+    weight: 3
+  - id: FC2
+    description: Adds a conditional branch inside the isinstance(number, Decimal)
+      block of the format function that handles the case where exponent is negative
+      and decimal_pos is provided, returning a zero-padded result instead of proceeding
+      to scientific notation.
+    weight: 3
+  - id: FC3
+    description: Preserves the existing scientific-notation path for large Decimal
+      numbers (positive or near-zero large exponents) that exceed the 200-digit threshold
+      and are not small-rounded-to-zero cases.
+    weight: 2
+  - id: FC4
+    description: Adds test cases (anywhere in the test suite) covering very small
+      Decimal values with a negative exponent that exceed the 200-digit cutoff and
+      should return a zero-formatted decimal string when decimal_pos is supplied.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements the fix so that nformat(Decimal('1e-200'), '.', decimal_pos=2)
+      returns '0.00' rather than a string containing exponential notation such as
+      '1.00e-200'.
+    weight: 3
+  - id: SA2
+    description: Preserves scientific notation output for very small Decimal numbers
+      when decimal_pos is None (e.g., Decimal('9e-999') without decimal_pos still
+      returns a string in exponential form).
+    weight: 2
+  - id: SA3
+    description: Returns a zero string with the correct number of decimal places (matching
+      decimal_pos) for any Decimal whose absolute value is smaller than 10^(-decimal_pos)
+      and triggers the 200-digit cutoff.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: 'Confirms the public signature of the format function in django/utils/numberformat.py
+      (parameters: number, decimal_sep, decimal_pos, grouping, thousand_sep, force_grouping,
+      use_l10n) is unchanged.'
+    weight: 3
+  - id: I2
+    description: Confirms no existing test assertions in the test suite are removed
+      or weakened (no deletions of assertEqual, assertIn, or similar assertion lines
+      from pre-existing test methods).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Avoids invoking '{:f}'.format() on Decimal values whose abs(exponent)
+      + len(digits) exceeds 200, preserving the memory-safety guarantee of the original
+      200-digit cutoff for large numbers.
+    weight: 3
+  - id: R2
+    description: Produces a decimal-separator-only result (e.g., sign + '0' + decimal_sep
+      + '0' * decimal_pos) for small-exponent Decimal inputs, ensuring the returned
+      string does not contain 'e' or 'E' when decimal_pos is provided and the value
+      rounds to zero.
+    weight: 3

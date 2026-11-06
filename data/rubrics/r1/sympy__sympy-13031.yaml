@@ -1,0 +1,67 @@
+metadata:
+  task_summary: Fix Matrix.hstack (and row_join) to correctly accumulate columns when
+    stacking zero-row matrices, restoring the sympy 1.0 behavior where hstack(zeros(0,0),
+    zeros(0,1), zeros(0,2), zeros(0,3)).shape == (0, 6).
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the null-matrix guard condition inside the `row_join` method
+      in `sympy/matrices/common.py` so that it checks `self.cols == 0` and a rows
+      mismatch (not `self.rows == 0` and a cols mismatch), preventing accumulated
+      columns from being discarded when all matrices have zero rows.
+    weight: 3
+  - id: FC2
+    description: Leaves the `col_join` null-matrix guard condition in `sympy/matrices/common.py`
+      unchanged (`self.rows == 0 and self.cols != other.cols`), since that method's
+      logic is correct and symmetric to the fixed `row_join`.
+    weight: 2
+  - id: FC3
+    description: 'Adds a regression test block (referencing issue #12938) inside `test_hstack`
+      in the matrix test file that constructs `Matrix.zeros(0,0)`, `Matrix.zeros(0,1)`,
+      `Matrix.zeros(0,2)`, `Matrix.zeros(0,3)` and asserts that `hstack` of all four
+      produces a matrix with `rows == 0` and `cols == 6`.'
+    weight: 2
+  - id: FC4
+    description: Confines all production-code changes to `sympy/matrices/common.py`
+      without modifying unrelated files or introducing new dependencies.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Restores the behavior described in the PR such that `Matrix.hstack(Matrix.zeros(0,0),
+      Matrix.zeros(0,1), Matrix.zeros(0,2), Matrix.zeros(0,3))` produces a matrix
+      whose shape is `(0, 6)` rather than `(0, 3)`.
+    weight: 3
+  - id: SA2
+    description: 'Ensures the fix handles the asymmetry between `row_join` and `col_join`:
+      `row_join`''s null-matrix special case rescues a zero-column self by adopting
+      `other.rows`, while `col_join`''s null-matrix special case rescues a zero-row
+      self by adopting `other.cols`.'
+    weight: 2
+  - id: SA3
+    description: Preserves the existing behavior for non-zero-row matrices stacked
+      via `hstack`, confirming the fix does not regress normal (non-empty) horizontal
+      stacking as already tested in `test_hstack`.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the `hstack` and `vstack` public API signatures remain
+      unchanged — both still accept `*args` and return a matrix of the same type.
+    weight: 2
+  - id: I2
+    description: Confirms that the existing `raises(ShapeError, ...)` assertions in
+      `test_hstack` are not removed or weakened, preserving the error-on-incompatible-shapes
+      contract.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that `row_join` with a zero-column self and a different row
+      count still falls into the special-case branch (rescuing with `self._new(other.rows,
+      0, [])`), so non-zero-row matrices with mismatched rows do not raise a spurious
+      `ShapeError`.
+    weight: 2
+  - id: R2
+    description: Ensures that `row_join` with self having 0 rows but a nonzero number
+      of already-accumulated columns proceeds to `_eval_row_join` and correctly appends
+      `other.cols` to the accumulated total, giving the right shape for each intermediate
+      step of `reduce(row_join, args)`.
+    weight: 3

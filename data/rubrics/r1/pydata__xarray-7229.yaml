@@ -1,0 +1,65 @@
+metadata:
+  task_summary: 'Fix `xr.where(..., keep_attrs=True)` overwriting coordinate attributes
+    with data variable attributes due to a lambda introduced in #6461.'
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `where` function in `xarray/core/computation.py` to
+      fix the coordinate attribute overwrite bug.
+    weight: 3
+  - id: FC2
+    description: Confines changes to the `where` function (or closely related coordinate-building
+      helpers) in `computation.py` and/or `merge.py`, without introducing unrelated
+      file churn.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test (anywhere in the test suite) that exercises
+      `xr.where(..., keep_attrs=True)` with a DataArray or Dataset that has coordinate
+      attributes, asserting those coordinate attrs are preserved.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Replaces or wraps the lambda `lambda attrs, context: getattr(x,
+      ''attrs'', {})` so that it no longer blindly applies `x.attrs` to coordinate
+      variable attribute merges.'
+    weight: 3
+  - id: SA2
+    description: Ensures the fix preserves `x.attrs` on the *data variable* result
+      when `keep_attrs=True`, consistent with the documented behavior stated in the
+      `where` docstring ('keep the attrs of `x`').
+    weight: 3
+  - id: SA3
+    description: Ensures the fix makes coordinate attributes in the output of `xr.where(...,
+      keep_attrs=True)` reflect the coordinate's own original attrs rather than the
+      data variable attrs.
+    weight: 3
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing tests for `test_where_attrs` (the scalar `keep_attrs=True`
+      case and the basic DataArray case) remain valid and are not weakened or skipped.
+    weight: 2
+  - id: I2
+    description: Confirms the public API signature of `xr.where(cond, x, y, keep_attrs=None)`
+      is unchanged.
+    weight: 2
+  - id: I3
+    description: Avoids mass renames, dependency changes, or modifications to unrelated
+      functions outside the `where`/coordinate-merging code path.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: 'Ensures that when `keep_attrs=True` is passed, coordinate variables
+      in the output (e.g., `time`) retain their own original attrs such as `{''standard_name'':
+      ''time'', ''long_name'': ''Time''}` rather than being overwritten with data
+      variable attrs.'
+    weight: 3
+  - id: R2
+    description: Ensures that `xr.where(True, ds.air, ds.air, keep_attrs=True).attrs`
+      still returns the data variable attrs of `ds.air` (backward-compatible data-variable
+      attribute preservation).
+    weight: 2
+  - id: R3
+    description: Ensures that `xr.where(cond, 1, 0, keep_attrs=True)` continues to
+      return empty attrs (scalar `x` has no attrs), as a regression guard for the
+      scalar branch.
+    weight: 2

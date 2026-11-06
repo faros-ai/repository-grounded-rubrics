@@ -1,0 +1,60 @@
+metadata:
+  task_summary: Fix `units.quantity_input` decorator to handle constructors with `->
+    None` return type annotation without raising an AttributeError.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies `astropy/units/decorators.py` as the sole substantive file
+      changed, keeping edits confined to the `wrapper` function inside `QuantityInput.__call__`.
+    weight: 3
+  - id: FC2
+    description: Adds a conditional guard in `astropy/units/decorators.py` near the
+      existing `return return_.to(wrapped_signature.return_annotation)` line that
+      checks for a `None` return annotation before calling `.to()`.
+    weight: 3
+  - id: FC3
+    description: Adds a test case (anywhere in the test files) that exercises `@u.quantity_input`
+      on a constructor annotated with `-> None`, verifying the decorated class can
+      be instantiated without error.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements handling so that when `wrapped_signature.return_annotation`
+      is `None` (i.e., the annotation `-> None`), the decorator skips calling `.to()`
+      and returns the function's result directly.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior for non-`None` return annotations,
+      so that functions annotated with a unit (e.g., `-> u.deg`) still have their
+      return value converted via `.to()`.
+    weight: 3
+  - id: SA3
+    description: Handles the case where `wrapped_signature.return_annotation` is `inspect.Signature.empty`
+      (no annotation at all) identically to before the patch, returning the result
+      unchanged.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the fix does not weaken or skip any existing tests
+      related to return annotation handling (e.g., `test_return_annotation`) in `py3_test_quantity_annotations.py`
+      or `test_quantity_decorator.py`.
+    weight: 2
+  - id: I2
+    description: Confirms that no unrelated files outside of `astropy/units/` are
+      modified, avoiding unnecessary scope creep.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: 'Ensures that calling a constructor decorated with `@u.quantity_input`
+      and annotated `-> None` (e.g., `def __init__(self, voltage: u.V) -> None`) no
+      longer raises `AttributeError: ''NoneType'' object has no attribute ''to''`.'
+    weight: 3
+  - id: R2
+    description: Ensures that a function annotated with a unit return type (e.g.,
+      `-> u.deg`) still returns a `Quantity` in the specified unit after the patch,
+      maintaining the conversion behavior.
+    weight: 2
+  - id: R3
+    description: Ensures that functions with no return annotation at all (no `->`
+      hint) still return their value unchanged, preserving backward compatibility.
+    weight: 2

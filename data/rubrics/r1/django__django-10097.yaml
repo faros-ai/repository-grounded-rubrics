@@ -1,0 +1,60 @@
+metadata:
+  task_summary: Fix URLValidator to reject URLs with unencoded ':', '@', or '/' characters
+    in the username or password field, per RFC 1738 section 3.1.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the user:pass authentication portion of the URLValidator
+      regex in django/core/validators.py to replace the permissive '\S+' pattern with
+      one that excludes the unencoded characters ':', '@', and '/'.
+    weight: 3
+  - id: FC2
+    description: Adds at least one invalid-URL entry covering a URL with an unencoded
+      special character in the userinfo segment (e.g., 'http://foo/bar@example.com')
+      to the invalid URL test data, in tests/validators/invalid_urls.txt or tests/validators/tests.py.
+    weight: 2
+  - id: FC3
+    description: Confines diff changes to the URLValidator regex and related test
+      data files, without modifying unrelated source files or introducing new package
+      dependencies.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures the updated regex rejects URLs where the username or password
+      segment contains an unencoded '/' character, such as 'http://foo/bar@example.com',
+      which is explicitly identified in the PR description as an example of an invalid
+      URL that must be rejected.
+    weight: 3
+  - id: SA2
+    description: Ensures the updated regex continues to accept URLs with %-encoded
+      representations of special characters in the userinfo segment, such as '%40'
+      or '%2f', because the PR description requires only unencoded characters to be
+      rejected.
+    weight: 2
+  - id: SA3
+    description: Ensures the updated regex rejects URLs where a second unencoded '@'
+      appears in the username or password field before the host, as required by RFC
+      1738 section 3.1 cited in the PR description.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that simple valid user:pass URL forms already present in
+      valid_urls.txt, such as 'http://userid:password@example.com' and 'http://userid@example.com',
+      remain accepted after the regex change.
+    weight: 3
+  - id: I2
+    description: Confirms the patch does not remove or skip existing test cases that
+      assert ValidationError for invalid URLs (no test weakening in invalid_urls.txt
+      or tests/validators/tests.py).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Raises ValidationError (not silently passes) when URLValidator is
+      called with a URL containing an unencoded '/', '@', or ':' in the username or
+      password segment, providing the expected error signal to callers.
+    weight: 3
+  - id: R2
+    description: Preserves backward-compatible behavior for the URLValidator public
+      API, keeping the same class name, message, and code attributes so existing callers
+      relying on ValidationError.code or ValidationError.message are unaffected.
+    weight: 2

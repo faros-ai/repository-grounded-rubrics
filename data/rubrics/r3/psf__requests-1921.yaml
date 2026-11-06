@@ -1,0 +1,57 @@
+metadata:
+  task_summary: Fix merge_setting in requests/sessions.py so that session-level headers
+    set to None are suppressed (not sent as the string 'None') rather than only suppressing
+    per-request None-valued headers.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the merge_setting function inside requests/sessions.py to
+      remove None-valued keys from the final merged result, not only from request_setting
+      items.
+    weight: 3
+  - id: FC2
+    description: Confines all changes to requests/sessions.py (or requests/utils.py
+      if merge_setting is moved there) without modifying unrelated files such as requests/models.py,
+      requests/adapters.py, or requests/api.py.
+    weight: 2
+  - id: FC3
+    description: Iterates over merged_setting items (not just request_setting items)
+      when deleting keys whose value is None, so that session-level None headers are
+      also pruned.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the PR description scenario where session.headers['Accept-Encoding']
+      = None should suppress the header rather than transmitting the literal string
+      'None'.
+    weight: 3
+  - id: SA2
+    description: 'Preserves the existing documented behavior where setting a header
+      to None in a per-request call (e.g., session.get(url, headers={''X-Custom'':
+      None})) also suppresses that header.'
+    weight: 2
+  - id: SA3
+    description: Adds a test (anywhere in the diff) that exercises setting a session-level
+      header value to None and verifies the header is absent from the resulting PreparedRequest.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public signature of merge_setting (request_setting,
+      session_setting, dict_class) is preserved without adding, removing, or renaming
+      parameters.
+    weight: 2
+  - id: I2
+    description: Avoids weakening or skipping any pre-existing tests related to merge_setting
+      or header merging (no @pytest.mark.skip, no deletion of existing assertions).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a header present in session.headers with a non-None
+      value is still included in the merged result (no regression where valid session
+      headers are silently dropped).
+    weight: 3
+  - id: R2
+    description: Ensures that when both session and request set the same header, the
+      request-level value takes precedence in the merged result (original priority
+      semantics preserved).
+    weight: 2

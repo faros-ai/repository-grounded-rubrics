@@ -1,0 +1,56 @@
+metadata:
+  task_summary: Add a FutureWarning when a structured np.ndarray is auto-converted
+    to NdarrayMixin in Table._convert_data_to_col, advising users to wrap data in
+    Column, in preparation for removing this auto-transform in version 5.2.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the structured-ndarray auto-conversion block inside `_convert_data_to_col`
+      in `astropy/table/table.py` to emit a warning before or instead of calling `data.view(NdarrayMixin)`.
+    weight: 3
+  - id: FC2
+    description: Confines code changes to `astropy/table/table.py` (and optionally
+      `astropy/table/tests/test_mixin.py`); avoids unrelated file modifications outside
+      of the table module.
+    weight: 2
+  - id: FC3
+    description: Updates the `test_ndarray_mixin` test or adds a new test in `astropy/table/tests/test_mixin.py`
+      to account for the newly emitted warning when a plain structured `np.ndarray`
+      is added to a `Table`.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Emits a `FutureWarning` (not a different warning class) specifically
+      when a non-Column, non-mixin structured `np.ndarray` (one where `len(data.dtype)
+      > 1`) is added to a Table.
+    weight: 3
+  - id: SA2
+    description: Includes a warning message that instructs the user to wrap the data
+      in `Column` explicitly (e.g., references wrapping `data` in `Column`).
+    weight: 2
+  - id: SA3
+    description: References version 5.2 (or a future version) in the warning message
+      or in a comment, indicating when the auto-conversion behavior will be removed.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing `data.view(NdarrayMixin)` conversion behavior
+      alongside the warning, so the auto-transform still happens in this version (the
+      warning is additive, not a removal).
+    weight: 3
+  - id: I2
+    description: Avoids weakening or removing existing assertions in `test_ndarray_mixin`
+      that verify structured arrays are stored as `NdarrayMixin` instances (e.g.,
+      `isinstance(t['a'], NdarrayMixin)`).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures the `FutureWarning` is emitted with an appropriate `stacklevel`
+      argument to `warnings.warn` so the warning points to the user's call site rather
+      than to internal table code.
+    weight: 2
+  - id: R2
+    description: Ensures that a structured `np.ndarray` wrapped explicitly in `Column`
+      before being added to a `Table` does not trigger the `FutureWarning`, preserving
+      the opt-out path described in the PR.
+    weight: 2

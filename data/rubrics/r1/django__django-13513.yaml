@@ -1,0 +1,79 @@
+metadata:
+  task_summary: Fix the debug error view's explicit_or_implicit_cause() in django/views/debug.py
+    to respect exc.__suppress_context__ (PEP 415), so that 'raise X from None' hides
+    the chained exception context in the traceback display.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the body of the `explicit_or_implicit_cause` function inside
+      `get_traceback_frames` in `django/views/debug.py` to incorporate a check for
+      `__suppress_context__`.
+    weight: 3
+  - id: FC2
+    description: Reads `__suppress_context__` from the exception value (e.g., via
+      `getattr(exc_value, '__suppress_context__', ...)`) within the updated `explicit_or_implicit_cause`
+      function in `django/views/debug.py`.
+    weight: 3
+  - id: FC3
+    description: Returns `None` instead of `__context__` when `__suppress_context__`
+      is truthy, so that suppressed implicit causes are excluded from the traceback
+      chain in `explicit_or_implicit_cause`.
+    weight: 3
+  - id: FC4
+    description: Confines changes to `django/views/debug.py` and optionally associated
+      test files, without introducing unrelated file modifications.
+    weight: 2
+  - id: FC5
+    description: Adds a test (anywhere in the test suite) that exercises the case
+      where `raise X from None` is used and verifies the suppressed context does not
+      appear in the debug output, e.g., asserting the absence of 'During handling
+      of the above exception' in the rendered HTML.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements the fix suggested in the PR description so that `explicit_or_implicit_cause`
+      returns `explicit or (None if exc_value.__suppress_context__ else implicit)`,
+      or an equivalent conditional expression, matching the PEP 415 semantic.
+    weight: 3
+  - id: SA2
+    description: Ensures that when `__cause__` is set (explicit chaining via `raise
+      X from Y`), it is still returned regardless of `__suppress_context__`, preserving
+      the original explicit-cause behavior.
+    weight: 2
+  - id: SA3
+    description: Ensures that when `__cause__` is None and `__suppress_context__`
+      is False, `__context__` is still returned, preserving the original implicit-cause
+      behavior.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing `get_traceback_frames` method signature and
+      the structure of its returned `frames` list, including `exc_cause` and `exc_cause_explicit`
+      keys in each frame dictionary.
+    weight: 2
+  - id: I2
+    description: Does not remove or weaken existing tests for nested exception reporting
+      (e.g., tests asserting that 'During handling of the above exception' or 'was
+      the direct cause' appear in the debug HTML for non-suppressed chains).
+    weight: 2
+  - id: I3
+    description: Does not alter the public API of `ExceptionReporter`, `technical_500_response`,
+      or other publicly exported symbols in `django/views/debug.py`.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: When a view raises an exception via `raise ValueError(...) from None`,
+      the debug error page omits any traceback section for the suppressed `RuntimeError`
+      context, producing a page that does not contain 'During handling of the above
+      exception'.
+    weight: 3
+  - id: R2
+    description: When an exception is chained explicitly via `raise B from A`, the
+      debug error page still displays the 'The above exception ... was the direct
+      cause' section, confirming that explicit chaining is unaffected by the fix.
+    weight: 2
+  - id: R3
+    description: When an exception is raised implicitly within an except block (no
+      `from` clause), the debug error page still displays the 'During handling of
+      the above exception' section, confirming that implicit chaining is unaffected.
+    weight: 2

@@ -1,0 +1,59 @@
+metadata:
+  task_summary: Replace manual __name__/__doc__ assignment in BaseManager._get_queryset_methods
+    with functools.wraps so that inspect.signature() returns the correct signature
+    on manager proxy methods.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Adds 'import functools' (or 'from functools import wraps') to django/db/models/manager.py
+      so that the functools.wraps decorator is available in that module.
+    weight: 3
+  - id: FC2
+    description: Applies functools.wraps(method) (as a decorator or explicit call)
+      to manager_method inside the create_method helper in BaseManager._get_queryset_methods,
+      replacing or superseding the manual attribute assignments.
+    weight: 3
+  - id: FC3
+    description: Removes the explicit manual assignments 'manager_method.__name__
+      = method.__name__' and 'manager_method.__doc__ = method.__doc__' from create_method,
+      since functools.wraps already handles those attributes.
+    weight: 2
+  - id: FC4
+    description: Confines all changes to django/db/models/manager.py and does not
+      modify unrelated files such as query.py, base.py, or other Django modules outside
+      of the stated fix.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause stated in the PR description: the create_method
+      wrapper inside _get_queryset_methods previously only copied __name__ and __doc__,
+      causing inspect.signature() to return (*args, **kwargs) instead of the original
+      queryset method signature.'
+    weight: 3
+  - id: SA2
+    description: Ensures functools.wraps copies __wrapped__ onto manager_method, which
+      is the attribute that allows inspect.signature() to follow the chain and return
+      the original method's signature.
+    weight: 3
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the runtime behavior of manager_method (it still delegates
+      to self.get_queryset() and calls the underlying queryset method), only changing
+      metadata propagation.
+    weight: 3
+  - id: I2
+    description: Does not weaken or skip existing manager or queryset tests; any test
+      changes only add coverage for the inspect.signature behavior or adjust assertions
+      to reflect the corrected metadata.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that after the fix, calling inspect.signature() on a manager
+      method (e.g., bulk_create) returns the original queryset method's parameter
+      list rather than (*args, **kwargs), as described in the PR example.
+    weight: 3
+  - id: R2
+    description: Ensures that __doc__ on proxied manager methods still reflects the
+      original queryset method's docstring (functools.wraps preserves __doc__ alongside
+      the other WRAPPER_ASSIGNMENTS).
+    weight: 2

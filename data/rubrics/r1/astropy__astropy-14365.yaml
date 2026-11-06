@@ -1,0 +1,56 @@
+metadata:
+  task_summary: Make ascii.qdp QDP command parsing case-insensitive so that lowercase
+    commands like 'read serr 1 2' are accepted in addition to uppercase 'READ SERR
+    1 2'.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `_line_type` function in `astropy/io/ascii/qdp.py` to
+      make the regex matching of QDP commands case-insensitive, so that lowercase
+      variants like 'read serr 1 2' are classified as 'command' rather than raising
+      ValueError.
+    weight: 3
+  - id: FC2
+    description: Confines changes to `astropy/io/ascii/qdp.py` (and optionally its
+      test file) without modifying unrelated modules, preserving the minimal scope
+      of the fix.
+    weight: 2
+  - id: FC3
+    description: Adds a test case (in the test file for qdp or inline doctest) that
+      exercises reading a QDP file containing a lowercase command such as 'read serr
+      1 2' to confirm the fix is covered.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that a QDP input containing 'read serr 1 2' (all-lowercase)
+      is parsed without raising ValueError, matching the expected behavior stated
+      in the PR description.
+    weight: 3
+  - id: SA2
+    description: Ensures that mixed-case QDP commands such as 'Read Serr 1 2' are
+      also accepted, reflecting QDP's inherent case-insensitivity as described in
+      the PR.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that all-uppercase QDP commands like 'READ SERR 1 2' and
+      'READ TERR 1 2' continue to be recognized as 'command' type, preserving backward
+      compatibility.
+    weight: 3
+  - id: I2
+    description: Confirms that the `_write_table_qdp` function still emits uppercase
+      'READ SERR' and 'READ TERR' commands (lines containing `print(f"READ SERR` and
+      `print(f"READ TERR`), so written files remain valid for all QDP readers.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that after case-insensitive command recognition, the error
+      specification extracted from a lowercase command (e.g., 'read serr 1 2') correctly
+      populates `err_specs` with the right column indices, so column names like 'col1_err'
+      are produced rather than plain 'col1'.
+    weight: 3
+  - id: R2
+    description: Ensures that non-command, non-data gibberish lines such as 'N O N
+      NOON OON O' still raise ValueError with a message containing 'Unrecognized QDP
+      line', preserving error-surface clarity for truly invalid input.
+    weight: 2

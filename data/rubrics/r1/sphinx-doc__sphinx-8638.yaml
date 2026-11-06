@@ -1,0 +1,63 @@
+metadata:
+  task_summary: Prevent instance variable field entries (ivar/var/cvar) from incorrectly
+    auto-linking to unrelated variables of the same name in other classes or modules
+    via fuzzy cross-reference resolution.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Adds a `process_field_xref` method to `PythonDomain` (in `sphinx/domains/python.py`)
+      that attaches `py:module` and `py:class` context from `env.ref_context` to a
+      pending xref node.
+    weight: 3
+  - id: FC2
+    description: Confines all changes to `sphinx/domains/python.py` (and optionally
+      its test file), without modifying unrelated domain files such as `sphinx/domains/javascript.py`,
+      `sphinx/domains/c.py`, or `sphinx/domains/cpp.py`.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test that exercises `:ivar:` or `:var:` field cross-reference
+      resolution with module and class context, verifying that the xref resolves within
+      the correct class scope rather than matching an unrelated global.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that when `resolve_xref` is called for a pending xref produced
+      by an `:ivar:`/`:var:`/`:cvar:` field entry, the `py:module` and `py:class`
+      attributes on the node are non-empty so that `find_obj` uses `searchmode=1`
+      with class-scoped lookup instead of unscoped fuzzy matching.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing `PyXRefRole.process_link` behavior that sets
+      `refspecific=True` on xref nodes produced by explicit `:attr:` or `:obj:` roles,
+      leaving those code paths unchanged.
+    weight: 2
+  - id: SA3
+    description: Ensures the fix applies to all three field name aliases (`var`, `ivar`,
+      `cvar`) used by `PyTypedField('variable', ...)`, not only a subset.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Avoids weakening or removing existing tests in `tests/test_domain_py.py`
+      or other test files related to Python domain cross-reference resolution.
+    weight: 2
+  - id: I2
+    description: Preserves the public API of `PythonDomain` and `PyXrefMixin`; does
+      not rename, remove, or change the signature of existing public methods such
+      as `find_obj` or `resolve_xref`.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: When a pending xref created from an `:ivar:` field is resolved, `find_obj`
+      receives non-None `modname` and `classname` arguments so it first attempts `modname.classname.name`
+      lookup before falling back to fuzzy suffix matching.
+    weight: 3
+  - id: R2
+    description: A global variable `pkg.somename` does not become the resolved target
+      of `:ivar somename:` documented inside `pkg.MyClass`, because the class-qualified
+      lookup `pkg.MyClass.somename` is preferred when the xref carries `py:class`.
+    weight: 3
+  - id: R3
+    description: Cross-references in `:param:` and `:type:` fields (which already
+      go through `PyXrefMixin.make_xref` with `refspecific=True`) remain unaffected
+      by the change and continue to resolve as before.
+    weight: 2

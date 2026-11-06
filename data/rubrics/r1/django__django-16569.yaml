@@ -1,0 +1,59 @@
+metadata:
+  task_summary: Fix the TypeError raised in FormSet.add_fields() when index is None
+    and can_delete=True, can_delete_extra=False by guarding the comparison with an
+    index-is-not-None check.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies exactly the condition on line 493 of django/forms/formsets.py
+      (the `if self.can_delete and (self.can_delete_extra or index < initial_form_count):`
+      line) and no other unrelated lines in that file.
+    weight: 3
+  - id: FC2
+    description: Confines the production-code change to django/forms/formsets.py only,
+      without modifying unrelated files (e.g., settings, migrations, or other form
+      modules).
+    weight: 2
+  - id: FC3
+    description: Adds a test (anywhere in the diff) that exercises FormSet with can_delete=True
+      and can_delete_extra=False when accessing empty_form or calling add_fields with
+      index=None.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Replaces the bare `index < initial_form_count` sub-expression with
+      a guard that first checks `index is not None` before performing the integer
+      comparison, matching the fix proposed in the PR description.
+    weight: 3
+  - id: SA2
+    description: 'Preserves the existing behavior when index is an integer: the DELETE
+      field is still added for initial forms (index < initial_form_count) and omitted
+      for extra forms when can_delete_extra is False.'
+    weight: 2
+  - id: SA3
+    description: Ensures that when index is None (as called by empty_form via self.add_fields(form,
+      None)) and can_delete_extra is False, the DELETE field is NOT added to the form's
+      fields.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the fix does not weaken or remove any existing test
+      assertions related to can_delete or can_delete_extra behavior.
+    weight: 2
+  - id: I2
+    description: Confirms that the public signatures of add_fields(self, form, index)
+      and the formset_factory() function (including its can_delete and can_delete_extra
+      parameters) remain unchanged.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that accessing FormSet.empty_form when can_delete=True and
+      can_delete_extra=False no longer raises TypeError ('less than' not supported
+      between NoneType and int), based on the index-is-not-None guard added in the
+      diff.
+    weight: 3
+  - id: R2
+    description: 'Maintains backward-compatible behavior: when can_delete=True and
+      can_delete_extra=True, the DELETE field is still unconditionally added regardless
+      of whether index is None or an integer.'
+    weight: 2

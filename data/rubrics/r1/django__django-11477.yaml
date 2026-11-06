@@ -1,0 +1,50 @@
+metadata:
+  task_summary: Fix translate_url() to produce correct URLs when optional named regex
+    groups are absent (matched as None) in the resolved URL pattern.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/urls/base.py to address the translate_url() bug with
+      optional named groups, keeping changes confined to that file or django/urls/resolvers.py.
+    weight: 3
+  - id: FC2
+    description: Avoids unrelated file churn — changes are limited to the URL resolution/translation
+      logic and associated test files, with no modifications to unrelated modules.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a URL pattern with an optional named group (e.g.,
+      a pattern using a named group that is not always captured) in the i18n patterns
+      test URL configuration to enable testing of the fix.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Introduces logic that removes or ignores kwargs entries whose values
+      are None before passing match.kwargs to reverse() inside translate_url(), addressing
+      the core bug where groupdict() returns None for unmatched optional named groups.
+    weight: 3
+  - id: SA2
+    description: Adds a test case in the i18n patterns test suite that calls translate_url()
+      with a URL matching a pattern that has an optional named group which is absent,
+      verifying the returned URL is correct rather than corrupted.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing translate_url() function signature and its
+      behavior for URLs with no optional groups (non-None kwargs are passed through
+      to reverse() unchanged).
+    weight: 3
+  - id: I2
+    description: Confirms that existing test assertions in tests/i18n/patterns/tests.py
+      (e.g., translate_url('/en/users/', 'nl') returning '/nl/gebruikers/') are not
+      removed or weakened.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when translate_url() resolves a URL whose pattern contains
+      optional named groups that were absent, the reconstructed URL does not contain
+      the literal string 'None' in place of the missing group.
+    weight: 3
+  - id: R2
+    description: Ensures that translate_url() still returns the original URL unchanged
+      when no translated version exists (the NoReverseMatch fallback path is preserved).
+    weight: 2

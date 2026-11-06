@@ -1,0 +1,75 @@
+metadata:
+  task_summary: Fix multiple FilteredRelation instances with different conditions
+    on the same relation being collapsed into a single SQL JOIN instead of generating
+    separate JOINs.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies Join.equals() in django/db/models/sql/datastructures.py
+      so that filtered_relation is no longer unconditionally excluded from the identity
+      comparison used to decide join reuse.
+    weight: 3
+  - id: FC2
+    description: Adds a conditional branch in the join-reuse path (in datastructures.py
+      or sql/query.py) that prevents a join carrying a non-None filtered_relation
+      from being reused as a substitute for a join carrying a different filtered_relation.
+    weight: 2
+  - id: FC3
+    description: Confines diff changes to the join-reuse code path without modifying
+      unrelated subsystems such as the database compiler, migration framework, or
+      ORM aggregation layer.
+    weight: 2
+  - id: FC4
+    description: Adds or updates tests (in tests/filtered_relation/ or similar) that
+      exercise two FilteredRelation aliases pointing to the same relation_name but
+      with different condition Q() objects.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Adds code that causes two FilteredRelation objects with the same
+      relation_name but different condition values to produce two distinct SQL JOINs
+      rather than collapsing into one.
+    weight: 3
+  - id: SA2
+    description: Preserves correct behavior when alias() or annotate() is called with
+      multiple FilteredRelation objects whose relation_name values are different,
+      ensuring each still generates its own independent JOIN as before.
+    weight: 2
+  - id: SA3
+    description: Preserves join reuse when two lookups traverse the same base relation
+      without any FilteredRelation, so that the fix does not cause unnecessary join
+      duplication in the non-FilteredRelation path.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public FilteredRelation class API in django/db/models/query_utils.py
+      (constructor accepting relation_name and condition keyword argument, plus alias
+      and path attributes) is not changed.
+    weight: 2
+  - id: I2
+    description: Confirms that no existing test cases in the filtered_relation test
+      suite are deleted, marked with skip decorators, or otherwise weakened to accommodate
+      the fix.
+    weight: 2
+  - id: I3
+    description: Avoids large-scale renames of query-building symbols (Query, JoinPromoter,
+      BaseTable, Join) or introduction of new third-party dependencies beyond what
+      is needed to fix the join-reuse bug.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Adds a code path in Join.equals() or the surrounding join() method
+      that returns False (or an equivalent non-reuse signal) when both joins carry
+      a non-None filtered_relation whose alias or condition differs.
+    weight: 3
+  - id: R2
+    description: Preserves the code path where two Join objects with filtered_relation=None
+      on both sides are still considered equal for reuse purposes, maintaining the
+      existing join-sharing optimisation.
+    weight: 2
+  - id: R3
+    description: Ensures that FilteredRelation.alias (set via add_filtered_relation
+      storing to self._filtered_relations) participates in join-reuse comparison,
+      so that two aliases with identical underlying tables but different FilteredRelation
+      aliases are not collapsed into one join.
+    weight: 2

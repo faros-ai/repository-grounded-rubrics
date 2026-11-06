@@ -1,0 +1,67 @@
+metadata:
+  task_summary: Fix 404 links in SVG inheritance diagrams embedded in non-root HTML
+    pages by computing relative URLs from the SVG file location instead of hardcoding
+    '../'.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies `html_visit_inheritance_diagram` in `sphinx/ext/inheritance_diagram.py`
+      to replace the hardcoded `'../'` prefix for the SVG `refuri` case with a dynamically
+      computed relative path from the SVG image directory to the target URL.
+    weight: 3
+  - id: FC2
+    description: Modifies `html_visit_inheritance_diagram` in `sphinx/ext/inheritance_diagram.py`
+      to replace the hardcoded `'../'` prefix for the SVG `refid` case with a dynamically
+      computed relative path from the SVG image directory to the target URL.
+    weight: 3
+  - id: FC3
+    description: Confines all functional changes to `sphinx/ext/inheritance_diagram.py`
+      (and optionally test files), without introducing unrelated modifications to
+      other production source files.
+    weight: 2
+  - id: FC4
+    description: Uses a utility such as `posixpath.relpath`, `relative_uri`, or an
+      equivalent path-computation helper (anywhere in the diff) to derive the correct
+      relative URL from the SVG's location to the target, rather than any fixed string
+      prefix.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause described in the PR: SVG links inside an
+      `<object>` tag are resolved relative to the SVG file stored in `_images/`, so
+      the fix must make URLs relative to that image directory rather than the HTML
+      page''s directory.'
+    weight: 3
+  - id: SA2
+    description: Preserves the existing non-SVG (PNG) URL behavior in `html_visit_inheritance_diagram`,
+      where `refuri` nodes yield `child.get('refuri')` directly and `refid` nodes
+      yield `'#' + child.get('refid')` without any path adjustment.
+    weight: 2
+  - id: SA3
+    description: Adds or updates a test that exercises the SVG inheritance diagram
+      for a source page in a subdirectory (non-root docname), verifying the generated
+      SVG URLs are correct relative to the `_images/` location.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the `graphviz_output_format == 'SVG'` conditional branch
+      in `html_visit_inheritance_diagram` is preserved, keeping the SVG and non-SVG
+      paths distinct.
+    weight: 2
+  - id: I2
+    description: Confirms that no existing tests in `tests/test_ext_inheritance_diagram.py`
+      are weakened, removed, or marked as skipped as part of the fix.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures SVG diagram links for a root-level document (e.g., `docname='index'`)
+      remain correct after the fix, since the image directory `_images/` is one level
+      below the outdir root and the relative path from `_images/` to a root-level
+      target must not include an extra `../`.
+    weight: 3
+  - id: R2
+    description: Ensures SVG diagram links for a document nested more than one level
+      deep (e.g., `docname='my_package/sub/page'`) resolve correctly, since a hardcoded
+      `'../'` would produce a path one directory too high and the fix must account
+      for variable nesting depth.
+    weight: 3

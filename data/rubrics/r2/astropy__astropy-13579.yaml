@@ -1,0 +1,60 @@
+metadata:
+  task_summary: Fix `world_to_pixel_values` in `SlicedLowLevelWCS` to use the correct
+    world coordinate values for dropped dimensions instead of the hardcoded placeholder
+    `1.`.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies `world_to_pixel_values` in `astropy/wcs/wcsapi/wrappers/sliced_wcs.py`
+      to replace the hardcoded `1.` placeholder (appended for dropped world dimensions)
+      with the actual world coordinate values derived from the sliced pixel positions.
+    weight: 3
+  - id: FC2
+    description: Confines production-code changes to `astropy/wcs/wcsapi/wrappers/sliced_wcs.py`
+      (the `SlicedLowLevelWCS` class) without modifying unrelated files or introducing
+      new dependencies.
+    weight: 2
+  - id: FC3
+    description: Adds a test case (in `astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py`
+      or equivalent) that exercises `world_to_pixel_values` on a sliced WCS whose
+      underlying WCS has a non-trivial PC matrix coupling spectral and spatial dimensions,
+      verifying the returned pixel values are consistent with the unsliced WCS.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements logic in `world_to_pixel_values` that computes the correct
+      world coordinate value for each dropped world dimension (e.g., by calling `_pixel_to_world_values_all`
+      with the fixed/sliced pixel positions) instead of using `1.` as a stand-in.
+    weight: 3
+  - id: SA2
+    description: Ensures that after the fix, calling `world_to_pixel_values` on a
+      `SlicedLowLevelWCS` obtained by slicing a 3D WCS to a single wavelength plane
+      returns the same spatial pixel values as calling `world_to_pixel_values` on
+      the full 3D WCS with the sliced wavelength value, addressing the erroneous result
+      described in the PR.
+    weight: 3
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that `pixel_to_world_values` and `_pixel_to_world_values_all`
+      in `SlicedLowLevelWCS` are left unmodified, preserving their correct existing
+      behavior as described in the PR.
+    weight: 2
+  - id: I2
+    description: Confirms that existing `world_to_pixel_values` test assertions (e.g.,
+      `assert_allclose(wcs.world_to_pixel_values(...), (...))` in `test_spectral_slice`,
+      `test_celestial_slice`, `test_celestial_range_rot`) are not relaxed, removed,
+      or weakened.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when a world dimension is dropped by slicing (not present
+      in `_world_keep`), the fixed world coordinate value supplied to the underlying
+      `world_to_pixel_values` call corresponds to the actual world value at the sliced
+      pixel position rather than an arbitrary constant such as `1.`, so that coupled
+      WCS dimensions (non-trivial PC matrix) do not produce erroneous pixel results.
+    weight: 3
+  - id: R2
+    description: Preserves backward-compatible behavior for sliced WCSes where dropped
+      world dimensions are uncoupled from kept pixel dimensions (diagonal or block-diagonal
+      PC matrix), so that previously correct results are not regressed.
+    weight: 2

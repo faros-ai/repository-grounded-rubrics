@@ -1,0 +1,50 @@
+metadata:
+  task_summary: Fix `literalinclude` so that `:dedent:` is applied only to the included
+    file content and not to the text provided via `:prepend:` or `:append:` options.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies `sphinx/directives/code.py` and only that production source
+      file to address the dedent-vs-prepend/append ordering bug.
+    weight: 3
+  - id: FC2
+    description: Reorders the `filters` list inside `LiteralIncludeReader.read` so
+      that `self.dedent_filter` appears before both `self.prepend_filter` and `self.append_filter`.
+    weight: 3
+  - id: FC3
+    description: Leaves `prepend_filter` and `append_filter` method bodies themselves
+      unchanged, preserving the `lines.insert(0, prepend + '\n')` and `lines.append(append
+      + '\n')` logic.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that `:dedent:` strips indentation only from the lines read
+      from the included file, so that whitespace in `:prepend:` or `:append:` values
+      is not affected by dedenting.
+    weight: 3
+  - id: SA2
+    description: Ensures the fix allows `:prepend:` text with meaningful leading whitespace
+      (e.g., spaces before `<plugin>`) to appear verbatim in the output, matching
+      the expected behavior described in the PR.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing tests for `prepend` and `append` (such as
+      `test_LiteralIncludeReader_prepend`) are not weakened, removed, or marked as
+      skipped.
+    weight: 2
+  - id: I2
+    description: Confirms that the public option names (`prepend`, `append`, `dedent`)
+      in `LiteralInclude.option_spec` remain unchanged and are not renamed or removed.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Maintains backward compatibility for uses of `:dedent:` without `:prepend:`
+      or `:append:`, so that `dedent_filter` still strips the correct number of leading
+      whitespace characters from the included file lines.
+    weight: 3
+  - id: R2
+    description: Ensures that when both `:dedent:` and `:prepend:` are used together,
+      the `non-whitespace stripped by dedent` warning is not incorrectly triggered
+      for the prepended text.
+    weight: 2

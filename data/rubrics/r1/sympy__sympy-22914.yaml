@@ -1,0 +1,57 @@
+metadata:
+  task_summary: Add _print_Min and _print_Max methods to PythonCodePrinter so that
+    sympy Min/Max expressions are rendered as Python's built-in min()/max() calls.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Adds a _print_Min method somewhere in sympy/printing/pycode.py (in
+      PythonCodePrinter or AbstractPythonCodePrinter) that maps sympy Min to Python's
+      built-in min function.
+    weight: 3
+  - id: FC2
+    description: Adds a _print_Max method somewhere in sympy/printing/pycode.py (in
+      PythonCodePrinter or AbstractPythonCodePrinter) that maps sympy Max to Python's
+      built-in max function.
+    weight: 3
+  - id: FC3
+    description: Confines changes to sympy/printing/pycode.py (and optionally its
+      test file), without modifying unrelated printer files such as numpy.py, c.py,
+      or cxx.py.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements _print_Min to produce output matching 'min(...)' where
+      the arguments are the recursively-printed args of the Min expression, consistent
+      with the pattern shown in the PR description.
+    weight: 3
+  - id: SA2
+    description: Implements _print_Max to produce output matching 'max(...)' where
+      the arguments are the recursively-printed args of the Max expression, consistent
+      with the pattern shown in the PR description.
+    weight: 3
+  - id: SA3
+    description: Ensures neither _print_Min nor _print_Max falls through to _print_not_supported,
+      so that pycode(Min(a, b)) and pycode(Max(a, b)) no longer emit the '# Not supported
+      in Python' comment.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Avoids weakening or removing any existing test assertions in the
+      test suite (no deleted assert lines or skip decorators introduced in test files).
+    weight: 2
+  - id: I2
+    description: Preserves the public interface of pycode() and PythonCodePrinter,
+      adding only new printer methods without altering existing method signatures
+      or class hierarchy.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that _print_Min and _print_Max iterate over all expr.args,
+      so that Min/Max expressions with more than two arguments (e.g., Min(a, b, c))
+      produce a correct multi-argument min()/max() call rather than omitting arguments.
+    weight: 2
+  - id: R2
+    description: Ensures each argument of Min/Max is recursively printed via self._print(arg),
+      so that nested expressions (e.g., Min(a**2, b+1)) are printed correctly rather
+      than using repr or str.
+    weight: 2

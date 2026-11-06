@@ -1,0 +1,51 @@
+metadata:
+  task_summary: Fix RenameContentType._rename() to pass using=db to content_type.save()
+    so the content type is updated on the correct database, not the default database.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/contrib/contenttypes/management/__init__.py and no
+      other unrelated production files, keeping the diff minimal and confined to the
+      relevant location.
+    weight: 2
+  - id: FC2
+    description: Adds the using=db keyword argument to the content_type.save() call
+      inside the _rename method of RenameContentType, so the call reads content_type.save(using=db,
+      update_fields={'model'}) or equivalent.
+    weight: 3
+  - id: FC3
+    description: Leaves the surrounding transaction.atomic(using=db) context manager
+      and the db = schema_editor.connection.alias assignment unchanged, touching only
+      the save() call.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the exact bug described in the PR: content_type.save()
+      previously operated on the default database instead of the db derived from schema_editor.connection.alias,
+      which the patch corrects.'
+    weight: 3
+  - id: SA2
+    description: Preserves the update_fields={'model'} argument on the content_type.save()
+      call so that only the model field is updated, matching the original intent.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public interface of RenameContentType (its __init__
+      signature and rename_forward/rename_backward methods) is not altered.
+    weight: 2
+  - id: I2
+    description: Confirms that no existing test assertions are removed or weakened;
+      any existing test for content type rename behavior remains intact.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when _rename is called with a non-default db alias (from
+      schema_editor.connection.alias), the content_type.save() call routes to that
+      alias rather than falling through to the default database, preventing OperationalError
+      on absent default tables.
+    weight: 3
+  - id: R2
+    description: Ensures the IntegrityError fallback branch (which resets content_type.model
+      to old_model) still executes correctly after the fix, since the fix changes
+      only the routing of the save, not the exception-handling logic.
+    weight: 2

@@ -1,0 +1,56 @@
+metadata:
+  task_summary: Fix IndexError raised by sqrtdenest when processing expressions with
+    complex (imaginary) components that produce an empty surds list in split_surds/_split_gcd.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies code in sympy/simplify/sqrtdenest.py or sympy/simplify/radsimp.py
+      to guard against the empty-surds path that causes the IndexError.
+    weight: 3
+  - id: FC2
+    description: Confines the fix to the minimal set of functions involved in the
+      error traceback (such as _sqrt_match, split_surds, or _split_gcd) without unrelated
+      file churn.
+    weight: 2
+  - id: FC3
+    description: Adds a test case in sympy/simplify/tests/test_sqrtdenest.py that
+      calls sqrtdenest with the expression (3 - sqrt(2)*sqrt(4 + 3*I) + 3*I)/2 and
+      asserts it returns the expression unchanged.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that sqrtdenest returns the input expression unchanged (rather
+      than raising IndexError) when the expression contains imaginary components such
+      as sqrt(4 + 3*I).
+    weight: 3
+  - id: SA2
+    description: Adds a guard condition that detects when split_surds or _split_gcd
+      would be called with an empty surds list (for example, when all Pow-free terms
+      are present in coeff_muls) and handles it by returning early or skipping the
+      split_surds call.
+    weight: 3
+  - id: SA3
+    description: Preserves the existing sqrtdenest behavior for expressions that can
+      be denested (no regression on real-valued nested square roots).
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing test assertions in test_sqrtdenest.py are
+      weakened, removed, or marked as expected-failures as part of the fix.
+    weight: 3
+  - id: I2
+    description: Confirms that the public signature of sqrtdenest (accepting expr
+      and optional max_iter) is preserved without modification.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures sqrtdenest does not raise IndexError when called with expressions
+      that produce an empty surds list in split_surds (e.g., expressions involving
+      I such as 4 + 3*I), by structurally adding a check before the _split_gcd call
+      or before invoking split_surds.
+    weight: 3
+  - id: R2
+    description: Ensures the fix does not introduce an infinite loop or unnecessary
+      repeated processing by returning or short-circuiting as soon as the expression
+      is determined to be non-denesTable.
+    weight: 2

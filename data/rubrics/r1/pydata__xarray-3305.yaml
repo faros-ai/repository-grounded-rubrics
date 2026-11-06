@@ -1,0 +1,58 @@
+metadata:
+  task_summary: Fix DataArray.quantile to honor the keep_attrs parameter by propagating
+    it through Variable.quantile and Dataset.quantile.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies Variable.quantile (in xarray/core/variable.py) to accept
+      a keep_attrs parameter.
+    weight: 3
+  - id: FC2
+    description: Modifies Variable.quantile (in xarray/core/variable.py) to copy self._attrs
+      into the returned Variable when keep_attrs is True (or when the global option
+      resolves to True).
+    weight: 3
+  - id: FC3
+    description: Modifies Dataset.quantile (in xarray/core/dataset.py) to pass keep_attrs
+      (or the resolved keep_attrs value) when calling var.quantile(...).
+    weight: 3
+  - id: FC4
+    description: Confines changes to files directly involved in the quantile keep_attrs
+      propagation (e.g., xarray/core/variable.py, xarray/core/dataset.py) without
+      modifying unrelated modules.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that calling DataArray.quantile with keep_attrs=True returns
+      a DataArray whose attrs match the original DataArray's attrs (as described in
+      the MCVE).
+    weight: 3
+  - id: SA2
+    description: Ensures that calling DataArray.quantile with keep_attrs=False (or
+      by default) returns a DataArray with empty attrs, preserving the existing default
+      behavior.
+    weight: 2
+  - id: SA3
+    description: Adds or updates a test that verifies DataArray.quantile with keep_attrs=True
+      preserves the source DataArray's attributes.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public signature of DataArray.quantile (including
+      the keep_attrs parameter) is not removed or renamed.
+    weight: 3
+  - id: I2
+    description: Confirms that no existing test for quantile behavior is weakened,
+      skipped, or deleted.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures Variable.quantile resolves a None keep_attrs argument using
+      _get_keep_attrs(default=False) consistent with how other Variable reduction
+      methods (e.g., Variable.reduce) handle the global keep_attrs option.
+    weight: 2
+  - id: R2
+    description: Ensures Dataset.quantile propagates the keep_attrs value to var.quantile
+      so that variable-level attributes are preserved when keep_attrs=True, not just
+      the dataset-level attrs.
+    weight: 3

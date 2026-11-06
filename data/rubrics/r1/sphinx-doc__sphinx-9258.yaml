@@ -1,0 +1,63 @@
+metadata:
+  task_summary: 'Add support for the union type operator `|` (vertical bar/pipe) in
+    docstring type fields such as `:type text: bytes | str` in the Python domain.'
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `make_xrefs` method in `PyXrefMixin` (in `sphinx/domains/python.py`)
+      to include the pipe character `|` as a recognized delimiter so that type strings
+      like `bytes | str` are split into individual cross-reference targets.
+    weight: 3
+  - id: FC2
+    description: Adds handling for `ast.BitOr` or `ast.BinOp` in `_parse_annotation`
+      (in `sphinx/domains/python.py`) that emits a `desc_sig_punctuation` node containing
+      `|` when a union type expression is parsed via the AST.
+    weight: 3
+  - id: FC3
+    description: Confines changes to `sphinx/domains/python.py` and/or `sphinx/util/docfields.py`
+      without introducing unrelated file modifications.
+    weight: 2
+  - id: FC4
+    description: 'Adds or updates tests in the Python-domain test file exercising
+      the `|` union type operator in at least one of: a function parameter annotation
+      (`.. py:function::`), a `:type:` field, or a `:param type name:` docstring field.'
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Ensures that a `:type text: bytes | str` docstring field produces
+      two separate `pending_xref` nodes (one targeting `bytes`, one targeting `str`)
+      rather than a single unsplit cross-reference to the whole string `bytes | str`.'
+    weight: 3
+  - id: SA2
+    description: Renders the `|` separator between the two types using `desc_sig_punctuation`
+      (not plain text or an emphasis node), consistent with how other type punctuation
+      such as `[` and `]` is rendered.
+    weight: 2
+  - id: SA3
+    description: 'Supports the union-type syntax for Python type annotations in function
+      signatures (e.g., `int | None` in `.. py:function:: hello(age: int | None)`)
+      by routing through `_parse_annotation` with `ast.BitOr` handling.'
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves existing behavior for non-pipe type delimiters (`or`, `,`,
+      `[`, `]`, `(`, `)`, `...`) in `PyXrefMixin.make_xrefs` by keeping the existing
+      `delims` pattern entries alongside any new pipe-related additions.
+    weight: 3
+  - id: I2
+    description: Does not weaken or skip any existing tests in `test_domain_py.py`
+      such as `test_parse_annotation`, `test_info_field_list`, or `test_pyfunction_signature`.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Produces individually linked cross-reference nodes for each type
+      in a pipe-separated type field so that `bytes | str` generates two clickable
+      `pending_xref` nodes (one for `bytes`, one for `str`) rather than a broken or
+      unlinked combined reference.
+    weight: 3
+  - id: R2
+    description: Falls back gracefully (via the `except SyntaxError` branch in `_parse_annotation`)
+      when the type string cannot be parsed by the AST, treating the whole string
+      as a single cross-reference, so invalid or non-Python type strings do not crash
+      the build.
+    weight: 2

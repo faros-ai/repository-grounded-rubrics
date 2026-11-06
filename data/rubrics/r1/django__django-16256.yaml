@@ -1,0 +1,90 @@
+metadata:
+  task_summary: Add proper async acreate(), aget_or_create(), and aupdate_or_create()
+    methods to related managers in related_descriptors.py so they delegate to the
+    manager's own sync methods rather than bypassing FK/M2M logic inherited from QuerySet.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Adds async acreate() method inside create_reverse_many_to_one_manager
+      (the RelatedManager class in related_descriptors.py), distinct from the QuerySet-inherited
+      version.
+    weight: 3
+  - id: FC2
+    description: Adds async aget_or_create() and aupdate_or_create() methods inside
+      create_reverse_many_to_one_manager (the RelatedManager class in related_descriptors.py).
+    weight: 3
+  - id: FC3
+    description: Adds async acreate() method inside create_forward_many_to_many_manager
+      (the ManyRelatedManager class in related_descriptors.py), distinct from the
+      QuerySet-inherited version.
+    weight: 3
+  - id: FC4
+    description: Adds async aget_or_create() and aupdate_or_create() methods inside
+      create_forward_many_to_many_manager (the ManyRelatedManager class in related_descriptors.py).
+    weight: 3
+  - id: FC5
+    description: Adds import of sync_to_async from asgiref.sync somewhere in related_descriptors.py
+      to support the async wrappers.
+    weight: 3
+  - id: FC6
+    description: Sets alters_data = True on each new async method (acreate, aget_or_create,
+      aupdate_or_create) added in related_descriptors.py, consistent with the pattern
+      used for their sync counterparts.
+    weight: 2
+  - id: FC7
+    description: Confines all changes to django/db/models/fields/related_descriptors.py
+      (and optionally test files), with no unrelated file modifications.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements acreate() in RelatedManager to call self.create() (the
+      related manager's own method that sets self.field.name and calls _check_fk_val)
+      via sync_to_async, not the QuerySet acreate().
+    weight: 3
+  - id: SA2
+    description: Implements acreate() in ManyRelatedManager to call self.create()
+      (the related manager's own method that calls self.add() for through-table handling
+      and accepts through_defaults) via sync_to_async.
+    weight: 3
+  - id: SA3
+    description: Implements aget_or_create() and aupdate_or_create() in RelatedManager
+      to delegate to the manager's own get_or_create() and update_or_create() via
+      sync_to_async, preserving FK field injection and _check_fk_val logic.
+    weight: 3
+  - id: SA4
+    description: Implements aget_or_create() and aupdate_or_create() in ManyRelatedManager
+      to delegate to the manager's own get_or_create() and update_or_create() via
+      sync_to_async, preserving the through_defaults parameter and self.add() call
+      for newly created objects.
+    weight: 3
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing sync create(), get_or_create(), and update_or_create()
+      method signatures and behavior in both RelatedManager and ManyRelatedManager
+      without modification.
+    weight: 3
+  - id: I2
+    description: Avoids weakening or removing any existing tests related to async
+      QuerySet methods or related manager methods.
+    weight: 2
+  - id: I3
+    description: Avoids introducing the async methods as direct QuerySet-level overrides
+      or monkey-patching; places them inside the dynamically constructed RelatedManager
+      and ManyRelatedManager class bodies.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that calling acreate() on a reverse many-to-one related manager
+      (e.g., parent.children.acreate()) will automatically inject the FK field (self.field.name)
+      onto the created object, via delegation to the sync create() method.
+    weight: 3
+  - id: R2
+    description: Ensures that calling acreate() on a many-to-many related manager
+      will invoke self.add() on the newly created object to register the M2M relationship,
+      via delegation to the sync create() method.
+    weight: 3
+  - id: R3
+    description: Ensures the new async methods on related managers are awaitable coroutines
+      (defined with async def and using sync_to_async), making them safe to use in
+      async contexts.
+    weight: 2

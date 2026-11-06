@@ -1,0 +1,56 @@
+metadata:
+  task_summary: Fix PolyElement.as_expr() in sympy/polys/rings.py so that user-supplied
+    symbols are actually used in the returned expression instead of always being overridden
+    by self.ring.symbols.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the as_expr method inside sympy/polys/rings.py and no other
+      unrelated files.
+    weight: 3
+  - id: FC2
+    description: Removes or restructures the else branch in as_expr that unconditionally
+      assigns symbols = self.ring.symbols, so the fallback to self.ring.symbols only
+      occurs when no symbols are passed.
+    weight: 3
+  - id: FC3
+    description: Preserves the ValueError raise for a wrong number of symbols (e.g.,
+      the check 'len(symbols) != self.ring.ngens') in the updated as_expr method.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that when the correct number of symbols is passed to as_expr,
+      the returned expression uses those symbols rather than self.ring.symbols, addressing
+      the bug described in the PR where f.as_expr(U, V, W) returned an expression
+      in x, y, z instead of u, v, w.
+    weight: 3
+  - id: SA2
+    description: Ensures that calling as_expr with no arguments continues to return
+      an expression in self.ring.symbols (backward-compatible zero-argument behavior).
+    weight: 2
+  - id: SA3
+    description: Adds or updates a test in sympy/polys/tests/test_rings.py that exercises
+      as_expr with custom symbols (e.g., u, v, w) and asserts the returned expression
+      uses those symbols.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public signature def as_expr(self, *symbols) is
+      preserved without adding, removing, or renaming parameters.
+    weight: 2
+  - id: I2
+    description: 'Confirms that the existing raises(ValueError, lambda: f.as_expr(X))
+      test case in test_PolyElement_as_expr is not removed or weakened.'
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: When as_expr is called with the correct number of symbols (matching
+      self.ring.ngens), the symbols argument is forwarded to expr_from_dict instead
+      of self.ring.symbols, so the output expression contains the user-supplied symbol
+      names.
+    weight: 3
+  - id: R2
+    description: When as_expr is called with zero arguments, the fallback symbols
+      = self.ring.symbols path is still reached so that expr_from_dict receives the
+      ring's own generators, preserving no-argument behavior.
+    weight: 2

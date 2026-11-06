@@ -1,0 +1,57 @@
+metadata:
+  task_summary: Fix diophantine() returning incomplete results when syms order differs
+    from alphabetical order and permute=True is specified.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the diophantine function in sympy/solvers/diophantine.py
+      and no other unrelated files.
+    weight: 2
+  - id: FC2
+    description: Adds or adjusts code in the syms-reordering branch (the block where
+      syms != var is detected and a recursive call is made) to forward the permute
+      argument to the recursive call of diophantine.
+    weight: 3
+  - id: FC3
+    description: Keeps the change minimal and local to the syms-handling early-return
+      block inside diophantine, without restructuring unrelated logic such as the
+      do_permute_signs or do_permute_signs_var paths.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that the recursive call inside the syms != var branch passes
+      permute=True (or the permute parameter variable) so that permutations are computed
+      before reordering by syms.
+    weight: 3
+  - id: SA2
+    description: Preserves the syms-based result reordering logic (the dict_sym_index
+      mapping used to produce tuples ordered by the caller-supplied syms sequence)
+      unchanged or functionally equivalent.
+    weight: 2
+  - id: SA3
+    description: Adds a test case (anywhere in the test suite) that calls diophantine
+      with syms=(n, m) or another non-alphabetical syms order and permute=True and
+      asserts that all permuted solutions are returned, matching the 8-element set
+      shown in the PR description.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public signature of diophantine (parameters eq,
+      param, syms, permute) is not altered by the patch.
+    weight: 3
+  - id: I2
+    description: Confirms that no existing test assertions in sympy/solvers/tests/test_diophantine.py
+      are weakened, removed, or marked as skip/xfail by the patch.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that calling diophantine with syms in non-alphabetical order
+      and permute=True produces the same number of solutions as calling it with syms
+      in alphabetical order and permute=True (both should return 8 solutions for the
+      n**4 + m**4 - 2**4 - 3**4 example from the PR).
+    weight: 3
+  - id: R2
+    description: Ensures that calling diophantine without syms or with syms matching
+      the default alphabetical order continues to return the same results as before
+      the patch (i.e., no regression for the non-syms-reordering code path).
+    weight: 2

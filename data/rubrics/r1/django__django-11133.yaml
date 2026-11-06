@@ -1,0 +1,58 @@
+metadata:
+  task_summary: Fix HttpResponse so that passing a memoryview object as content yields
+    the correct bytes instead of a string representation like b'<memory at 0x...>'.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/http/response.py and no other production files, keeping
+      the change local to the response module.
+    weight: 2
+  - id: FC2
+    description: Adds a memoryview-aware branch inside make_bytes (in HttpResponseBase)
+      or inside the content setter (in HttpResponse) so that memoryview values are
+      converted to bytes rather than falling through to the str(value).encode() fallback.
+    weight: 3
+  - id: FC3
+    description: Uses bytes(value) or value.tobytes() (or an equivalent expression
+      that materializes the buffer) when the value is a memoryview instance, mirroring
+      how the existing bytes branch uses bytes(value).
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the exact scenario from the PR description: HttpResponse(memoryview(b''My
+      Content'')) produces b''My Content'' rather than b''<memory at 0x...>''.'
+    weight: 3
+  - id: SA2
+    description: 'Preserves correct handling of plain bytes input: HttpResponse(b''My
+      Content'') still yields b''My Content'' unchanged.'
+    weight: 2
+  - id: SA3
+    description: 'Preserves correct handling of plain str input: HttpResponse(''My
+      Content'') still yields b''My Content'' (encoded in the response charset).'
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing test cases in tests/responses/tests.py
+      or tests/httpwrappers/tests.py are removed, skipped, or weakened.
+    weight: 2
+  - id: I2
+    description: Confirms that the public API of HttpResponse, HttpResponseBase.make_bytes,
+      and the content property setter remain unchanged in signature (no new required
+      arguments introduced).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that iterating a memoryview in the content setter does not
+      produce per-integer chunks (since memoryview iteration yields integers, not
+      bytes), by either excluding memoryview from the iterator path or by handling
+      it before the iterator branch.
+    weight: 3
+  - id: R2
+    description: 'Ensures backward compatibility: bytes and str content paths are
+      unaffected by the memoryview fix and continue to behave as before.'
+    weight: 2
+  - id: R3
+    description: Adds a test case (anywhere in the diff) that exercises HttpResponse
+      with a memoryview argument and asserts the resulting content equals the expected
+      bytes.
+    weight: 1

@@ -1,0 +1,67 @@
+metadata:
+  task_summary: 'Fix the :kbd: role in KeyboardTransform so that compound-key separators
+    (-, +, ^) used as standalone keystrokes or as part of compound keys are not incorrectly
+    parsed as separators.'
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the parsing logic inside `KeyboardTransform` in `sphinx/builders/html/transforms.py`,
+      replacing or refining the naive `pattern = re.compile(r'(-|\+|\^|\s+)')` to
+      avoid treating separator characters as splits when they occupy a keystroke position.
+    weight: 3
+  - id: FC2
+    description: Confines all changes to `sphinx/builders/html/transforms.py` and/or
+      `tests/` files only, without introducing unrelated file churn in other Sphinx
+      modules.
+    weight: 2
+  - id: FC3
+    description: Updates or adds test cases in the test suite that exercise `:kbd:`-``,
+      `:kbd:`+``, and `:kbd:`Shift-+`` (or equivalent edge-case inputs) to verify
+      correct HTML output for separator-as-keystroke scenarios.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements logic so that a single-character keystroke input of `-`,
+      `+`, or `^` (i.e., the entire content is just the separator character) produces
+      a single `<kbd>` element rather than an outer wrapper with two empty inner `<kbd>`
+      elements.
+    weight: 3
+  - id: SA2
+    description: Implements logic so that compound keystroke input like `Shift-+`
+      correctly identifies the `-` between `Shift` and `+` as a separator and `+`
+      as a non-empty keystroke, avoiding empty inner `<kbd>` elements in the output.
+    weight: 3
+  - id: SA3
+    description: Preserves the existing correct behavior for compound keystrokes such
+      as `Control+X` and `M-x  M-s`, where separator characters appear strictly between
+      two non-empty key tokens.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the existing `KeyboardTransform` public interface (class
+      name, `default_priority`, `builders` attribute, `run` method signature) is preserved
+      and not renamed or removed.
+    weight: 2
+  - id: I2
+    description: Confirms that no existing kbd-role test cases (e.g., for `space`,
+      `Control+X`, `M-x  M-s`) are weakened, removed, or have their expected output
+      changed to accommodate the fix.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when the kbd content is a single separator character
+      (`-`, `+`, or `^`) with no surrounding non-empty tokens, the transform skips
+      splitting and emits the input as-is inside a single `<kbd>` node (i.e., the
+      `len(parts) == 1` or equivalent early-exit guard covers this case).
+    weight: 3
+  - id: R2
+    description: Ensures that separator characters directly adjacent to another separator
+      or at the start/end of the token list are treated as keystrokes rather than
+      separators, preventing blank inner `<kbd>` elements from being emitted in the
+      output.
+    weight: 3
+  - id: R3
+    description: Maintains backward-compatible behavior where whitespace (`\s+`) sequences
+      continue to act as valid compound-key separators, so inputs like `M-x  M-s`
+      are still split into sub-`<kbd>` elements.
+    weight: 2

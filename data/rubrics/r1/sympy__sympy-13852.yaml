@@ -1,0 +1,59 @@
+metadata:
+  task_summary: Fix polylog expansion to remove spurious exp_polar(-I*pi) in the s=1
+    case and add evaluation for polylog(2, Rational(1,2)) giving -log(2)**2/2 + pi**2/12.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the _eval_expand_func method of the polylog class in sympy/functions/special/zeta_functions.py
+      to change the s==1 branch.
+    weight: 3
+  - id: FC2
+    description: Removes the expression '-log(1 + exp_polar(-I*pi)*z)' from the s==1
+      branch in polylog._eval_expand_func, replacing it with a form that does not
+      use exp_polar.
+    weight: 3
+  - id: FC3
+    description: Adds evaluation logic (in polylog.eval or polylog._eval_expand_func
+      in zeta_functions.py) for polylog when the second argument z is a specific Rational
+      value such as Rational(1,2).
+    weight: 2
+  - id: FC4
+    description: Confines all changes to sympy/functions/special/zeta_functions.py
+      and its test file, without modifying unrelated modules.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements the s==1 expansion of polylog such that expand_func(polylog(1,
+      z)) returns -log(1-z) (or an equivalent expression without exp_polar).
+    weight: 3
+  - id: SA2
+    description: Adds evaluation so that polylog(2, Rational(1,2)) or expand_func(polylog(2,
+      Rational(1,2))) returns -log(2)**2/2 + pi**2/12 (matching the value described
+      in the PR).
+    weight: 3
+  - id: SA3
+    description: Ensures that after the fix, the derivative of expand_func(polylog(1,
+      z)) with respect to z agrees with the derivative of polylog(1, z) (i.e., no
+      exp_polar-induced discrepancy in the derivative as described in the PR).
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing polylog evaluation cases (z==0 returns 0,
+      z==1 returns zeta(s), z==-1 returns -dirichlet_eta(s)) are preserved in the
+      diff and not removed or weakened.
+    weight: 3
+  - id: I2
+    description: Confirms that the test for polylog(0, z) and polylog with negative-integer
+      s expansions in test_polylog_expansion are not removed or made trivially-passing.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures expand_func(polylog(1, z)) no longer contains exp_polar in
+      its result, so that the expression is a plain -log(1 - z) valid across the same
+      branch cut as polylog(1, z).
+    weight: 3
+  - id: R2
+    description: Ensures the evaluation of polylog(2, Rational(1,2)) produces a closed-form
+      result involving pi**2 and log(2)**2 rather than returning the unevaluated polylog
+      expression.
+    weight: 2

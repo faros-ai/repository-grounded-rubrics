@@ -1,0 +1,57 @@
+metadata:
+  task_summary: Fix GaussianMixture.fit_predict to return labels consistent with predict
+    when n_init > 1 by ensuring the final e-step uses best_params.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the fit_predict method in sklearn/mixture/base.py to reorder
+      the call to _set_parameters(best_params) so it occurs before the final _e_step(X)
+      call.
+    weight: 3
+  - id: FC2
+    description: Confines changes to the fit_predict logic in sklearn/mixture/base.py
+      without modifying unrelated methods such as predict, fit, _e_step, or _m_step.
+    weight: 2
+  - id: FC3
+    description: Updates or extends test_gaussian_mixture_fit_predict in the test
+      file to exercise the n_init > 1 case (e.g., adds a parametrize entry or explicitly
+      sets n_init > 1 inside the test body).
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that fit_predict returns labels derived from the best parameters
+      (highest lower bound) rather than from whichever initialization ran last, so
+      that fit_predict(X) equals fit(X).predict(X) when n_init > 1.
+    weight: 3
+  - id: SA2
+    description: Preserves the comment in fit_predict stating that the final e-step
+      guarantees consistency between fit_predict(X) and fit(X).predict(X) for any
+      value of max_iter, tol, and random_state.
+    weight: 1
+  - id: SA3
+    description: Retains the existing behavior that _set_parameters(best_params),
+      self.n_iter_, and self.lower_bound_ are all set to the best-run values after
+      the loop, matching pre-fix semantics for the fitted model state.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Avoids weakening existing assertions in test_gaussian_mixture_fit_predict
+      (e.g., does not remove assert_array_equal(Y_pred1, Y_pred2) or relax it to a
+      non-equality check).
+    weight: 3
+  - id: I2
+    description: Preserves the public API of GaussianMixture and BaseMixture (no parameter
+      additions, removals, or renames in __init__ or fit_predict signatures).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Guarantees that when n_init > 1, the log_resp used to compute the
+      returned labels in fit_predict is computed after _set_parameters(best_params)
+      is called, so both fit_predict(X) and subsequent predict(X) operate on the same
+      model parameters.
+    weight: 3
+  - id: R2
+    description: 'Maintains consistent behavior for the n_init=1 (default) case: the
+      reordering of _set_parameters and _e_step still yields correct labels when only
+      a single initialization is performed.'
+    weight: 2

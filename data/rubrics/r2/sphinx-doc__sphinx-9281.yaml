@@ -1,0 +1,54 @@
+metadata:
+  task_summary: 'Fix the rendering of Python Enum default values in autodoc function
+    signatures to display as ''EnumClass.member'' instead of the ugly ''<EnumClass.member:
+    value>'' repr format.'
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `object_description` function in `sphinx/util/inspect.py`
+      to add special handling for `enum.Enum` instances.
+    weight: 3
+  - id: FC2
+    description: Avoids modifying unrelated files beyond `sphinx/util/inspect.py`
+      (and optionally test files), keeping changes minimal and focused on the fix.
+    weight: 2
+  - id: FC3
+    description: Adds an `isinstance(object, enum.Enum)` (or equivalent `isenumattribute`)
+      check inside `object_description` in `sphinx/util/inspect.py` before the fallback
+      `repr()` call.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Produces a representation for enum default values in the form `ClassName.member_name`
+      (e.g., `MyEnum.ValueA`) rather than the `repr()` form `<MyEnum.ValueA: 10>`.'
+    weight: 3
+  - id: SA2
+    description: Preserves existing `object_description` behavior for non-enum types
+      (dicts, sets, frozensets, and plain objects) so that existing formatting is
+      unaffected.
+    weight: 2
+  - id: SA3
+    description: Uses the enum member's class name (via `.__class__.__name__` or `type(object).__name__`
+      or equivalent) and member name (via `.name`) to construct the pretty representation.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing test assertions for `object_description`
+      or `stringify_signature` behavior are weakened or removed.
+    weight: 2
+  - id: I2
+    description: Confirms that the public signatures of `object_description` and `stringify_signature`
+      in `sphinx/util/inspect.py` are unchanged (same parameters, same return type
+      annotation).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when `object_description` receives an `enum.Enum` instance
+      as `object`, it returns a string of the form `'EnumClassName.member_name'` without
+      angle brackets or the numeric value.
+    weight: 3
+  - id: R2
+    description: 'Ensures that enum default values rendered via `stringify_signature`
+      in autodoc will display as `EnumClass.member` in function signatures rather
+      than the `repr()` `<EnumClass.member: value>` form.'
+    weight: 2

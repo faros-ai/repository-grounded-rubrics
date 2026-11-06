@@ -1,0 +1,53 @@
+metadata:
+  task_summary: Fix IndexError in export_text when the decision tree uses only a single
+    feature, caused by TREE_UNDEFINED (-2) being used as a list index into a short
+    feature_names list.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the feature_names_ list-comprehension lines (around lines
+      893-895 of sklearn/tree/export.py) that iterate over tree_.feature, so that
+      TREE_UNDEFINED values (-2) do not cause an out-of-range index into feature_names
+      or feature_names_.
+    weight: 3
+  - id: FC2
+    description: Confines all changes to sklearn/tree/export.py (the export_text implementation),
+      with no unrelated files modified.
+    weight: 2
+  - id: FC3
+    description: Adds or modifies a test in sklearn/tree/tests/test_export.py that
+      exercises export_text with a single-feature input (e.g., using feature_names=['sepal_length']
+      on a tree fitted on a one-column dataset).
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that export_text no longer raises IndexError when called
+      with a single-element feature_names list on a tree trained with one feature,
+      as described in the PR bug report.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing ValueError raised by export_text when the
+      length of feature_names does not match tree_.n_features (the 'feature_names
+      must contain N elements, got M' check remains intact).
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: 'Confirms that the public signature of export_text (parameters: decision_tree,
+      feature_names, max_depth, spacing, decimals, show_weights) is unchanged in the
+      patch.'
+    weight: 2
+  - id: I2
+    description: Confirms that existing test assertions for multi-feature trees in
+      test_export_text and test_export_text_errors are not removed or weakened.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures feature_names_[node] in print_tree_recurse correctly retrieves
+      the feature name for each internal node when the tree uses only one feature,
+      by structurally preventing TREE_UNDEFINED from being used as a Python list index.
+    weight: 3
+  - id: R2
+    description: Ensures that export_text still produces correct output (feature name
+      labels at internal nodes) for multi-feature trees after the fix, so no regression
+      is introduced for the common case.
+    weight: 2

@@ -1,0 +1,70 @@
+metadata:
+  task_summary: Fix rst_prolog incorrectly treating domain-directive headings (e.g.,
+    ':mod:`pkg`') as docinfo fields, causing top-level headings to be silently dropped
+    from output and toctree.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: 'Modifies `docinfo_re` in `sphinx/util/rst.py` so that it no longer
+      matches lines whose second colon is immediately followed by a backtick (i.e.,
+      inline-role markup such as '':mod:`pkg`''), while still matching genuine RST
+      docinfo fields like '':title: value''.'
+    weight: 3
+  - id: FC2
+    description: Confines the core change to `sphinx/util/rst.py` (specifically the
+      `prepend_prolog` function or its supporting `docinfo_re` pattern) without making
+      unrelated edits to other source files.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test fixture file under `tests/roots/test-prolog/`
+      (or an equivalent prolog test root) that contains a document whose first heading
+      uses a domain-directive role such as ':mod:' with a backtick-enclosed argument.
+    weight: 1
+  - id: FC4
+    description: Adds or updates a test in `tests/test_util_rst.py` or `tests/test_markup.py`
+      that calls `prepend_prolog` (or exercises the full build path) with content
+      starting with a domain-directive heading to verify the prolog is inserted before
+      the heading text.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that when `rst_prolog` is set and a document's first heading
+      line is of the form ':role:`text`' (e.g., ':mod:`mypackage2`'), the prolog is
+      inserted before that heading line rather than between the heading text and its
+      underline characters.
+    weight: 3
+  - id: SA2
+    description: 'Preserves correct behaviour for documents whose first lines are
+      genuine RST docinfo fields (e.g., '':title: value'' or '':author: Name'') so
+      that the prolog is still inserted after those docinfo lines, not before them.'
+    weight: 3
+  - id: SA3
+    description: 'Addresses the root cause identified in the PR description: the `docinfo_re`
+      regular expression in `prepend_prolog` erroneously matches domain-directive
+      lines that begin with '':\w+:'' but are not whitespace-separated docinfo fields.'
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the updated `docinfo_re` pattern (or equivalent guard
+      logic) requires at least one whitespace character (or explicitly excludes a
+      backtick) after the second colon, so the change is a minimal, targeted refinement
+      rather than a wholesale rewrite.
+    weight: 2
+  - id: I2
+    description: 'Confirms that existing tests for `prepend_prolog` with real docinfo
+      fields (e.g., '':title: test of SphinxFileInput'', '':author: Sphinx team'')
+      are not removed or weakened to make the patch appear to pass.'
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a document whose first heading is ':mod:`mypackage2`'
+      followed by '=================' is parsed as a proper top-level section node
+      when `rst_prolog` is set, rather than the heading title being consumed as spurious
+      docinfo.
+    weight: 3
+  - id: R2
+    description: 'Ensures backward compatibility: documents that begin with no docinfo
+      fields (plain text heading) continue to have the prolog inserted at position
+      0, and documents with real docinfo fields continue to have the prolog inserted
+      after those fields.'
+    weight: 2

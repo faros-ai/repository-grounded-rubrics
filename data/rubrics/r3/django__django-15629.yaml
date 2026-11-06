@@ -1,0 +1,77 @@
+metadata:
+  task_summary: Propagate db_collation from a primary key CharField/TextField to referencing
+    ForeignKey columns so that MySQL does not raise foreign key constraint errors
+    when the collation of the PK and FK columns differ.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies ForeignKey.db_parameters() in django/db/models/fields/related.py
+      to include a 'collation' key derived from the target field, so that related-field
+      updates in schema.py receive the correct collation information.
+    weight: 3
+  - id: FC2
+    description: Modifies the rels_to_update loop in django/db/backends/base/schema.py
+      (around the 'Handle our type alters on the other end of rels' comment) to apply
+      collation when altering related FK columns, either by calling _alter_column_collation_sql
+      or by passing collation through the SQL fragment.
+    weight: 3
+  - id: FC3
+    description: Confines changes to the minimal set of files needed (django/db/models/fields/related.py
+      and/or django/db/backends/base/schema.py and optionally tests), without modifying
+      unrelated files such as migration infrastructure, form fields, or serializers.
+    weight: 2
+  - id: FC4
+    description: Adds a test (anywhere in the test suite) that exercises altering
+      a primary key CharField or TextField with db_collation when a ForeignKey or
+      OneToOneField in another model references that primary key, verifying that the
+      FK column also receives the collation.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause identified in the PR description: when
+      a PK field has db_collation set and related FK columns are updated, the COLLATE
+      clause must also appear in the ALTER TABLE statements for the referencing FK
+      columns.'
+    weight: 3
+  - id: SA2
+    description: Ensures the fix handles both ForeignKey and OneToOneField references
+      to a collated PK field, matching the PR description's examples of Account.id
+      referenced by Address.account and Profile.account.
+    weight: 2
+  - id: SA3
+    description: Ensures the propagated collation value originates from the target
+      field's db_collation attribute (or its db_parameters 'collation' key), not from
+      a hardcoded value.
+    weight: 3
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing behavior of ForeignKey.db_type() returning
+      target_field.rel_db_type(connection=connection), without altering its return
+      value or signature.
+    weight: 2
+  - id: I2
+    description: Does not weaken or skip existing tests related to db_collation, such
+      as test_alter_field_db_collation, test_alter_primary_key_db_collation, or test_alter_field_type_and_db_collation.
+    weight: 2
+  - id: I3
+    description: Preserves the public API of CharField.db_parameters() and TextField.db_parameters()
+      (still returning a dict with 'type', 'check', and 'collation' keys) without
+      removing or renaming existing keys.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: 'Ensures that when a CharField PK with db_collation is altered, the
+      SQL generated for related FK column modifications includes the COLLATE clause
+      (matching the pattern shown in the PR description: e.g., ''MODIFY account_id
+      varchar(22) NOT NULL COLLATE utf8_bin'').'
+    weight: 3
+  - id: R2
+    description: 'Ensures that when a PK field has no db_collation (db_collation=None),
+      the fix introduces no regression: FK columns are still altered without a COLLATE
+      clause, preserving backward compatibility.'
+    weight: 2
+  - id: R3
+    description: Ensures the collation propagation applies at schema-edit time (during
+      ALTER TABLE generation) so that ADD CONSTRAINT foreign key statements that follow
+      the column modifications do not fail due to collation mismatch.
+    weight: 2

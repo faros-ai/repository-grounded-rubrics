@@ -1,0 +1,52 @@
+metadata:
+  task_summary: Fix a KeyError crash in MigrationAutodetector.generate_renamed_fields()
+    that occurs when renaming a model and one of its fields simultaneously.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/db/migrations/autodetector.py and no other production
+      source files, keeping the fix minimal and local to the reported crash site.
+    weight: 2
+  - id: FC2
+    description: Changes the lookup of new_model_state inside generate_renamed_fields()
+      so that self.to_state.models is accessed with model_name (the new name) rather
+      than old_model_name, matching the fact that to_state stores models under their
+      new names.
+    weight: 3
+  - id: FC3
+    description: Leaves the lookup of old_model_state using self.from_state.models[app_label,
+      old_model_name] unchanged, because from_state still stores the model under its
+      original name.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the KeyError reported at ('test_one', 'mymodel') in generate_renamed_fields(),
+      which occurs because to_state no longer contains the old model name after a
+      model rename.
+    weight: 3
+  - id: SA2
+    description: Adds or updates a test that exercises simultaneous model rename and
+      field rename (i.e., get_changes with both a renamed model and a renamed field
+      in the same step) to prevent regression of the crash.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing behavior of generate_renamed_fields() for
+      the common case where no model rename occurred (old_model_name equals model_name),
+      so that the fix does not regress standalone field renames.
+    weight: 3
+  - id: I2
+    description: Does not weaken, skip, or remove any existing tests related to generate_renamed_fields,
+      generate_renamed_models, or rename detection in tests/migrations/test_autodetector.py.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when a model is renamed and one of its own fields is
+      also renamed in a single autodetector pass, generate_renamed_fields() no longer
+      raises a KeyError when looking up new_model_state in to_state.
+    weight: 3
+  - id: R2
+    description: Ensures that new_model_state retrieved from to_state contains the
+      renamed field (accessed via field_name), so that field.remote_field comparisons
+      in the rename-detection loop operate on the correct model state.
+    weight: 2

@@ -1,0 +1,55 @@
+metadata:
+  task_summary: Fix autodoc_typehints='description' causing autoclass to erroneously
+    emit a 'Return type' field derived from __init__'s '-> None' annotation.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sphinx/ext/autodoc/typehints.py and no unrelated production
+      files, keeping the diff minimal and localized.
+    weight: 2
+  - id: FC2
+    description: Adds a guard in the typehints logic (in merge_typehints, modify_field_list,
+      or augment_descriptions_with_types) that skips inserting an rtype or return
+      field when the documented object is a class.
+    weight: 3
+  - id: FC3
+    description: Updates the existing test assertion for test_autodoc_typehints_description_with_documented_init
+      so it no longer expects 'Return type:\n      None\n' at the class level.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the stated bug: when autodoc_typehints is set to ''description''
+      or ''both'', a class documented with autoclass no longer receives a spurious
+      ''Return type'' entry derived from __init__''s return annotation.'
+    weight: 3
+  - id: SA2
+    description: Preserves the 'Return type' field for regular functions and methods
+      (non-class objtype), so that e.g. target.typehints.incr still shows its return
+      type annotation in description mode.
+    weight: 2
+  - id: SA3
+    description: Adds or updates a test case that uses autoclass with autodoc_typehints='description'
+      on a class whose __init__ has '-> None' and asserts that no 'Return type' or
+      'rtype' field appears in the class-level output.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing test assertions about return types for
+      non-class objects (functions, methods) are weakened or removed.
+    weight: 2
+  - id: I2
+    description: Confirms that the public signatures of modify_field_list and augment_descriptions_with_types
+      are either unchanged or only extended with an optional parameter, preserving
+      backward compatibility.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when objtype is 'class' in merge_typehints (or an equivalent
+      class-detection mechanism is used), the 'return' key in the annotations dict
+      is not propagated into an rtype field in the class content node.
+    weight: 3
+  - id: R2
+    description: 'Ensures that a class whose __init__ annotates its return as ''None''
+      (e.g., ''-> None'') does not produce a ''Return type: None'' entry in the class-level
+      documentation when autodoc_typehints is ''description'' or ''all''.'
+    weight: 3

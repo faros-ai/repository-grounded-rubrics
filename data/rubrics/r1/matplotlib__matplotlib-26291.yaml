@@ -1,0 +1,57 @@
+metadata:
+  task_summary: Fix AttributeError in AnchoredLocatorBase.__call__ when renderer=None
+    is passed from _tight_bbox.adjust_bbox, caused by self.figure being None.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies lib/mpl_toolkits/axes_grid1/inset_locator.py to fix the
+      AttributeError in AnchoredLocatorBase.__call__ or related code, without changing
+      unrelated files.
+    weight: 3
+  - id: FC2
+    description: Avoids modifying lib/matplotlib/_tight_bbox.py as the primary fix
+      location, since the bug originates in the inset_locator.py code not handling
+      renderer=None.
+    weight: 2
+  - id: FC3
+    description: Keeps changes minimal and local, touching only the code paths in
+      inset_locator.py that are responsible for the None renderer / None figure AttributeError.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause: when AnchoredLocatorBase.__call__ is invoked
+      with renderer=None (as done by _tight_bbox.adjust_bbox via locator(ax, None)),
+      self.figure is None causing AttributeError in OffsetBox.get_window_extent.'
+    weight: 3
+  - id: SA2
+    description: Ensures that AnchoredLocatorBase.__call__ can successfully obtain
+      a renderer when renderer=None is passed, either by setting self.figure from
+      ax.figure before calling get_window_extent, or by obtaining a renderer from
+      ax.figure directly.
+    weight: 3
+  - id: SA3
+    description: 'Confirms that the fix allows inset_axes(ax, width=1.3, height=0.9)
+      to be used and the resulting figure to be rendered without raising AttributeError:
+      ''NoneType'' object has no attribute ''_get_renderer''.'
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the public API of inset_axes, zoomed_inset_axes, AnchoredLocatorBase,
+      AnchoredSizeLocator, and AnchoredZoomLocator, including all existing parameters
+      and return types.
+    weight: 3
+  - id: I2
+    description: Does not weaken or skip any existing tests related to inset_locator
+      or axes_grid1.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: After the fix, AnchoredLocatorBase.__call__ correctly handles both
+      renderer=None and a valid renderer argument, so it works whether called from
+      _tight_bbox.adjust_bbox (with None) or during a normal draw cycle.
+    weight: 3
+  - id: R2
+    description: The fix does not break the normal rendering path where a valid renderer
+      is provided, ensuring the bbox computation and TransformedBbox return value
+      remain correct.
+    weight: 2

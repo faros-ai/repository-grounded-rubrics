@@ -1,0 +1,56 @@
+metadata:
+  task_summary: Fix false 'duplicate term description' warnings when a glossary contains
+    the same word in different cases (e.g., 'MySQL' and 'mysql').
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the glossary term registration logic in sphinx/domains/std.py,
+      specifically within make_glossary_term or an equivalent registration path, to
+      stop using termtext.lower() as the sole key passed to note_object for 'term'
+      entries.
+    weight: 3
+  - id: FC2
+    description: Confines the fix to the glossary-term handling logic (e.g., make_glossary_term
+      or the note_object call for 'term') without introducing unrelated changes to
+      other directives or domain logic.
+    weight: 2
+  - id: FC3
+    description: 'Preserves or updates cross-reference resolution logic (resolve_xref,
+      resolve_any_xref, or XRefRole with lowercase=True) so that :term: references
+      that lowercase their targets continue to resolve correctly against the updated
+      key format.'
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that two glossary terms differing only in case (e.g., 'MySQL'
+      and 'mysql') are treated as distinct entries and do not trigger a 'duplicate
+      term description' warning.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior where genuinely duplicate glossary
+      terms (same text, same case) still produce the 'duplicate term description of
+      ..., other instance in ...' warning.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing test cases for duplicate term detection (such
+      as the test exercising 'term-case4' appearing twice) are not removed or weakened
+      to suppress the warning.
+    weight: 2
+  - id: I2
+    description: 'Confirms that the public function signature of make_glossary_term
+      (parameters: env, textnodes, index_key, source, lineno, node_id, document) is
+      not changed in a way that breaks callers outside sphinx/domains/std.py, including
+      the i18n module.'
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that :term:`mysql` and :term:`MySQL` cross-references resolve
+      to their respective glossary entries (or to one entry if only one exists), without
+      producing a KeyError or 'term not in glossary' warning when both forms are present.
+    weight: 3
+  - id: R2
+    description: Ensures the fix does not introduce a regression for the sorted glossary
+      (the 'sorted' option in Glossary directive) by preserving the case-insensitive
+      sort key used in the unicodedata.normalize('NFD', x[0][0].lower()) comparison.
+    weight: 1

@@ -1,0 +1,75 @@
+metadata:
+  task_summary: Fix Matrix.det() raising TypeError ('Invalid NaN comparison') when
+    computing the determinant of symbolic matrices via the Bareiss algorithm by correcting
+    the discarded return value of cancel() inside the entry() closure in _eval_det_bareiss().
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sympy/matrices/matrices.py and limits changes to the determinant-related
+      code (the _eval_det_bareiss method or the det method's default), without unrelated
+      file churn.
+    weight: 3
+  - id: FC2
+    description: Fixes the discarded return value of cancel() inside the entry() closure
+      within _eval_det_bareiss() so that the simplified result is actually assigned
+      back (e.g., changes 'cancel(ret)' to 'ret = cancel(ret)'), OR removes the dead
+      call entirely in favour of a different algorithm path.
+    weight: 3
+  - id: FC3
+    description: Does not introduce changes to unrelated modules (e.g., sympy/core/exprtools.py,
+      sympy/polys/polytools.py) as a workaround when the root cause lies in the bareiss
+      entry() closure or the default method selection.
+    weight: 2
+  - id: FC4
+    description: Adds a test case (anywhere in the test suite) that exercises det()
+      on a symbolic matrix of size >= 5 constructed with expressions like 'i + a*j'
+      to guard against regression of the TypeError.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Resolves the TypeError ('Invalid NaN comparison') that was raised
+      when calling det() on a 6x6 (or larger) symbolic matrix such as Matrix([[i +
+      a*j for i in range(n)] for j in range(n)]), as described in the PR.
+    weight: 3
+  - id: SA2
+    description: Ensures det() returns a correct (non-nan) symbolic result for the
+      matrices described in the PR (e.g., f(5) should not return nan), whether by
+      fixing _eval_det_bareiss() or switching to a method that handles symbolic entries
+      correctly.
+    weight: 3
+  - id: SA3
+    description: Preserves the three accepted method values ('bareiss', 'berkowitz',
+      'lu') in det() and does not remove any of them from the method dispatch in the
+      det() function.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the public signature of det(method='bareiss') so that existing
+      callers specifying method='bareiss', method='berkowitz', or method='lu' continue
+      to work without errors.
+    weight: 3
+  - id: I2
+    description: Does not weaken or skip existing determinant tests (e.g., test_determinant
+      in sympy/matrices/tests/test_matrices.py) by removing assertions or adding xfail/skip
+      markers.
+    weight: 2
+  - id: I3
+    description: Keeps the 'bareis' spelling alias and the 'det_lu' alias handling
+      present in det() so backward-compatible method name strings remain accepted.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that calling det() on an NxN symbolic matrix (N >= 4) with
+      entries involving symbolic variables no longer raises TypeError from a NaN comparison
+      inside factor_terms or as_coeff_Mul.
+    weight: 3
+  - id: R2
+    description: Ensures that det() continues to return correct integer results for
+      purely numeric matrices (e.g., the existing test cases with integer-entry matrices)
+      after the fix.
+    weight: 2
+  - id: R3
+    description: Ensures the fix does not introduce an infinite recursion or excessive
+      computational complexity for the symbolic matrix sizes (n=5, n=6) mentioned
+      in the PR.
+    weight: 2

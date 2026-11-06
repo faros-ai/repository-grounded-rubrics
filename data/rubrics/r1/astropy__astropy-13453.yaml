@@ -1,0 +1,50 @@
+metadata:
+  task_summary: Fix the HTML writer in astropy.io.ascii to respect the 'formats' argument
+    when writing tables, consistent with other ASCII writers.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the 'write' method of the HTML class in 'astropy/io/ascii/html.py'
+      to call a formats-setting step (such as 'self.data._set_col_formats()') before
+      iterating over column string values.
+    weight: 3
+  - id: FC2
+    description: Confines changes to 'astropy/io/ascii/html.py' as the primary production
+      code change, without modifying unrelated writer modules (e.g., core.py, basic.py,
+      latex.py).
+    weight: 2
+  - id: FC3
+    description: Adds a test (anywhere in the test suite) that writes an HTML table
+      with a 'formats' argument and verifies the formatted values appear in the output.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Ensures that when a user passes ''formats={"col": ...}'' to ''write(...,
+      format="html", formats=...)'' the format callable or format string is applied
+      to column values before they are written as ''<td>'' elements.'
+    weight: 3
+  - id: SA2
+    description: Ensures the fix applies format transformations consistently for both
+      1-d columns and multi-dimensional (colspan) columns within the HTML writer.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing public signature of 'HTML.write(self, table)'
+      without adding or removing parameters.
+    weight: 3
+  - id: I2
+    description: Avoids weakening or skipping existing HTML-related tests in 'astropy/io/ascii/tests/test_html.py'
+      (e.g., no added 'pytest.mark.skip' or removal of assertions).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Produces formatted column values (e.g., '1.24e-24' instead of '1.23875234858e-24')
+      in '<td>' elements when a format lambda or format string is supplied via the
+      'formats' keyword, matching the behavior already demonstrated for CSV and RST
+      writers.
+    weight: 3
+  - id: R2
+    description: Leaves column values unformatted (i.e., uses default repr) for columns
+      not listed in the 'formats' argument, preserving backward-compatible output
+      for tables written without a 'formats' argument.
+    weight: 2

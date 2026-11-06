@@ -1,0 +1,57 @@
+metadata:
+  task_summary: Extend the auth.E003/auth.W004 system check in check_user_model to
+    skip the error/warning when the USERNAME_FIELD is covered by a total UniqueConstraint
+    in the model's Meta.constraints.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/contrib/auth/checks.py and only that file (or additionally
+      its test file) to implement the fix, without touching unrelated source files.
+    weight: 2
+  - id: FC2
+    description: Adds logic inside the username uniqueness check block in check_user_model
+      that inspects cls._meta.constraints for a qualifying UniqueConstraint.
+    weight: 3
+  - id: FC3
+    description: Adds a test case (anywhere in the diff) that exercises a user model
+      whose USERNAME_FIELD is covered only by a UniqueConstraint (without unique=True
+      on the field) and asserts that auth.E003 is not raised.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Treats a UniqueConstraint as sufficient only when it is 'total',
+      meaning its condition attribute is None (no partial-index condition), matching
+      the PR description's requirement for total UniqueConstraints.
+    weight: 3
+  - id: SA2
+    description: Treats a UniqueConstraint as sufficient only when the USERNAME_FIELD
+      value appears in the constraint's fields tuple or list.
+    weight: 3
+  - id: SA3
+    description: Preserves the existing auth.E003 error (or auth.W004 warning) when
+      a UniqueConstraint covering the USERNAME_FIELD has a non-None condition (i.e.,
+      is a partial constraint), so that partial uniqueness is not treated as full
+      uniqueness.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing auth.E003 error path for models where the
+      USERNAME_FIELD is neither unique=True on the field nor covered by any total
+      UniqueConstraint, leaving the original error behavior intact.
+    weight: 3
+  - id: I2
+    description: Preserves the existing auth.W004 warning path (used when a custom
+      AUTHENTICATION_BACKENDS is configured) under the same conditions as before,
+      without removing or weakening it.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Suppresses auth.E003 at runtime for a user model that has a total
+      UniqueConstraint on the USERNAME_FIELD but does not set unique=True on the field
+      itself, matching the motivating example in the PR description.
+    weight: 3
+  - id: R2
+    description: Suppresses auth.W004 at runtime for a user model that has a total
+      UniqueConstraint on the USERNAME_FIELD when a custom authentication backend
+      is configured, consistent with the same suppression logic applied to auth.E003.
+    weight: 2

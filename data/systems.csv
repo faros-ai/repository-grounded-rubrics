@@ -1,0 +1,16 @@
+system,name,submitted
+20240620_sweagent_claude3.5sonnet,SWE-agent + Claude 3.5 Sonnet,2024-06-20
+20240728_sweagent_gpt4o,SWE-agent + GPT-4o,2024-07-28
+20240820_honeycomb,Honeycomb,2024-08-20
+20240824_gru,Gru,2024-08-24
+20241022_tools_claude-3-5-sonnet-updated,Tools + Claude 3.5 Sonnet,2024-10-22
+20241028_agentless-1.5_gpt4o,Agentless 1.5 + GPT-4o,2024-10-28
+20241108_devlo,devlo,2024-11-08
+20241202_agentless-1.5_claude-3.5-sonnet-20241022,Agentless 1.5 + Claude 3.5 Sonnet,2024-12-02
+20250203_openhands_4x_scaled,OpenHands 4x Scaled,2025-02-03
+20250225_sweagent_claude-3-7-sonnet,SWE-agent + Claude 3.7 Sonnet,2025-02-25
+20250226_swerl_llama3_70b,SWE-RL,2025-02-26
+20250316_augment_agent_v0,Augment Agent v0,2025-03-16
+20250430_zencoder_ai,Zencoder,2025-04-30
+20250627_agentless_MCTS-Refine-7B,MCTS-Refine-7B,2025-06-27
+20251205_sonar-foundation-agent_claude-opus-4-5,Sonar Foundation Agent,2025-12-05

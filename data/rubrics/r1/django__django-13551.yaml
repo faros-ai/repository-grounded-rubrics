@@ -1,0 +1,59 @@
+metadata:
+  task_summary: Include the user's email address in PasswordResetTokenGenerator._make_hash_value()
+    so that changing a user's email invalidates any outstanding password reset tokens.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/contrib/auth/tokens.py and only that production file,
+      with no unrelated file churn in the diff.
+    weight: 2
+  - id: FC2
+    description: Modifies the body of _make_hash_value() in PasswordResetTokenGenerator
+      to incorporate the user's email (or equivalent email-field value) into the returned
+      hash input string.
+    weight: 3
+  - id: FC3
+    description: Retrieves the email value using the user model's get_email_field_name()
+      classmethod (or the EMAIL_FIELD attribute), rather than hard-coding the string
+      'email', to support custom user models that may name the field differently.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures the email contribution to _make_hash_value() handles users
+      that have no email field (e.g., AbstractBaseUser subclasses without EMAIL_FIELD)
+      without raising an unhandled AttributeError, for example by using getattr with
+      a fallback or by catching AttributeError.
+    weight: 3
+  - id: SA2
+    description: Adds a test (anywhere in the diff) that generates a token, changes
+      the user's email, and asserts that check_token() returns False for the original
+      token after the email change.
+    weight: 1
+  - id: SA3
+    description: Updates the docstring of _make_hash_value() (in django/contrib/auth/tokens.py)
+      to mention that the user's email address is now part of the hash value, so that
+      tokens are invalidated when the email changes.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing components of _make_hash_value() (user.pk,
+      user.password, login_timestamp, timestamp) without removing or reordering them,
+      so that currently valid tokens continue to be validated correctly for unchanged
+      users.
+    weight: 3
+  - id: I2
+    description: 'Keeps the public API of PasswordResetTokenGenerator unchanged: make_token()
+      and check_token() retain the same signatures, and default_token_generator remains
+      exported from django/contrib/auth/tokens.py.'
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Produces a different hash value (and therefore a different token)
+      for the same user before and after an email address change, causing check_token()
+      to return False when verified against the pre-change user email state.
+    weight: 3
+  - id: R2
+    description: Handles a None or empty email field gracefully in _make_hash_value()
+      so that users without an email address can still generate and verify password
+      reset tokens without an exception.
+    weight: 2

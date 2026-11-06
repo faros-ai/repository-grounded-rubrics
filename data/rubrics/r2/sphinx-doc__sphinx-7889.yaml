@@ -1,0 +1,55 @@
+metadata:
+  task_summary: Fix TypeError in autodoc mock's _make_subclass when a generic-typed
+    class passes a TypeVar as the subscription key, causing str concatenation to fail.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sphinx/ext/autodoc/mock.py and no unrelated production files
+      — all changes are confined to the mock module.
+    weight: 3
+  - id: FC2
+    description: Applies the fix inside _make_subclass or inside _MockObject.__getitem__
+      (or both), not in an unrelated location.
+    weight: 3
+  - id: FC3
+    description: Introduces a str() conversion (or equivalent safe stringification)
+      applied to the name argument so that non-str values such as TypeVar do not cause
+      a TypeError during string concatenation in _make_subclass.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the root cause described in the PR — the TypeError thrown
+      when autodoc mock attempts to concatenate a str to a TypeVar via module + '.'
+      + name in _make_subclass.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior for the normal str-key case so that
+      _MockObject.__getitem__ with a plain string key still returns a _MockObject
+      subclass with the correct __display_name__.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public signatures of _make_subclass, _MockObject,
+      and _MockModule are not altered in an incompatible way (no parameter removals
+      or reordering).
+    weight: 2
+  - id: I2
+    description: Confirms that existing test coverage in test_ext_autodoc_mock.py
+      is not weakened — no test is deleted, skipped, or has its assertions relaxed.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that subscripting a _MockObject with a TypeVar (e.g., MockedGenericClass[T])
+      no longer raises TypeError, as the name is safely converted to a string before
+      concatenation.
+    weight: 3
+  - id: R2
+    description: Ensures that the resulting __display_name__ attribute on the subclass
+      produced by _make_subclass remains a str regardless of whether name was originally
+      a TypeVar or a plain str.
+    weight: 2
+  - id: R3
+    description: Maintains backward compatibility so that mock contexts used for non-generic
+      mocked imports continue to work correctly and return _MockObject instances from
+      attribute access and module imports.
+    weight: 2

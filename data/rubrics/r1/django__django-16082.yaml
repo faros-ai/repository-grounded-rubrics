@@ -1,0 +1,53 @@
+metadata:
+  task_summary: Add Combinable.MOD to the mixed-type numeric operand combinations
+    in _connector_combinations so that CombinedExpression correctly resolves output_field
+    to DecimalField (or FloatField) when combining Decimal/Float and Integer operands
+    with the MOD operator.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/db/models/expressions.py and only that production
+      file (no unrelated files changed).
+    weight: 2
+  - id: FC2
+    description: Adds Combinable.MOD to the list of connectors in the 'Numeric operations
+      - operands of different type' block of _connector_combinations in django/db/models/expressions.py,
+      alongside the existing Combinable.ADD, Combinable.SUB, Combinable.MUL, and Combinable.DIV
+      entries.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that the type-inference table registers (IntegerField, DecimalField)
+      -> DecimalField and (DecimalField, IntegerField) -> DecimalField for the MOD
+      connector, matching the behavior already present for ADD, SUB, MUL, and DIV.
+    weight: 3
+  - id: SA2
+    description: Ensures that the type-inference table registers (IntegerField, FloatField)
+      -> FloatField and (FloatField, IntegerField) -> FloatField for the MOD connector,
+      consistent with the mixed-type Float/Integer behavior already present for other
+      arithmetic operators.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the existing entries for Combinable.ADD, Combinable.SUB,
+      Combinable.MUL, and Combinable.DIV in the 'Numeric operations - operands of
+      different type' block are preserved without modification.
+    weight: 3
+  - id: I2
+    description: Confirms that the 'Numeric operations - operands of same type' block
+      (which already includes Combinable.MOD for IntegerField, FloatField, DecimalField
+      same-type combos) is not changed.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that calling _resolve_combined_type(Combinable.MOD, DecimalField,
+      IntegerField) or _resolve_combined_type(Combinable.MOD, IntegerField, DecimalField)
+      now returns DecimalField rather than raising FieldError or returning None, aligning
+      MOD with ADD/SUB/MUL/DIV in mixed-type resolution.
+    weight: 3
+  - id: R2
+    description: Ensures that test coverage for test_resolve_output_field_number (or
+      an equivalent test) is updated to include Combinable.MOD in the connectors list
+      so that the mixed Decimal/Integer and Float/Integer combinations are exercised
+      for MOD.
+    weight: 1

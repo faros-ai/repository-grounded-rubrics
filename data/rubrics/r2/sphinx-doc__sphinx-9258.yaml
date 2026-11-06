@@ -1,0 +1,68 @@
+metadata:
+  task_summary: Add support for union type specifications using the | (pipe) operator
+    in Python domain type annotations and autodoc, as described in PEP 604.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Implements handling of ast.BinOp and ast.BitOr nodes inside the unparse
+      helper of _parse_annotation in sphinx/domains/python.py so that pipe-separated
+      type expressions like 'bytes | str' are parsed into cross-reference nodes.
+    weight: 3
+  - id: FC2
+    description: Adds handling of the Python 3.10+ types.Union type (created by the
+      | operator at runtime) inside restify() in sphinx/util/typing.py, emitting '
+      | '-joined reST references.
+    weight: 3
+  - id: FC3
+    description: Adds handling of the Python 3.10+ types.Union type inside stringify()
+      in sphinx/util/typing.py, emitting ' | '-joined strings and correctly wrapping
+      Optional cases.
+    weight: 2
+  - id: FC4
+    description: Adds a test target fixture (e.g., target/pep604.py) that uses 'from
+      __future__ import annotations' and | union syntax in function signatures, method
+      annotations, and attribute types, supporting autodoc test coverage.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Produces desc_sig_punctuation nodes containing ''|'' surrounded
+      by spacing nodes when parsing a type string like ''int | str'' in _parse_annotation,
+      matching the PR description''s docstring syntax '':type text: bytes | str''.'
+    weight: 3
+  - id: SA2
+    description: Ensures that each individual type component on either side of | is
+      still resolved as a pending_xref cross-reference node, so each type name links
+      correctly.
+    weight: 2
+  - id: SA3
+    description: Handles the runtime PEP 604 union type (types.Union) conditionally,
+      importing 'from types import Union as types_Union' only on Python 3.10+ and
+      guarding all usages with 'types_Union and isinstance(...)' checks.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the existing SyntaxError fallback path in _parse_annotation
+      (returning [type_to_xref(annotation, env)]) is preserved for annotation strings
+      that cannot be parsed by ast_parse.
+    weight: 2
+  - id: I2
+    description: Confirms that no existing test assertions for non-union type annotations
+      (e.g., plain class names, Generic subscripts, Optional) are weakened or removed
+      in the diff.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Maintains backward compatibility so that pre-existing type annotation
+      strings without | (e.g., 'int', 'List[str]') continue to be processed by _parse_annotation
+      and restify/stringify without any change in output.
+    weight: 3
+  - id: R2
+    description: Renders a type annotated as 'int | None' using restify() as 'Optional[:class:`int`]'
+      (not a raw 'int | None' string), correctly mapping the None-including union
+      to Optional notation.
+    weight: 2
+  - id: R3
+    description: Generates the | punctuation node as addnodes.desc_sig_punctuation
+      (not a plain nodes.Text) when unparsing ast.BitOr, preserving semantic markup
+      for downstream renderers.
+    weight: 2

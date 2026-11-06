@@ -1,0 +1,61 @@
+metadata:
+  task_summary: Fix visit_Tuple in sphinx/pycode/ast.py so non-empty tuple default
+    argument values are rendered with surrounding parentheses, e.g. (1, 1, 1) instead
+    of 1, 1, 1.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies visit_Tuple in sphinx/pycode/ast.py so that a non-empty
+      ast.Tuple node is rendered with surrounding parentheses rather than bare comma-joined
+      elements.
+    weight: 3
+  - id: FC2
+    description: Updates the existing test case for non-empty Tuple in test_pycode_ast.py
+      from the incorrect expected value '1, 2, 3' to the correct expected value '(1,
+      2, 3)'.
+    weight: 2
+  - id: FC3
+    description: Confines changes to files directly related to the bug (e.g., sphinx/pycode/ast.py
+      and its test) without introducing unrelated file churn or modifications to unrelated
+      modules.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that a function signature containing a tuple default such
+      as color=(1, 1, 1) is rendered with the tuple enclosed in parentheses, matching
+      the expected output described in the PR.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior of visit_Tuple for empty tuples,
+      keeping the '()' representation unchanged.
+    weight: 2
+  - id: SA3
+    description: Ensures the fix applies consistently wherever ast_unparse is called
+      with an ast.Tuple node as a default value, covering both positional and keyword
+      arguments.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that visit_List, visit_Set, and other collection visitors
+      in _UnparseVisitor remain unchanged, so only tuple rendering is affected.
+    weight: 2
+  - id: I2
+    description: Confirms that no existing test assertions are removed or weakened;
+      the Tuple test case is updated to reflect correct behavior, not deleted or skipped.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a single-element tuple default (e.g., color=(1,)) is
+      rendered with a trailing comma inside parentheses, such as (1,), to distinguish
+      it from a parenthesised scalar.
+    weight: 2
+  - id: R2
+    description: Ensures that multi-element tuple defaults such as (1, 1, 1) produce
+      a string that, when used as a param.default value in _parse_arglist or stringify_signature,
+      reconstructs to a valid Python tuple literal.
+    weight: 3
+  - id: R3
+    description: Ensures the empty-tuple case '()' continues to be returned by visit_Tuple
+      without modification, preserving backward-compatible rendering of empty tuple
+      defaults.
+    weight: 2

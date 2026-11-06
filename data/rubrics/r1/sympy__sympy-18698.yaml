@@ -1,0 +1,58 @@
+metadata:
+  task_summary: Fix sqf_list to merge factors with the same multiplicity so that each
+    multiplicity appears at most once in the output list.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies code in sympy/polys/polytools.py (specifically in _symbolic_factor_list
+      or _generic_factor_list) to merge or consolidate factors sharing the same exponent/multiplicity.
+    weight: 3
+  - id: FC2
+    description: Avoids unrelated file churn — changes are confined to the polynomial
+      factorization logic (e.g., polytools.py and/or sqfreetools.py) without modifying
+      unrelated modules.
+    weight: 2
+  - id: FC3
+    description: Adds or updates at least one test case covering the exact example
+      from the PR description — sqf_list((x**2 + 1) * (x - 1)**2 * (x - 2)**3 * (x
+      - 3)**3) — verifying that (x - 2) and (x - 3) are merged into a single factor
+      with multiplicity 3.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that when two or more linear (or irreducible) factors share
+      the same multiplicity in sqf_list output, they appear as a single combined polynomial
+      entry rather than as separate entries with the same exponent, matching the expected
+      behavior described in the PR.
+    weight: 3
+  - id: SA2
+    description: Preserves correct sqf_list output for inputs that already produce
+      a properly formed list — e.g., sqf_list(x**5 - 2*x**4 - 2*x**3 + 4*x**2 + x
+      - 2) still yields (1, [(x - 2, 1), (x**2 - 1, 2)]) without regression.
+    weight: 2
+  - id: SA3
+    description: Applies the merging fix consistently for the sqf method path (method='sqf')
+      without breaking the factor_list output format.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public API signatures of sqf_list and sqf remain
+      unchanged — no new required parameters are added and the return type (coeff,
+      [(factor, multiplicity), ...]) is preserved.
+    weight: 3
+  - id: I2
+    description: Confirms that existing passing tests for sqf_list — such as sqf_list(2*x**5
+      + 16*x**4 + 50*x**3 + 76*x**2 + 56*x + 16) == (2, [(x + 1, 2), (x + 2, 3)])
+      — are not weakened, skipped, or removed.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that sqf_list output for a product containing two or more
+      distinct irreducible factors raised to the same power contains exactly one entry
+      per multiplicity value (no duplicate multiplicity entries in the result list).
+    weight: 3
+  - id: R2
+    description: Ensures that the merged factor for a given multiplicity is the product
+      of all the individual factors at that multiplicity, so the overall factored
+      form still reconstructs the original polynomial correctly.
+    weight: 2

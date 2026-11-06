@@ -1,0 +1,60 @@
+metadata:
+  task_summary: Fix deferred fields being incorrectly inherited when prefetch_related
+    follows a relation back to the parent object, causing spurious extra database
+    queries.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/db/models/fields/related_descriptors.py and does
+      not introduce unrelated file changes (no churn in migration, admin, or other
+      unrelated modules).
+    weight: 2
+  - id: FC2
+    description: Changes the reverse-cache assignment logic inside get_prefetch_queryset
+      of ForwardManyToOneDescriptor (the block guarded by 'if not remote_field.multiple:'
+      that calls remote_field.set_cached_value(rel_obj, instance)) or removes that
+      block entirely.
+    weight: 3
+  - id: FC3
+    description: Changes the reverse-cache assignment logic inside get_prefetch_queryset
+      of ReverseOneToOneDescriptor (the loop that calls self.related.field.set_cached_value(rel_obj,
+      instance)) or removes that block entirely.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause described in the PR: when a prefetch re-fetches
+      the parent object with a different set of fields (e.g., User.objects.only(''kind'')),
+      the stale outer instance (with ''kind'' deferred) must not be stored as the
+      reverse-relation cache on rel_obj.'
+    weight: 3
+  - id: SA2
+    description: 'Adds test coverage (anywhere in the diff) that exercises the scenario
+      from the PR description: a queryset using only() on the outer model combined
+      with a nested Prefetch that re-fetches the same model with different fields,
+      asserting zero extra queries on field access.'
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing behavior that the reverse-relation cache IS
+      still set when the prefetch does not re-introduce a different deferred-field
+      set for the related object (i.e., the fix is conditional and does not universally
+      remove cache assignment).
+    weight: 2
+  - id: I2
+    description: Does not weaken any existing test assertions in the prefetch_related
+      test suite (no assertNumQueries values decreased, no assertions removed or replaced
+      with weaker ones).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that after the fix, accessing user.profile.user.kind (following
+      the nested prefetch path described in the PR) does not issue an additional SQL
+      query, because the rel_obj stored in the reverse-relation cache is the freshly
+      fetched User instance with 'kind' loaded rather than the outer instance where
+      'kind' is deferred.
+    weight: 3
+  - id: R2
+    description: Ensures the fix applies to both the OneToOneField and ForeignKey
+      relationship variants mentioned in the PR (i.e., both ForwardManyToOneDescriptor
+      and ReverseOneToOneDescriptor code paths are handled).
+    weight: 2

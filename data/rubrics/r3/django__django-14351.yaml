@@ -1,0 +1,65 @@
+metadata:
+  task_summary: Fix Q object OR filter with __in queryset lookup generating a multi-column
+    subquery that causes a ProgrammingError ('subquery must return only one column').
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/db/models/fields/related_lookups.py to fix the multi-column
+      subquery issue in RelatedIn.as_sql or an equivalent code path that handles queryset-valued
+      __in lookups.
+    weight: 3
+  - id: FC2
+    description: Confines production-code changes to at most one or two files directly
+      related to query building or related lookups (e.g. related_lookups.py, query.py)
+      without unrelated file churn.
+    weight: 2
+  - id: FC3
+    description: Adds or modifies test cases in the queries test suite (e.g. tests/queries/tests.py
+      or tests/queries/test_q.py) that exercise the Q object OR pattern with a queryset-valued
+      __in lookup.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause described in the PR: a subquery generated
+      from Q(field__in=queryset) ORed with another Q condition selects all default
+      columns (default_cols=True) instead of only the target field, producing ''subquery
+      must return only one column''.'
+    weight: 3
+  - id: SA2
+    description: Ensures that when the rhs of a RelatedIn lookup is a Query object
+      with default_cols=True and no explicit select fields, the fix restricts the
+      subquery to select only the relevant target field (e.g. by calling clear_select_clause()
+      and add_fields([target_field], True) or equivalent).
+    weight: 3
+  - id: SA3
+    description: Preserves the existing behaviour for Q(field__id__in=queryset.values_list('id',
+      flat=True)) which was already working correctly in 3.2, so it continues to produce
+      a single-column subquery.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the has_select_fields property or equivalent check
+      in the lookup resolution path correctly identifies a Query object (returned
+      by resolve_expression) that has not had explicit select fields set, rather than
+      incorrectly treating it as fully specified.
+    weight: 2
+  - id: I2
+    description: Avoids weakening any existing tests related to RelatedIn, Q object
+      filtering, or subquery generation (no removal or skipping of existing assertions).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a filter combining Q(m2m_field__in=queryset) OR Q(m2m_field__count=0)
+      produces a subquery that selects only one column (the target/pk field), not
+      all default model columns, preventing the 'subquery must return only one column'
+      ProgrammingError.
+    weight: 3
+  - id: R2
+    description: Maintains backward compatibility so that a plain queryset passed
+      to a __in filter (without OR) still correctly resolves to a single-column subquery
+      selecting the target field.
+    weight: 2
+  - id: R3
+    description: Preserves the distinct() and annotate(Count(...)) chaining behaviour
+      described in the PR without introducing new errors or incorrect SQL generation.
+    weight: 1

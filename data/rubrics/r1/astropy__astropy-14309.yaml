@@ -1,0 +1,56 @@
+metadata:
+  task_summary: Fix IndexError in is_fits (astropy/io/fits/connect.py) when identify_format
+    is called with an empty args tuple and a non-FITS filepath, preventing the unguarded
+    args[0] access from raising IndexError.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies astropy/io/fits/connect.py and no unrelated production source
+      files, keeping the diff minimal and local to the faulty code path.
+    weight: 2
+  - id: FC2
+    description: Guards or removes the unguarded 'args[0]' access at the end of the
+      is_fits function so that the expression is not evaluated when args is an empty
+      sequence.
+    weight: 3
+  - id: FC3
+    description: Preserves the fileobj FITS-signature branch and the filepath filename-extension
+      branch inside is_fits without altering their logic.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Adds logic that causes is_fits to return a falsy value when filepath
+      is a non-FITS string and args is empty, matching the scenario described in the
+      PR (e.g. 'bububu.ecsv' with args=[]).
+    weight: 3
+  - id: SA2
+    description: Retains the code path where is_fits returns True when args[0] is
+      an HDUList, TableHDU, BinTableHDU, or GroupsHDU instance, preserving correct
+      behavior for callers that pass an HDU object.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing tests for is_fits, identify_format, or
+      the FITS registry connector are deleted, skipped, or have assertions softened
+      in the patch.
+    weight: 2
+  - id: I2
+    description: Confirms that the public signature 'def is_fits(origin, filepath,
+      fileobj, *args, **kwargs)' is not changed in the patch.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Adds a test (anywhere in the diff) covering the case where identify_format
+      or is_fits is invoked with a non-FITS filepath string and an empty args list,
+      so the IndexError regression is captured by the test suite.
+    weight: 1
+  - id: R2
+    description: Ensures the structural change in is_fits makes the function return
+      False (not raise IndexError) when both filepath is a non-FITS path and args
+      is empty, as evidenced by a guard on args before accessing args[0].
+    weight: 3
+  - id: R3
+    description: Ensures the fix does not break the case where fileobj is not None,
+      as evidenced by the fileobj branch remaining the first conditional evaluated
+      in is_fits.
+    weight: 2

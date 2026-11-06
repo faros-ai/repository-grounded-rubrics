@@ -1,0 +1,67 @@
+metadata:
+  task_summary: Fix MathML presentation printing of symbols ending with digits (e.g.,
+    x2) which are rendered invisible because <mi> incorrectly wraps layout elements
+    like <msub>.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `_print_Symbol` method of `MathMLPresentationPrinter`
+      in `sympy/printing/mathml.py` to fix the invalid nesting of presentation layout
+      elements inside `<mi>`.
+    weight: 3
+  - id: FC2
+    description: Avoids modifying unrelated files outside of `sympy/printing/mathml.py`
+      and `sympy/printing/tests/test_mathml.py`, keeping the change minimal and focused
+      on the MathML presentation printer.
+    weight: 2
+  - id: FC3
+    description: Updates existing test assertions in `test_presentation_symbol` (in
+      `sympy/printing/tests/test_mathml.py`) that previously expected `mml.nodeName
+      == 'mi'` for symbols with subscripts or superscripts, reflecting the corrected
+      return element type.
+    weight: 2
+  - id: FC4
+    description: Adds test coverage for a symbol whose name ends with a digit (e.g.,
+      `Symbol('x2')`) in the presentation MathML tests, verifying the corrected output
+      structure.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Fixes the root cause described in the PR: a symbol like `x2` with
+      `printer=''presentation''` no longer produces output where `<msub>`, `<msup>`,
+      or `<msubsup>` is nested directly inside an `<mi>` element.'
+    weight: 3
+  - id: SA2
+    description: Ensures that when `split_super_sub` produces non-empty `subs` or
+      `supers` for a symbol name, the returned MathML element is the layout element
+      itself (`msub`, `msup`, or `msubsup`) rather than an `<mi>` wrapper containing
+      it.
+    weight: 3
+  - id: SA3
+    description: Preserves correct output for plain symbols with no subscripts or
+      superscripts (e.g., `Symbol('x')`), which should still render as `<mi>x</mi>`
+      after the fix.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the fix does not alter the `MathMLContentPrinter._print_Symbol`
+      method (which uses `ci` as the outer element and correctly wraps `msub`/`msup`
+      inside it per Content MathML conventions).
+    weight: 2
+  - id: I2
+    description: Confirms that no existing passing test is weakened, skipped, deleted,
+      or commented out in `sympy/printing/tests/test_mathml.py` without a corresponding
+      correction that reflects the now-valid MathML structure.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that `sympy.mathml(Symbol('x2'), printer='presentation')`
+      produces output where the top-level element is `msub` (not `mi`), with child
+      elements representing `x` and the subscript `2` separately, making the symbol
+      visible in MathML-capable browsers.
+    weight: 3
+  - id: R2
+    description: Ensures that symbols with explicit underscore subscripts (e.g., `Symbol('x_2')`)
+      and superscripts (e.g., `Symbol('x^2')`) are also rendered as top-level `msub`/`msup`
+      elements (not wrapped in `<mi>`) in presentation MathML output.
+    weight: 2

@@ -1,0 +1,78 @@
+metadata:
+  task_summary: Fix autodoc so that `:meta public:` in a variable's comment docstring
+    (via `#:`) correctly overrides the private-name heuristic and causes underscore-prefixed
+    variables to appear in generated documentation.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `filter_members` logic in `sphinx/ext/autodoc/__init__.py`
+      to also extract `metadata` from `attr_docs` docstrings when `getdoc` returns
+      `None` for a member, so that `:meta public:` in a `#:` comment affects `isprivate`.
+    weight: 3
+  - id: FC2
+    description: Confines production code changes to autodoc-related modules (e.g.,
+      `sphinx/ext/autodoc/__init__.py`) without modifying unrelated files such as
+      `sphinx/pycode/__init__.py`, `sphinx/util/docstrings.py`, or builder/theme files.
+    weight: 2
+  - id: FC3
+    description: Does not rename, restructure, or remove any existing public symbols
+      or functions beyond the minimal change needed to fix the variable `:meta public:`
+      handling.
+    weight: 2
+  - id: FC4
+    description: 'Adds or updates a test (e.g., in `tests/test_ext_autodoc_private_members.py`
+      or a companion fixture) to cover an underscore-prefixed variable annotated with
+      `#: :meta public:`.'
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that an underscore-prefixed module-level variable whose `#:`
+      comment contains `:meta public:` is included in the generated documentation
+      without requiring the `:private-members:` option.
+    weight: 3
+  - id: SA2
+    description: 'Preserves existing behavior: a function or method whose docstring
+      contains `:meta public:` (readable via `getdoc`) continues to be treated as
+      non-private by the `metadata` extraction path in `filter_members`.'
+    weight: 2
+  - id: SA3
+    description: 'Preserves existing behavior: a member with `:meta private:` in its
+      docstring continues to be excluded from output even if `:private-members:` is
+      not set.'
+    weight: 2
+  - id: SA4
+    description: Confirms that the fix applies to the `(namespace, membername) in
+      attr_docs` branch inside `filter_members`, where the `isprivate` flag must be
+      `False` when `:meta public:` is found in the `attr_docs` value.
+    weight: 3
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing tests (e.g., in `test_ext_autodoc_private_members.py`)
+      are weakened, removed, or have their assertions loosened.
+    weight: 2
+  - id: I2
+    description: Confirms that the `filter_members` method signature in `Documenter`
+      is unchanged, preserving the public API for downstream code or extensions that
+      call it.
+    weight: 2
+  - id: I3
+    description: Confirms that the fix does not disable or bypass the `autodoc-skip-member`
+      event emission block that follows the `keep` determination in `filter_members`.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: 'Ensures that `isprivate` is `False` for a module-level variable
+      like `_foo = None  #: :meta public:` by the time the `(namespace, membername)
+      in attr_docs` branch runs, causing `keep = True` without `private-members` being
+      enabled.'
+    weight: 3
+  - id: R2
+    description: Ensures that an underscore-prefixed variable with no `:meta public:`
+      annotation remains excluded by default (when `private-members` is not set),
+      confirming no regression in normal private-variable filtering.
+    weight: 3
+  - id: R3
+    description: Ensures that a public-named variable (not starting with `_`) documented
+      via a `#:` comment continues to appear in generated output, unaffected by the
+      fix.
+    weight: 2

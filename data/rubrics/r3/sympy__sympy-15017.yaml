@@ -1,0 +1,52 @@
+metadata:
+  task_summary: Fix `NDimArray.__len__` to return 1 instead of 0 for rank-0 (scalar)
+    arrays, consistent with numpy behavior and the array's iterator length.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: 'Fixes the `_loop_size` initialization in `ImmutableDenseNDimArray._new`
+      by changing the fallback value from `0` to `1` in the expression `functools.reduce(lambda
+      x,y: x*y, shape) if shape else 0`.'
+    weight: 3
+  - id: FC2
+    description: 'Fixes the `_loop_size` initialization in `MutableDenseNDimArray._new`
+      by changing the fallback value from `0` to `1` in the expression `functools.reduce(lambda
+      x,y: x*y, shape) if shape else 0`.'
+    weight: 3
+  - id: FC3
+    description: Fixes the `_loop_size` initialization in sparse array classes (`ImmutableSparseNDimArray`
+      and/or `MutableSparseNDimArray`) by changing the fallback value from `0` to
+      `1` for empty shapes.
+    weight: 2
+  - id: FC4
+    description: Confines all changes to the array implementation files (e.g., `sympy/tensor/array/dense_ndim_array.py`,
+      `sympy/tensor/array/sparse_ndim_array.py`) without modifying unrelated files.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements the fix so that `len(sympy.Array(3))` returns `1` rather
+      than `0`, matching the stated expected behavior in the PR description.
+    weight: 3
+  - id: SA2
+    description: Updates the existing test assertion `assert len(rank_zero_array)
+      == 0` to `assert len(rank_zero_array) == 1` to reflect the corrected behavior.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that `__len__` in `NDimArray` remains delegating to `self._loop_size`
+      without altering the method's logic, keeping the fix local to `_loop_size` initialization.
+    weight: 2
+  - id: I2
+    description: Confirms that the behavior of `__len__` for non-zero-rank arrays
+      (e.g., shape `(3, 3)` returning `9`) is not altered by the change.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that iteration over a rank-0 array (shape `()`) continues
+      to yield exactly one element, consistent with `len` returning `1` after the
+      fix.
+    weight: 2
+  - id: R2
+    description: Ensures that accessing element `()` on a rank-0 array (e.g., `rank_zero_array[()]`)
+      remains valid after the fix, since `_loop_size=1` does not break index parsing.
+    weight: 2

@@ -1,0 +1,61 @@
+metadata:
+  task_summary: Fix RenameIndex.database_backwards() so that, when old_fields is set
+    (unnamed index for unique_together), it actually renames the index back to its
+    auto-generated name instead of being a no-op, preventing a crash when the operation
+    is re-applied.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the database_backwards() method of RenameIndex in django/db/migrations/operations/models.py
+      to remove the unconditional no-op early return for the old_fields case.
+    weight: 3
+  - id: FC2
+    description: Confines all production code changes to django/db/migrations/operations/models.py,
+      without modifying unrelated files or performing mass renames.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test in tests/migrations/test_operations.py that
+      exercises re-applying database_forwards() after database_backwards() for an
+      unnamed index (i.e., the forward-backward-forward sequence described in the
+      PR).
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements logic in database_backwards() that, when old_fields is
+      set, uses schema_editor._constraint_names() or an equivalent mechanism to find
+      the current database index name matching new_name, then calls schema_editor.rename_index()
+      to restore the auto-generated name.
+    weight: 3
+  - id: SA2
+    description: Ensures that after database_backwards() completes for an old_fields
+      RenameIndex, the index named new_name (e.g., 'new_pony_test_idx') no longer
+      exists in the database, so a subsequent database_forwards() call does not attempt
+      to create a duplicate index.
+    weight: 3
+  - id: SA3
+    description: Preserves the comment or documents why the old no-op behavior was
+      wrong, or replaces it with a clearly structured backward-rename operation, so
+      the intent of restoring the auto-generated name is evident in the code.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the existing database_backwards() swap-and-delegate
+      pattern for the named-index (old_name) path remains unchanged in django/db/migrations/operations/models.py.
+    weight: 2
+  - id: I2
+    description: Confirms that no existing tests for RenameIndex are weakened, skipped,
+      or removed in tests/migrations/test_operations.py.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: 'Ensures that database_backwards() for the old_fields path is no
+      longer a no-op: the renamed index (new_name) must be renamed back to an auto-generated
+      name by a schema_editor.rename_index() call, so the forward direction can succeed
+      again.'
+    weight: 3
+  - id: R2
+    description: Ensures the backward path for old_fields uses _constraint_names()
+      against the to_state model (or equivalent) to resolve the current live index
+      name, matching the forward path's approach of dynamically discovering the auto-generated
+      name.
+    weight: 2

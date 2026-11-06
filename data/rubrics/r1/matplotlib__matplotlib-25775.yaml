@@ -1,0 +1,74 @@
+metadata:
+  task_summary: Add per-artist get_antialiased/set_antialiased methods to Text objects
+    and propagate the setting through the GraphicsContext so backends no longer rely
+    solely on rcParams['text.antialiased'].
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Adds a set_antialiased method to the Text class in lib/matplotlib/text.py
+      that stores a per-instance antialiasing state (e.g., self._antialiased).
+    weight: 3
+  - id: FC2
+    description: Adds a get_antialiased method to the Text class in lib/matplotlib/text.py
+      that returns the per-instance antialiasing state.
+    weight: 3
+  - id: FC3
+    description: Modifies Text.draw in lib/matplotlib/text.py to call gc.set_antialiased
+      with the per-instance antialiasing value before invoking draw_text or draw_tex.
+    weight: 3
+  - id: FC4
+    description: Replaces at least one direct access to mpl.rcParams['text.antialiased']
+      in a backend or mathtext file (e.g., lib/matplotlib/backends/backend_agg.py,
+      lib/matplotlib/backends/backend_cairo.py, or lib/matplotlib/_mathtext.py) with
+      a call to gc.get_antialiased() so the per-artist value is used at render time.
+    weight: 3
+  - id: FC5
+    description: Initialises _antialiased in Text.__init__ or Text._reset_visual_defaults
+      (in lib/matplotlib/text.py) using an antialiased parameter that defaults to
+      rcParams['text.antialiased'] when not provided, mirroring the pattern used by
+      Line2D and Patch.
+    weight: 2
+  - id: FC6
+    description: Adds 'antialiased' (or its alias 'aa') to the _api.define_aliases
+      decorator on the Text class in lib/matplotlib/text.py, matching the alias convention
+      used by other artists.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements the antialiasing getter and setter on the Text class (not
+      only on Annotation or a subclass) so that all Text objects benefit from per-artist
+      antialiasing control, as stated in the PR description.
+    weight: 3
+  - id: SA2
+    description: Ensures that when no antialiased value is explicitly set on a Text
+      instance, the behaviour falls back to rcParams['text.antialiased'], preserving
+      backward compatibility with the pre-patch default.
+    weight: 3
+  - id: SA3
+    description: Confirms that the antialiasing value flows through the GraphicsContext
+      (via gc.set_antialiased / gc.get_antialiased) at the drawing stage rather than
+      being read from rcParams at every draw call, as the PR description explicitly
+      requires.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing public Text API method (e.g., set_color,
+      set_usetex, get_rotation) is removed or renamed in the diff.
+    weight: 2
+  - id: I2
+    description: Confirms that GraphicsContext.set_antialiased and GraphicsContext.get_antialiased
+      in lib/matplotlib/backend_bases.py are not altered or removed, keeping the backend
+      contract stable.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that calling set_antialiased(False) on a Text instance and
+      then drawing it results in gc.set_antialiased being called with a falsy value
+      before draw_text or draw_tex is invoked, as evidenced by the structural ordering
+      of calls in Text.draw.
+    weight: 3
+  - id: R2
+    description: Ensures that the default antialiasing state of a newly constructed
+      Text object (when no antialiased argument is supplied) matches rcParams['text.antialiased'],
+      so existing code that relies on the global setting is not broken.
+    weight: 2

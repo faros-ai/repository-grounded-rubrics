@@ -1,0 +1,50 @@
+metadata:
+  task_summary: Extend the linkchecker HEAD-to-GET fallback logic in sphinx/builders/linkcheck.py
+    to also retry with GET when a HEAD request raises TooManyRedirects instead of
+    only HTTPError.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sphinx/builders/linkcheck.py and no unrelated files (i.e.,
+      the diff touches linkcheck.py for the core fix without introducing churn in
+      unrelated modules).
+    weight: 3
+  - id: FC2
+    description: Adds TooManyRedirects to the import from requests.exceptions in sphinx/builders/linkcheck.py
+      (visible as a new token in the import line alongside the existing HTTPError
+      import).
+    weight: 3
+  - id: FC3
+    description: Extends the inner except clause (the one that currently catches only
+      HTTPError on the HEAD request) to also catch TooManyRedirects, so the GET fallback
+      is triggered for both exception types.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures the GET fallback path (requests.get call after a failed HEAD)
+      is reachable when the HEAD request raises TooManyRedirects, directly addressing
+      the PR description scenario where infinite redirect loops on HEAD would leave
+      the link reported as broken.
+    weight: 3
+  - id: SA2
+    description: Leaves the outer except clause (which catches HTTPError and maps
+      status codes 401 and 503 to specific statuses) unchanged, preserving the existing
+      error-classification behavior for GET failures.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing HTTPError catch in the inner except clause
+      (does not remove HTTPError from that except, only extends it), so servers returning
+      HTTP error codes on HEAD still fall back to GET as before.
+    weight: 3
+  - id: I2
+    description: Does not weaken any existing test assertions (no removal of assert
+      statements or changes to expected values in test_build_linkcheck.py that would
+      make a previously-failing scenario now pass trivially).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a URL whose HEAD request raises TooManyRedirects is
+      retried with a GET request rather than immediately classified as broken, matching
+      the pre-Sphinx-3.2.0 behavior described in the PR.
+    weight: 3

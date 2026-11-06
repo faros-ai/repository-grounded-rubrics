@@ -1,0 +1,55 @@
+metadata:
+  task_summary: Fix OuterRef inside exclude() or ~Q() resolving against the wrong
+    (inner) model instead of the outer query model, causing a ValueError.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/db/models/expressions.py to fix ResolvedOuterRef
+      resolution behavior, specifically touching the ResolvedOuterRef class.
+    weight: 3
+  - id: FC2
+    description: Limits changes to at most two production files (e.g., django/db/models/expressions.py
+      and/or django/db/models/sql/query.py) without modifying unrelated modules.
+    weight: 2
+  - id: FC3
+    description: Adds or updates at least one test exercising OuterRef inside exclude()
+      or ~Q() in a subquery context (e.g., in tests/queries/ or tests/expressions/).
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the root cause where OuterRef used inside exclude() or
+      ~Q() raises ValueError containing 'This queryset contains a reference to an
+      outer query and may only be used in a subquery'.
+    weight: 3
+  - id: SA2
+    description: Ensures that Item.objects.exclude(tags__category_id=OuterRef('pk'))
+      used inside an Exists() annotation on Number.objects no longer crashes (the
+      structural fix allows the OuterRef to survive re-resolution against the inner
+      split_exclude subquery).
+    weight: 3
+  - id: SA3
+    description: Ensures that Item.objects.filter(~Q(tags__category_id=OuterRef('pk')))
+      used inside an Exists() annotation also works, covering the ~Q() case alongside
+      the exclude() case.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing behavior of filter() with OuterRef, confirming
+      that Item.objects.filter(tags__category_id=OuterRef('pk')) inside Exists() continues
+      to work without modification.
+    weight: 2
+  - id: I2
+    description: Does not weaken or skip existing tests related to OuterRef, Exists,
+      exclude(), or split_exclude in the test suite.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures ResolvedOuterRef instances survive re-resolution during subquery
+      compilation (e.g., when where.resolve_expression() is called in Query.resolve_expression()),
+      by returning self rather than delegating to F.resolve_expression which would
+      call query.resolve_ref() on the wrong inner query.
+    weight: 3
+  - id: R2
+    description: Ensures the fix does not break nested OuterRef (i.e., OuterRef(OuterRef(...)))
+      handling, which also passes through the OuterRef.resolve_expression path.
+    weight: 2

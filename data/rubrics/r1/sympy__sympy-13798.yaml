@@ -1,0 +1,65 @@
+metadata:
+  task_summary: Allow latex() to accept an arbitrary string for the mul_symbol kwarg,
+    not just the four predefined choices (None, 'ldot', 'dot', 'times').
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the mul_symbol_table lookup in sympy/printing/latex.py so
+      that a mul_symbol value not in the table (i.e., an arbitrary string) is handled
+      without raising a KeyError.
+    weight: 3
+  - id: FC2
+    description: Updates the assignment of mul_symbol_latex_numbers in sympy/printing/latex.py
+      to handle the case when mul_symbol is an arbitrary string (not a key in the
+      predefined table).
+    weight: 3
+  - id: FC3
+    description: Confines all changes related to arbitrary mul_symbol support to sympy/printing/latex.py
+      without modifying unrelated files.
+    weight: 2
+  - id: FC4
+    description: Updates the docstring or documentation in sympy/printing/latex.py
+      for the mul_symbol parameter to reflect that arbitrary strings are now accepted,
+      not only the four predefined choices.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements support for an arbitrary string mul_symbol value (e.g.,
+      r'\,') that is used directly as the multiplication separator in the LaTeX output.
+    weight: 3
+  - id: SA2
+    description: Preserves backward compatibility so that the existing predefined
+      values (None, 'ldot', 'dot', 'times') still produce their original LaTeX multiplication
+      symbols.
+    weight: 3
+  - id: SA3
+    description: Adds a test case that exercises latex() with a custom mul_symbol
+      string not from the predefined set (e.g., r'\,') to verify it appears correctly
+      in the output.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing tests for mul_symbol (such as those in
+      test_latex_mul_symbol) are removed or weakened.
+    weight: 3
+  - id: I2
+    description: Confirms that the public signature of the latex() function remains
+      unchanged (i.e., no required parameters are added or renamed).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that passing a predefined mul_symbol value such as 'dot'
+      or 'times' still produces the corresponding predefined LaTeX string (e.g., r'
+      \cdot ' or r' \times '), maintaining backward compatibility at runtime.
+    weight: 3
+  - id: R2
+    description: Ensures that passing an arbitrary string as mul_symbol (e.g., r'\,')
+      uses that string directly as the multiplication separator between terms in the
+      LaTeX output rather than raising a KeyError.
+    weight: 3
+  - id: R3
+    description: Ensures that mul_symbol_latex_numbers (the separator used between
+      a numeric mantissa and a power-of-10 exponent in float formatting) falls back
+      to a reasonable default (such as the dot separator) when mul_symbol is an arbitrary
+      string not in the predefined table.
+    weight: 2

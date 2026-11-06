@@ -1,0 +1,63 @@
+metadata:
+  task_summary: Fix `solveset` raising `NotImplementedError` instead of returning
+    a `ConditionSet` for equations like `Eq(n*cos(n) - 3*sin(n), 0).as_set()`.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `as_set` method in `sympy/logic/boolalg.py` to handle
+      the case where a periodic `Relational` cannot be converted to a set, replacing
+      or wrapping the bare `raise NotImplementedError` block with a fallback that
+      returns a `ConditionSet`.
+    weight: 3
+  - id: FC2
+    description: Removes or replaces at least one bare `raise NotImplementedError`
+      in `_solve_trig`, `_solve_trig1`, or a closely related trigonometric helper
+      in `sympy/solvers/solveset.py` with a `ConditionSet` return, so that unsolvable
+      trig equations propagate a `ConditionSet` upward instead of an exception.
+    weight: 2
+  - id: FC3
+    description: Confines edits to files directly responsible for the reported failure
+      path (e.g., `sympy/logic/boolalg.py` and/or `sympy/solvers/solveset.py` and/or
+      `sympy/core/relational.py`), without introducing unrelated file churn.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that `Eq(n*cos(n) - 3*sin(n), 0).as_set()` structurally produces
+      a `ConditionSet` (i.e., the patch adds a code path returning `ConditionSet`
+      for unsolvable periodic equations instead of raising `NotImplementedError`).
+    weight: 3
+  - id: SA2
+    description: Ensures the returned `ConditionSet` uses the original equation's
+      free symbol as the bound variable and `S.Reals` (or the appropriate domain)
+      as its base set, consistent with the expected output `ConditionSet(n, Eq(n*cos(n)
+      - 3*sin(n), 0), Reals)` from the PR description.
+    weight: 2
+  - id: SA3
+    description: Adds a test or docstring example covering `Eq(expr, 0).as_set()`
+      for a trigonometric equation that was previously raising `NotImplementedError`,
+      demonstrating the `ConditionSet` output.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing `raises(NotImplementedError, ...)` test assertions
+      in `sympy/solvers/tests/test_solveset.py` or related test files are not silently
+      removed or weakened to hide regressions.
+    weight: 2
+  - id: I2
+    description: Confirms that `solvify` in `sympy/solvers/solveset.py` still raises
+      `NotImplementedError` when it receives a `ConditionSet` result (i.e., the `raise
+      NotImplementedError('solveset is unable to solve this equation.')` inside `solvify`
+      is preserved), as this is part of the public API contract of `solvify`.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when `_solve_trig` (or `_solve_trig1`) cannot solve
+      an equation, the result propagates as a `ConditionSet` rather than an uncaught
+      `NotImplementedError`, so callers of `solveset` receive a valid symbolic object.
+    weight: 3
+  - id: R2
+    description: Ensures that `Boolean.as_set()` in `sympy/logic/boolalg.py` does
+      not silently swallow all `NotImplementedError`s indiscriminately; the fallback
+      to `ConditionSet` is scoped to the specific periodic-relational branch, preserving
+      error-raising for genuinely multi-variable or unhandled cases.
+    weight: 2

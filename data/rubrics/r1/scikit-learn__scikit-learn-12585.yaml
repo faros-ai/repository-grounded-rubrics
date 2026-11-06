@@ -1,0 +1,58 @@
+metadata:
+  task_summary: Fix `clone` in sklearn/base.py to handle parameters that are estimator
+    types (classes) rather than instances, avoiding a TypeError when calling get_params()
+    on a class.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the conditional guard inside the `clone` function in `sklearn/base.py`
+      to detect when `estimator` is a type/class (e.g., using `isinstance(estimator,
+      type)`) and treat it as a non-estimator object.
+    weight: 3
+  - id: FC2
+    description: Confines all production-code changes to `sklearn/base.py` without
+      unrelated file churn (no mass renames, no changes to unrelated modules).
+    weight: 2
+  - id: FC3
+    description: Adds a test case in the test suite that calls `clone` with an estimator
+      whose parameter is an estimator class (e.g., `clone(StandardScaler(with_mean=StandardScaler))`)
+      to cover the reported bug.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Ensures that when `estimator` is a type with a `get_params` attribute
+      (e.g., an estimator class), the `clone` function does NOT call `estimator.get_params(deep=False)`
+      on it as an unbound method call, which caused the `TypeError: get_params() missing
+      1 required positional argument: ''self''`.'
+    weight: 3
+  - id: SA2
+    description: Ensures that when `safe=False` and the parameter is an estimator
+      type/class, `clone` falls back to `copy.deepcopy` (or returns the class as-is),
+      rather than raising an error.
+    weight: 2
+  - id: SA3
+    description: Preserves the existing behavior for non-type objects that lack `get_params`,
+      raising `TypeError` with the message 'does not seem to be a scikit-learn estimator'
+      when `safe=True`.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms the public signature of `clone(estimator, safe=True)` in
+      `sklearn/base.py` is unchanged.
+    weight: 3
+  - id: I2
+    description: Confirms no existing tests for `clone` are weakened, removed, or
+      marked to skip (e.g., no `@pytest.mark.skip` or deletion of `test_clone`, `test_clone_2`,
+      `test_clone_buggy` bodies).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that cloning an estimator whose parameter value is an estimator
+      class (e.g., `StandardScaler`) succeeds without raising `TypeError`, so the
+      returned clone carries the class as its parameter value.
+    weight: 3
+  - id: R2
+    description: 'Ensures that the fix does not affect the behavior of cloning normal
+      estimator instances passed as parameters: those still go through the full `get_params`/reconstruct
+      path in `clone`.'
+    weight: 2

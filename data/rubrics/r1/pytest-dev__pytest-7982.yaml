@@ -1,0 +1,50 @@
+metadata:
+  task_summary: Remove the erroneous `follow_symlinks=False` argument from the `entry.is_dir()`
+    call inside the `visit` function in `src/_pytest/pathlib.py` so that symlinked
+    directories are followed during collection, restoring the pre-6.1.0 behavior.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies `src/_pytest/pathlib.py` and no other production source
+      files, keeping the change minimal and local to the regression site.
+    weight: 3
+  - id: FC2
+    description: Removes the `follow_symlinks=False` keyword argument from the `entry.is_dir(follow_symlinks=False)`
+      call inside the `visit` function in `src/_pytest/pathlib.py`.
+    weight: 3
+  - id: FC3
+    description: Adds or updates a test (anywhere in the diff) that exercises collection
+      of a symlinked directory, covering the scenario described in the PR description.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Restores the pre-6.1.0 behavior where symlinked directories are followed
+      during collection, as stated in the PR description.
+    weight: 3
+  - id: SA2
+    description: Leaves the `entry.is_dir()` call without any `follow_symlinks` argument
+      (or with `follow_symlinks=True`), so that the default OS behavior of following
+      symlinks applies.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing signature and breadth-first, sorted-entry
+      semantics of the `visit` function in `src/_pytest/pathlib.py`, changing only
+      the `is_dir` call.
+    weight: 3
+  - id: I2
+    description: Avoids weakening or removing any existing symlink-related tests (e.g.,
+      `test_collect_sub_with_symlinks`, `test_collect_symlink_out_of_tree`) visible
+      in the diff.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a directory entry that is a symlink to a directory is
+      recognized as a directory by `entry.is_dir()` and is therefore passed to the
+      `recurse` callback and descended into during collection.
+    weight: 3
+  - id: R2
+    description: Confirms that non-symlinked directories and broken symlinks continue
+      to be handled correctly after the change, i.e., real directories are still recursed
+      into and broken symlinks (which are not directories) are still skipped.
+    weight: 2

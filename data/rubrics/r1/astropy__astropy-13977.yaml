@@ -1,0 +1,94 @@
+metadata:
+  task_summary: Make Quantity.__array_ufunc__() return NotImplemented instead of raising
+    ValueError when inputs are incompatible duck types, allowing reflected operators
+    like __radd__ to be invoked.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies astropy/units/quantity.py and specifically the `def __array_ufunc__(`
+      method to handle the incompatible-input case.
+    weight: 3
+  - id: FC2
+    description: Adds a try/except block (anywhere in `__array_ufunc__`) that catches
+      `ValueError` or `TypeError` raised during converter application on non-Quantity
+      duck-type inputs and returns `NotImplemented`.
+    weight: 3
+  - id: FC3
+    description: Avoids modifying unrelated files (e.g., astropy/units/core.py `_condition_arg`,
+      or any file outside the `astropy/units/` directory) as part of the fix.
+    weight: 2
+  - id: FC4
+    description: Keeps the diff minimal and localized to the specific code path in
+      `__array_ufunc__` that builds the `arrays` list via `converter(input_)` calls,
+      without restructuring unrelated logic.
+    weight: 2
+  - id: FC5
+    description: Adds or modifies a test (anywhere in the test suite) that exercises
+      the scenario where a `Quantity` left operand with different-but-compatible units
+      (e.g., `1 * u.m`) is combined with a duck-type right operand (e.g., `DuckArray(1
+      * u.mm)`), confirming `NotImplemented` is returned instead of raising.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures `Quantity.__array_ufunc__` returns `NotImplemented` (rather
+      than raising `ValueError`) when a converter applied to an input fails because
+      that input is an incompatible duck type, allowing Python to fall back to the
+      reflected operator.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior where `UnitConversionError` or `UnitTypeError`
+      (genuinely incompatible units between two real Quantity objects) is still raised,
+      so that unit-mismatch errors are not silently swallowed.
+    weight: 3
+  - id: SA3
+    description: 'Handles the specific case described in the PR where `(1 * u.m) +
+      DuckArray(1 * u.mm)` previously raised `ValueError: Value not scalar compatible
+      or convertible to an int, float, or complex array` from `_condition_arg`, by
+      catching that `ValueError` and returning `NotImplemented`.'
+    weight: 2
+  - id: SA4
+    description: Confines the `NotImplemented` return to cases where conversion genuinely
+      fails on a non-conforming input, not to cases where units are just incompatible
+      between two plain `Quantity` objects.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that `Quantity.__array_ufunc__` still raises `UnitConversionError`
+      (not `NotImplemented`) when two plain `Quantity` inputs have genuinely incompatible
+      units (e.g., adding meters to seconds), preserving the existing error contract.
+    weight: 3
+  - id: I2
+    description: Confirms that existing tests in `astropy/units/tests/` are not weakened,
+      skipped, or removed as part of the patch.
+    weight: 2
+  - id: I3
+    description: Confirms the public signature of `Quantity.__array_ufunc__(self,
+      function, method, *inputs, **kwargs)` is unchanged.
+    weight: 2
+  - id: I4
+    description: Avoids introducing mass renames, dependency changes, or imports not
+      directly required by the fix (e.g., no new third-party imports are added to
+      `astropy/units/quantity.py`).
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: When `Quantity.__array_ufunc__` is called with an input whose `value`
+      attribute is not a numeric scalar/array (i.e., a duck type), the method returns
+      `NotImplemented` rather than propagating a `ValueError`, enabling Python's operator
+      dispatch to invoke the reflected method on the duck type.
+    weight: 3
+  - id: R2
+    description: When both inputs to a ufunc are plain `Quantity` objects with incompatible
+      units (e.g., `np.add(1*u.m, 1*u.s)`), `Quantity.__array_ufunc__` still raises
+      `UnitConversionError` rather than silently returning `NotImplemented`.
+    weight: 3
+  - id: R3
+    description: Existing compatible-unit operations like `DuckArray(1 * u.mm) + (1
+      * u.m)` and `(1 * u.mm) + DuckArray(1 * u.mm)` continue to work correctly, producing
+      a valid `DuckArray` result without raising any error.
+    weight: 2
+  - id: R4
+    description: The fix does not suppress `TypeError` raised from `converters_and_unit`
+      for genuinely unsupported ufuncs (e.g., `np.logical_or` applied to Quantities),
+      preserving that existing runtime error surface.
+    weight: 2

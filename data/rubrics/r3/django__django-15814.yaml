@@ -1,0 +1,58 @@
+metadata:
+  task_summary: 'Fix a crash (ValueError: ''id'' is not in list) when using QuerySet.only()
+    after select_related() on a ForeignKey that points to a proxy model, by using
+    the concrete model''s _meta in deferred_to_data().'
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the line in django/db/models/sql/query.py inside deferred_to_data()
+      that assigns opts from cur_model._meta, replacing it with an expression that
+      resolves to the concrete model's _meta (e.g., cur_model._meta.concrete_model._meta).
+    weight: 3
+  - id: FC2
+    description: Confines the production code change to django/db/models/sql/query.py
+      without introducing unrelated edits to other production modules.
+    weight: 2
+  - id: FC3
+    description: Adds a test case (anywhere in the test suite) that exercises select_related()
+      combined with only() on a queryset whose ForeignKey points to a proxy model,
+      matching the scenario described in the PR (e.g., a model with a FK to a proxy
+      model, calling .select_related(...).only("proxy_field__name")).
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Applies the fix specifically in the inner loop of deferred_to_data()
+      where opts is updated after resolving cur_model via source.remote_field.model
+      or source.related_model, which is the exact location identified in the PR description
+      (around the line opts = cur_model._meta).
+    weight: 3
+  - id: SA2
+    description: Ensures that after the fix, cur_model (used as a key in must_include
+      via add_to_dict) is still the concrete model, not a proxy model, so that the
+      pk column is correctly included in the query when the FK target is a proxy.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing behavior for non-proxy FK targets by keeping
+      the same logic path — the change to use concrete_model._meta only affects proxy-model
+      cases and does not alter the flow for concrete models (since concrete_model._meta
+      equals _meta for concrete models).
+    weight: 2
+  - id: I2
+    description: Does not weaken or remove any existing tests related to select_related(),
+      only(), or defer() for proxy models (such as test_proxy_model_defer_with_select_related
+      or test_only_with_select_related in tests/defer_regress/tests.py).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Eliminates the ValueError 'id' is not in list raised in RelatedPopulator.__init__
+      at the self.init_list.index(self.model_cls._meta.pk.attname) call when iterating
+      a queryset using select_related() and only() on a ForeignKey pointing to a proxy
+      model.
+    weight: 3
+  - id: R2
+    description: Ensures that when only() specifies a field path through a proxy model
+      FK (e.g., only('custom__name')), the proxy model's PK column is still included
+      in the SELECT via must_include, so RelatedPopulator can locate the pk index
+      in init_list.
+    weight: 2

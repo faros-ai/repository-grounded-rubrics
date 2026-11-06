@@ -1,0 +1,117 @@
+metadata:
+  task_summary: Fix exception serialization in _to_json/_from_json to preserve chained
+    exceptions (ExceptionChainRepr.chain) so that xdist displays the full exception
+    chain instead of only the outermost exception.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies src/_pytest/reports.py as the primary (and ideally only)
+      production-code file changed to address chained exception serialization.
+    weight: 3
+  - id: FC2
+    description: Imports ExceptionChainRepr from _pytest._code.code in src/_pytest/reports.py,
+      since it is needed to identify or reconstruct chained exception representations.
+    weight: 2
+  - id: FC3
+    description: Extends the disassembled_report helper (or equivalent logic in _to_json)
+      in src/_pytest/reports.py to iterate over all elements of ExceptionChainRepr.chain
+      rather than only the last element exposed via reprtraceback and reprcrash.
+    weight: 3
+  - id: FC4
+    description: Serializes the description string (descr, e.g. 'The above exception
+      was the direct cause of the following exception:' or 'During handling of the
+      above exception, another exception occurred:') for each chain element within
+      _to_json, so the inter-exception narrative is preserved.
+    weight: 2
+  - id: FC5
+    description: Updates the _from_json classmethod in src/_pytest/reports.py to reconstruct
+      an ExceptionChainRepr (not just a ReprExceptionInfo) when the serialized longrepr
+      contains multiple chain entries.
+    weight: 3
+  - id: FC6
+    description: Adds test coverage (in testing/test_reports.py or equivalent) exercising
+      _to_json/_from_json round-trip for a report whose longrepr is an ExceptionChainRepr
+      with more than one chain element.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that an ExceptionChainRepr with chain length greater than
+      one is fully preserved through a _to_json / _from_json round-trip, so that all
+      chained tracebacks are present in the deserialized report.
+    weight: 3
+  - id: SA2
+    description: Preserves the 'raise X from Y' chain (explicit __cause__) through
+      serialization, corresponding to the test_chained_exception_with_from scenario
+      described in the PR.
+    weight: 3
+  - id: SA3
+    description: Preserves the implicit __context__ chain ('During handling of the
+      above exception, another exception occurred:') through serialization, corresponding
+      to the test_chained_exception_without_from scenario described in the PR.
+    weight: 3
+  - id: SA4
+    description: Serializes the sections attribute from the full ExceptionChainRepr
+      (not only from reprtraceback), so captured output sections attached to the chained
+      representation are not lost.
+    weight: 2
+  - id: SA5
+    description: Preserves the reprcrash of the outermost (last) exception correctly
+      after deserialization, consistent with ExceptionChainRepr.reprcrash = chain[-1][1].
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the existing single-exception serialization path (non-chained
+      ReprExceptionInfo or ExceptionChainRepr with one entry) continues to function
+      correctly and is not broken by the change.
+    weight: 3
+  - id: I2
+    description: Confirms that no existing tests in testing/test_reports.py are removed,
+      weakened, or have their assertions relaxed to accommodate the new serialization
+      format.
+    weight: 2
+  - id: I3
+    description: Avoids introducing changes to src/_pytest/_code/code.py that alter
+      the public API of ExceptionChainRepr, ExceptionInfo, or ReprExceptionInfo (their
+      __init__ signatures and attributes must remain compatible).
+    weight: 2
+  - id: I4
+    description: Avoids adding new third-party dependencies or modifying setup.cfg/setup.py
+      to accommodate the chained exception serialization fix.
+    weight: 1
+  - id: I5
+    description: Confirms that _report_unserialization_failure is still called (not
+      bypassed) for unknown entry types encountered during deserialization of chained
+      exception entries.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when a test raises a chained exception via 'raise X
+      from Y', the deserialized longrepr contains all traceback entries for each exception
+      in the chain, not just the outermost ValueError.
+    weight: 3
+  - id: R2
+    description: Ensures that the description strings 'The above exception was the
+      direct cause of the following exception:' and 'During handling of the above
+      exception, another exception occurred:' are preserved across serialization so
+      the terminal output reconstructed by toterminal matches the non-xdist output.
+    weight: 2
+  - id: R3
+    description: Ensures that a single-exception test (no __cause__ or __context__)
+      still produces a valid deserialized longrepr with correct reprcrash and reprtraceback
+      after the change.
+    weight: 3
+  - id: R4
+    description: Ensures that ExceptionChainRepr with a cycle (an exception that appears
+      as its own cause/context) does not cause infinite loops during serialization,
+      consistent with the seen set used in repr_excinfo.
+    weight: 2
+  - id: R5
+    description: Ensures that after deserialization the longreprtext property of the
+      reconstructed report contains text from all chained exceptions (not just the
+      last one), making the full chain visible in xdist output.
+    weight: 2
+  - id: R6
+    description: Ensures that a chain element whose exception has no traceback (reprcrash
+      is None) is handled without raising an error during serialization or deserialization,
+      consistent with the fallback logic in repr_excinfo.
+    weight: 1

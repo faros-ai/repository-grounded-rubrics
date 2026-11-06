@@ -1,0 +1,52 @@
+metadata:
+  task_summary: Fix ExpressionWrapper so that constant expressions wrapped inside
+    it are correctly excluded from the SQL GROUP BY clause, matching the behavior
+    of unwrapped constant expressions.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/db/models/expressions.py and restricts changes to
+      the ExpressionWrapper class, without altering unrelated classes or files.
+    weight: 3
+  - id: FC2
+    description: Adds a get_group_by_cols method definition inside the ExpressionWrapper
+      class in django/db/models/expressions.py.
+    weight: 3
+  - id: FC3
+    description: Adds a test that exercises annotate with ExpressionWrapper wrapping
+      a constant expression (e.g., Value) combined with values() and a second annotate
+      using an aggregate, verifying GROUP BY behavior.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements get_group_by_cols in ExpressionWrapper such that it delegates
+      to the wrapped expression's get_group_by_cols rather than falling back to the
+      base Expression.get_group_by_cols logic that returns [self].
+    weight: 3
+  - id: SA2
+    description: Ensures the new get_group_by_cols in ExpressionWrapper returns an
+      empty list when the wrapped expression is a constant (such as Value), matching
+      the behavior of Value.get_group_by_cols which returns [].
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that ExpressionWrapper.as_sql still delegates to self.expression.as_sql
+      without modification, preserving existing SQL generation behavior.
+    weight: 2
+  - id: I2
+    description: Confirms no existing test cases for ExpressionWrapper are removed
+      or weakened (e.g., no skip decorators added, no assertions removed) in the patch.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a query using ExpressionWrapper(Value(3), output_field=IntegerField())
+      in annotate followed by values() and a second annotate with an aggregate produces
+      a GROUP BY clause that does not include the constant expression, avoiding a
+      ProgrammingError on Postgres.
+    weight: 3
+  - id: R2
+    description: Ensures that a query using ExpressionWrapper wrapping a non-constant
+      expression (e.g., ExpressionWrapper(F('column'), output_field=IntegerField()))
+      still includes the column reference in the GROUP BY clause, maintaining correct
+      grouping for non-constant wrapped expressions.
+    weight: 2

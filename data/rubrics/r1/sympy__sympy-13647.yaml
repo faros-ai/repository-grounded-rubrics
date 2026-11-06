@@ -1,0 +1,58 @@
+metadata:
+  task_summary: Fix Matrix.col_insert() returning incorrect results when inserting
+    multi-column matrices, where columns after the insertion point are shifted to
+    wrong rows.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Fixes the off-by-one index error in the last branch of the `entry`
+      function inside `_eval_col_insert` in `sympy/matrices/common.py`, where the
+      original expression incorrectly subtracts both `pos` and `other.cols` from `j`
+      (i.e., `j - pos - other.cols`) instead of only `other.cols` (i.e., `j - other.cols`).
+    weight: 3
+  - id: FC2
+    description: Confines the fix to `sympy/matrices/common.py` without modifying
+      the sparse matrix override `_eval_col_insert` in `sympy/matrices/sparse.py`,
+      which already implements the correct logic independently.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test in the matrix test suite (such as `test_col_insert`)
+      that exercises `col_insert` with a multi-column insertion matrix (e.g., a 6x2
+      matrix inserted into a 6x6 identity matrix) and checks that the columns to the
+      right of the inserted block are placed correctly.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the reported symptom where inserting a 2-column matrix
+      `V = 2 * ones(6, 2)` at position 3 into `eye(6)` produced the right-side 3x3
+      identity block shifted to the top three rows instead of remaining in the bottom
+      three rows.
+    weight: 3
+  - id: SA2
+    description: Preserves the correct behavior of `col_insert` for inserting a single-column
+      matrix, ensuring the fix does not regress the existing tests that insert a 1-column
+      matrix into a 3x3 zeros matrix across positions -4 through 4.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Avoids weakening or removing any existing `test_col_insert` assertions
+      in either `sympy/matrices/tests/test_matrices.py` or `sympy/matrices/tests/test_commonmatrix.py`.
+    weight: 3
+  - id: I2
+    description: Preserves the public API signature of `col_insert(self, pos, other)`
+      and `_eval_col_insert(self, pos, other)` without adding, removing, or reordering
+      parameters.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that after the fix, `eye(6).col_insert(3, 2 * ones(6, 2))`
+      produces an 8-column result where columns 0-2 are the left portion of the identity,
+      columns 3-4 are the inserted twos, and columns 5-7 are the right portion of
+      the identity aligned correctly across all 6 rows.
+    weight: 3
+  - id: R2
+    description: Ensures that `col_insert` with `pos` equal to 0 (prepend) and `pos`
+      equal to `self.cols` (append) still yields correct results, as the fix to the
+      index expression in the `entry` lambda must handle boundary positions without
+      introducing new errors.
+    weight: 2

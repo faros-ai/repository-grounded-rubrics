@@ -1,0 +1,50 @@
+metadata:
+  task_summary: 'Fix PyMethod.get_index_text to omit parentheses in the index entry
+    when the :property: option is set, matching the behavior of PyProperty.get_index_text.'
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `get_index_text` method of `PyMethod` in `sphinx/domains/python.py`
+      to remove the parentheses from the index entry string when `'property' in self.options`.
+    weight: 3
+  - id: FC2
+    description: Confines the change to `sphinx/domains/python.py` (and optionally
+      the test file) without modifying unrelated files.
+    weight: 2
+  - id: FC3
+    description: Updates the existing test assertion for the `:property:` case in
+      `test_pymethod_options` (or equivalent test code) to expect the paren-free string
+      `meth5 (Class property)` instead of `meth5() (Class property)`.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Replaces the format string `'%s() (%s property)'` (with parentheses)
+      with `'%s (%s property)'` (without parentheses) in the `property` branch of
+      `PyMethod.get_index_text`.
+    weight: 3
+  - id: SA2
+    description: Leaves the index entry format strings for non-property cases (`classmethod`,
+      `staticmethod`, plain `method`) unchanged, preserving their `()` parentheses.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that `PyProperty.get_index_text` is not modified, since
+      its format string `'%s (%s property)'` (already paren-free) is the correct reference
+      behavior.
+    weight: 2
+  - id: I2
+    description: Avoids weakening any existing test by removing assertions or broadening
+      expected values — any updated test assertion must still check the exact index
+      entry text for the `:property:` case.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a `py:method` directive with the `:property:` option
+      generates an index entry of the form `methname (ClassName property)` without
+      `()`, matching the entry produced by `py:property`.
+    weight: 3
+  - id: R2
+    description: Maintains that a `py:method` directive without the `:property:` option
+      still generates an index entry with `()` (e.g., `methname() (ClassName method)`),
+      preserving backward compatibility for standard method index entries.
+    weight: 2

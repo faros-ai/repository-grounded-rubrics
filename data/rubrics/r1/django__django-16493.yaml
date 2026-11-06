@@ -1,0 +1,63 @@
+metadata:
+  task_summary: Fix FileField.deconstruct() to always include the storage kwarg when
+    it was originally set to a callable, even if that callable returns default_storage.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the deconstruct() method in django/db/models/fields/files.py
+      to change the condition that gates inclusion of 'storage' in kwargs, so that
+      the presence of self._storage_callable is checked independently of whether self.storage
+      is default_storage.
+    weight: 3
+  - id: FC2
+    description: Confines all production code changes to django/db/models/fields/files.py
+      without unrelated file modifications.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test exercising a callable storage that returns
+      default_storage and asserts the callable itself appears in the deconstructed
+      kwargs['storage'].
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Fixes the deconstruct() method so that a callable which happens to
+      return default_storage is still emitted as kwargs['storage'] in the deconstructed
+      form, addressing the non-deterministic makemigrations output described in the
+      PR.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior that a FileField created without
+      an explicit storage argument (falling back to default_storage directly) omits
+      'storage' from its deconstructed kwargs.
+    weight: 2
+  - id: SA3
+    description: Preserves the existing behavior that a callable storage returning
+      a non-default storage instance still deconstructs to the callable (not the evaluated
+      instance) in kwargs['storage'].
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms the public signatures of FileField.__init__ and FileField.deconstruct()
+      are unchanged (no new parameters added or removed).
+    weight: 2
+  - id: I2
+    description: Confirms the existing test_deconstruction assertion that storage_callable
+      deconstructs to the callable_storage function is preserved and not weakened
+      or deleted.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures deconstruct() on a FileField with a callable storage that
+      returns default_storage consistently includes the callable in the returned kwargs,
+      eliminating the alternating omission described in the PR.
+    weight: 3
+  - id: R2
+    description: Ensures that the fix does not cause FileField.__init__ to re-evaluate
+      the callable on every deconstruct() call; the stored self._storage_callable
+      reference is used directly.
+    weight: 2
+  - id: R3
+    description: Ensures the deconstructed storage value for a callable storage is
+      the original callable object (referencing self._storage_callable), not the evaluated
+      Storage instance.
+    weight: 2

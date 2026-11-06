@@ -1,0 +1,58 @@
+metadata:
+  task_summary: Fix a ValueError crash when combining select_related() and only()
+    on a model with a ForeignKey to a proxy model, caused by opts not resolving to
+    the concrete model's _meta in deferred_to_data.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/db/models/sql/query.py and no other production source
+      files, keeping the fix localized to the correct layer.
+    weight: 3
+  - id: FC2
+    description: Replaces the assignment of opts inside the traversal loop in deferred_to_data
+      (around line 745-751 of query.py) so that opts resolves through concrete_model._meta
+      rather than directly using cur_model._meta.
+    weight: 3
+  - id: FC3
+    description: Avoids unrelated changes such as mass renames, reformatting of unrelated
+      methods, or changes to import blocks beyond what the fix strictly requires.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Applies the fix exactly where the PR description identifies the
+      root cause: the line that assigns opts from cur_model._meta inside the for-loop
+      in deferred_to_data, changing it to use cur_model._meta.concrete_model._meta
+      (or an equivalent that resolves the proxy to its concrete counterpart).'
+    weight: 3
+  - id: SA2
+    description: 'Addresses the scenario described in the PR: a model (AnotherModel-style)
+      with a ForeignKey to a proxy model (ProxyCustomModel-style) no longer raises
+      ValueError when select_related() and only() are chained.'
+    weight: 3
+  - id: SA3
+    description: Adds or updates a regression test exercising select_related() combined
+      with only() on a queryset where the related field is a ForeignKey targeting
+      a proxy model, matching the pattern from the PR description.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the behavior of the existing test test_proxy_model_defer_with_select_related
+      in tests/defer_regress/tests.py (ProxyRelated.objects.select_related().only())
+      without disabling, skipping, or weakening it.
+    weight: 2
+  - id: I2
+    description: Does not alter the public API or signature of deferred_to_data or
+      any other public Query method.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when cur_model is a proxy model, the opts variable used
+      for field lookups within deferred_to_data reflects the concrete model's Options
+      object, so pk.attname is found in the init_list built by RelatedPopulator and
+      no ValueError is raised.
+    weight: 3
+  - id: R2
+    description: Preserves correct deferred-loading behavior for non-proxy related
+      models so that existing only() and defer() queries without proxy models continue
+      to produce the same column selection.
+    weight: 2

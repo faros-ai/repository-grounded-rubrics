@@ -1,0 +1,56 @@
+metadata:
+  task_summary: Fix dateformat.y() to return a zero-padded two-digit year (last two
+    digits of year % 100) consistent with Python strftime('%y') and PHP date('y'),
+    so years < 1000 are handled correctly.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `def y(self)` method inside `django/utils/dateformat.py`
+      and no other production files, keeping the change minimal and local.
+    weight: 3
+  - id: FC2
+    description: Replaces the `str(self.data.year)[2:]` expression in `def y(self)`
+      with an approach that uses modulo 100 and zero-pads the result (e.g. `'%02d'
+      % (self.data.year % 100)` or equivalent).
+    weight: 3
+  - id: FC3
+    description: Adds or updates at least one test in the test suite (e.g. `tests/utils_tests/test_dateformat.py`)
+      that exercises `dateformat.format` with a year below 1000 and the `'y'` format
+      character.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures `def y(self)` returns a two-character string (exactly 2 digits)
+      for any year, matching the PR description's requirement that results align with
+      Python `strftime('%y')` and PHP `date('y')`.
+    weight: 3
+  - id: SA2
+    description: Ensures `def y(self)` returns `'23'` (not `'3'`) for a year like
+      123, directly addressing the example from the PR description where Django incorrectly
+      returned `'3'`.
+    weight: 2
+  - id: SA3
+    description: Preserves the docstring of `def y(self)` as `"Year, 2 digits; e.g.
+      '99'"` or updates it to remain consistent with returning exactly 2 digits.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the `def Y(self)` method (4-digit year) in `django/utils/dateformat.py`
+      is left unchanged by the patch.
+    weight: 2
+  - id: I2
+    description: Confirms that no existing tests related to `dateformat.y()` for normal
+      years (e.g. year 1999 returning `'99'`, year 2009 returning `'09'`) are removed
+      or weakened.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Guarantees that `def y(self)` always returns a string of exactly
+      2 characters (zero-padded when `year % 100 < 10`), so a year like 2009 still
+      correctly yields `'09'` rather than `'9'`.
+    weight: 3
+  - id: R2
+    description: Guarantees that the fix produces correct two-digit output for the
+      boundary case of year 100 (returns `'00'`) and year 99 (returns `'99'`), confirming
+      consistent modulo-100 behavior at decade and century boundaries.
+    weight: 2

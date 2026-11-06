@@ -1,0 +1,64 @@
+metadata:
+  task_summary: Fix `_hermite_normal_form` in `sympy/polys/matrices/normalforms.py`
+    to stop falsely treating full-rank rows as zero when the current row has a zero
+    at the target pivot column but a row above has a non-zero entry in that same column.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies `_hermite_normal_form` inside `sympy/polys/matrices/normalforms.py`
+      and does not modify any unrelated files (e.g., leaves `_hermite_normal_form_modulo_D`
+      and `smith_normal_form` untouched).
+    weight: 3
+  - id: FC2
+    description: Adds logic (within `_hermite_normal_form`) that, when `b == A[i][k]`
+      equals zero after reducing columns to the left of `k`, searches rows above (indices
+      `0` to `i-1`) for a non-zero entry in column `k` and uses it (e.g., via a row
+      swap) before declaring the current row pivot-free.
+    weight: 3
+  - id: FC3
+    description: Does not change the final `return DomainMatrix.from_rep(A)[:, k:]`
+      slice mechanism or the column-operation helpers (`add_columns`, `_gcdex`) in
+      a way that would break existing behaviour for square or wide matrices.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that `hermite_normal_form` called on the matrix produced
+      by transposing and flipping `[[5, 8, 12], [0, 0, 1]]` returns a result with
+      the same number of rows as the input (i.e., does not drop the zero row and return
+      a matrix with fewer rows than expected).
+    weight: 3
+  - id: SA2
+    description: Ensures that a tall matrix (more rows than columns, i.e. `m > n`)
+      with full column rank no longer has pivot columns incorrectly incremented (`k
+      += 1`) when the current row is zero at `A[i][k]` but a row above is non-zero
+      at the same column.
+    weight: 3
+  - id: SA3
+    description: Preserves correct behaviour for matrices that are genuinely rank-deficient
+      (e.g., `DM([[2, 7], [0, 0], [0, 0]], ZZ)` should still return a matrix with
+      zero columns) so the fix does not over-correct and wrongly claim zero rows as
+      pivots.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing test cases in `test_hermite_normal` (e.g.,
+      the `DM([[2, 7], [0, 0], [0, 0]], ZZ)` case and the `DM([[-2, 1], [0, 1]], ZZ)`
+      case) are not weakened, removed, or bypassed in the patch.
+    weight: 2
+  - id: I2
+    description: Confirms that the public API of `hermite_normal_form(A, *, D=None,
+      check_rank=False)` in both `sympy/polys/matrices/normalforms.py` and `sympy/matrices/normalforms.py`
+      retains its signatures and documented keyword arguments unchanged.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Adds a test case (anywhere in the diff) that exercises `hermite_normal_form`
+      on a tall integer matrix with more rows than columns and full column rank, confirming
+      the result has the same number of columns as the input (i.e., no spurious column
+      reduction).
+    weight: 1
+  - id: R2
+    description: Ensures the fix operates with row-swap or equivalent row search only
+      within the rows already allocated to the algorithm (indices `0` to `m-1`), so
+      that the algorithm terminates in finite time without introducing unbounded loops.
+    weight: 2

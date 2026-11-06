@@ -1,0 +1,51 @@
+metadata:
+  task_summary: Fix `_encode_params` in `requests/models.py` to stop calling `to_native_string`
+    on raw `bytes` data, which fails for non-ASCII byte payloads.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies `requests/models.py` and specifically the `_encode_params`
+      method to fix the binary payload bug, with no unrelated file churn.
+    weight: 3
+  - id: FC2
+    description: Removes or guards the unconditional `to_native_string(data)` call
+      inside `_encode_params` when `data` is an instance of `bytes`, so that bytes
+      are no longer passed through `to_native_string`.
+    weight: 3
+  - id: FC3
+    description: Confines the change to the branch of `_encode_params` that handles
+      `isinstance(data, (str, bytes))`, leaving the dict/list iteration branch and
+      all other methods in `models.py` untouched.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that when `data` is a `bytes` object, `_encode_params` returns
+      it as-is (or passes it through without ASCII decoding), directly fixing the
+      failure reported for `requests.put(..., data=u'ööö'.encode('utf-8'))`.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior that `str` data (Unicode strings)
+      is still processed through `to_native_string` or an equivalent encoding path,
+      so that string payloads continue to work.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the `to_native_string` function itself in `requests/utils.py`
+      is not altered, since the bug is in how it is called, not in its implementation.
+    weight: 2
+  - id: I2
+    description: Confirms that no existing tests related to `_encode_params`, `prepare_body`,
+      or string payloads are removed or weakened (e.g., no `@pytest.mark.skip` added,
+      no assertion removed).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that passing a `bytes` object containing non-ASCII byte sequences
+      as `data` to `_encode_params` no longer raises a `UnicodeDecodeError` caused
+      by the default ASCII encoding in `to_native_string`.
+    weight: 3
+  - id: R2
+    description: Maintains backward compatibility such that passing a plain ASCII
+      `bytes` value or a `str` value as `data` still produces a valid, sendable request
+      body.
+    weight: 2

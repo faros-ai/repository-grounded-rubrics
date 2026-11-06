@@ -1,0 +1,54 @@
+metadata:
+  task_summary: 'Fix PyMethod.get_index_text to omit parentheses in the index entry
+    when the :property: option is set, matching the behavior of PyProperty.'
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `get_index_text` method of `PyMethod` in `sphinx/domains/python.py`
+      to return an index string without trailing `()` when `'property' in self.options`
+      (e.g., changing `'%s() (%s property)'` to `'%s (%s property)'`).
+    weight: 3
+  - id: FC2
+    description: Confines the production-code change to `sphinx/domains/python.py`
+      and does not introduce unrelated modifications to other domain files (e.g.,
+      `c.py`, `cpp.py`, `javascript.py`).
+    weight: 2
+  - id: FC3
+    description: Updates the existing test assertion for the `:property:` case of
+      `py:method` (where the entry previously read `'meth5() (Class property)'`) to
+      expect the parenthesis-free form `'meth5 (Class property)'`.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Aligns `PyMethod.get_index_text` output for the `'property'` branch
+      with `PyProperty.get_index_text`, which already uses the pattern `'%s (%s property)'`
+      without parentheses, as required by the PR description.
+    weight: 3
+  - id: SA2
+    description: Leaves the index-text format of all other `PyMethod` branches (`classmethod`,
+      `staticmethod`, regular method) unchanged so that only the `:property:` option
+      case is affected.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the fix does not weaken any existing test by removing
+      assertions, skipping tests, or broadening expected values beyond what the corrected
+      behavior requires.
+    weight: 2
+  - id: I2
+    description: Confirms that `PyProperty.get_index_text` (the `py:property` directive's
+      implementation) is left untouched, preserving existing correct behavior for
+      the dedicated property directive.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a `py:method` directive with `:property:` option produces
+      an index entry of the form `'<name> (<class> property)'` (no parentheses after
+      `<name>`), consistent with the format used by `py:property`.
+    weight: 3
+  - id: R2
+    description: Ensures that a `py:method` directive without the `:property:` option
+      (regular method, classmethod, staticmethod) still produces an index entry of
+      the form `'<name>() (<class> method)'` with parentheses, preserving backward
+      compatibility.
+    weight: 2

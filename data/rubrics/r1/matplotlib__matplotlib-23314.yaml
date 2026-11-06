@@ -1,0 +1,51 @@
+metadata:
+  task_summary: Fix set_visible(False) being ignored for 3D projection axes by adding
+    a visibility guard to Axes3D.draw().
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies lib/mpl_toolkits/mplot3d/axes3d.py and makes no other unrelated
+      file changes.
+    weight: 2
+  - id: FC2
+    description: Adds a visibility guard (checking self.get_visible()) inside the
+      Axes3D.draw method in axes3d.py, causing early return when the axes is not visible.
+    weight: 3
+  - id: FC3
+    description: Adds or modifies a test in the mpl_toolkits tests (e.g., test_mplot3d.py)
+      that exercises set_visible(False) on a 3D axes.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures the fix is applied specifically to Axes3D.draw in lib/mpl_toolkits/mplot3d/axes3d.py,
+      where the visibility check is missing, rather than in an unrelated location.
+    weight: 3
+  - id: SA2
+    description: 'Mirrors the visibility guard pattern used in the parent class _AxesBase.draw
+      (i.e., ''if not self.get_visible(): return'') so behavior is consistent with
+      non-3D axes.'
+    weight: 2
+  - id: SA3
+    description: Preserves the remainder of the Axes3D.draw body (patch.draw, projection
+      setup, axis drawing, super().draw) unchanged so existing 3D rendering is unaffected.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms the fix does not remove or weaken any existing tests in
+      test_mplot3d.py (no @pytest.mark.skip, no deletion of existing test functions).
+    weight: 2
+  - id: I2
+    description: Confirms that the public API of Axes3D (including set_visible and
+      draw signatures) is preserved and no parameters are renamed or removed.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when set_visible(False) is called on an Axes3D instance,
+      its draw method returns immediately without invoking self.patch.draw or any
+      other drawing operations.
+    weight: 3
+  - id: R2
+    description: Ensures that when set_visible(True) (the default) is set on an Axes3D
+      instance, the draw method proceeds normally through all drawing steps (patch,
+      projection, axes, super().draw).
+    weight: 2

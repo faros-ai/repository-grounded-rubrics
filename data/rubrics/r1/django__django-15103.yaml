@@ -1,0 +1,61 @@
+metadata:
+  task_summary: Make the element_id argument of json_script optional so that the generated
+    <script> tag omits the id attribute when no element_id is provided.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the signature of `def json_script(` in `django/utils/html.py`
+      to give `element_id` a default value of `None`, making it optional.
+    weight: 3
+  - id: FC2
+    description: Modifies the body of `json_script` in `django/utils/html.py` to conditionally
+      omit the `id` attribute from the `<script>` tag when `element_id` is `None`
+      or falsy.
+    weight: 3
+  - id: FC3
+    description: Updates the template filter `def json_script(` in `django/template/defaultfilters.py`
+      so that its `element_id` parameter also accepts an optional or absent value
+      (e.g., default `None`).
+    weight: 2
+  - id: FC4
+    description: Avoids modifying files unrelated to `json_script` (e.g., unrelated
+      utility modules, settings files, or other template filters) — the diff is scoped
+      to the minimal set of files needed.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements the requirement that calling `json_script(value)` without
+      an `element_id` argument is valid (no `TypeError` from a missing required argument).
+    weight: 3
+  - id: SA2
+    description: Produces a `<script type="application/json">` tag without any `id`
+      attribute when `element_id` is not supplied, matching the described use-case
+      of embedding inside a `<template>` without needing an id.
+    weight: 3
+  - id: SA3
+    description: Preserves the existing behavior when `element_id` is provided, generating
+      a `<script id="..." type="application/json">` tag identical to the pre-patch
+      output.
+    weight: 3
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing tests for `json_script` with an `element_id`
+      argument are not weakened, removed, or skipped — they must still assert the
+      `id` attribute appears in the output.
+    weight: 2
+  - id: I2
+    description: Preserves the public API of `json_script` in `django/utils/html.py`
+      — the function name, module path, and the behavior when `element_id` is supplied
+      remain unchanged.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when `element_id` is `None` (or omitted), the rendered
+      output contains no `id=` substring, so the absence of the attribute is reliable
+      and not a partial rendering.
+    weight: 3
+  - id: R2
+    description: Ensures the template filter usage `{{ value|json_script }}` (without
+      the colon argument) does not raise a template rendering error, by allowing the
+      filter to be called with only the `value` argument.
+    weight: 2

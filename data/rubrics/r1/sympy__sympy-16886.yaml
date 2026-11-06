@@ -1,0 +1,45 @@
+metadata:
+  task_summary: Fix the incorrect Morse code mapping for digit '1' in sympy/crypto/crypto.py,
+    changing the key from '----' to '.----'.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the Morse mapping key for digit '1' in sympy/crypto/crypto.py
+      from '----' to '.----' inside the morse_char dictionary.
+    weight: 3
+  - id: FC2
+    description: Confines changes to sympy/crypto/crypto.py (and optionally its test
+      file), with no unrelated file modifications.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Replaces the incorrect key '----' mapping to '1' with the correct
+      key '.----' mapping to '1' in the morse_char dictionary, exactly as stated in
+      the PR description.
+    weight: 3
+  - id: SA2
+    description: 'Ensures the char_morse dictionary (derived via the dict-comprehension
+      ''char_morse = {v: k for k, v in morse_char.items()}'') will reflect the corrected
+      ''.----'' encoding for ''1'', since it is built from morse_char.'
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no other Morse code keys or values in the morse_char
+      dictionary are altered, renamed, or removed beyond the single correction of
+      '1' mapping from '----' to '.----'.
+    weight: 3
+  - id: I2
+    description: Confirms that the public functions encode_morse and decode_morse
+      retain the same signatures and are not modified in a way that breaks their documented
+      API.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that decoding '.----' returns '1' at runtime, and that the
+      previously incorrect key '----' no longer maps to '1', so decode_morse('.----')
+      yields the correct result.
+    weight: 3
+  - id: R2
+    description: Ensures that encoding '1' via encode_morse produces '.----' and not
+      '----', so round-trip encode/decode of messages containing '1' succeeds correctly.
+    weight: 2

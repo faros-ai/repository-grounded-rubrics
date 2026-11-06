@@ -1,0 +1,57 @@
+metadata:
+  task_summary: Fix offsetText (exponent label) color to respect xtick.labelcolor/ytick.labelcolor
+    rcParams instead of always using xtick.color/ytick.color.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the color assignment for `self.offsetText` inside `XAxis._init`
+      in `lib/matplotlib/axis.py` so it no longer unconditionally reads `mpl.rcParams['xtick.color']`.
+    weight: 3
+  - id: FC2
+    description: Modifies the color assignment for `self.offsetText` inside `YAxis._init`
+      in `lib/matplotlib/axis.py` so it no longer unconditionally reads `mpl.rcParams['ytick.color']`.
+    weight: 3
+  - id: FC3
+    description: Confines all substantive changes to `lib/matplotlib/axis.py`, with
+      no unrelated files modified or new dependencies introduced.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Applies the `''inherit''` sentinel check consistent with the PR
+      description: uses `xtick.labelcolor` when it is not `''inherit''`, and falls
+      back to `xtick.color` when it equals `''inherit''`, in the `XAxis._init` offsetText
+      color setup.'
+    weight: 3
+  - id: SA2
+    description: 'Applies the `''inherit''` sentinel check consistent with the PR
+      description: uses `ytick.labelcolor` when it is not `''inherit''`, and falls
+      back to `ytick.color` when it equals `''inherit''`, in the `YAxis._init` offsetText
+      color setup.'
+    weight: 3
+  - id: SA3
+    description: Reads `mpl.rcParams['xtick.labelcolor']` (and/or `mpl.rcParams['ytick.labelcolor']`)
+      somewhere in the offsetText initialization path, matching the PR-specified fix.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: 'Preserves the existing `set_tick_params` / `labelcolor` propagation
+      path (lines around `if ''labelcolor'' in kwtrans: self.offsetText.set_color(...)`)
+      without weakening or removing it.'
+    weight: 2
+  - id: I2
+    description: Does not weaken or remove existing tests such as `test_offset_label_color`
+      or `test_xtickcolor_is_not_xticklabelcolor` that verify offsetText and tick
+      label color behavior.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: When `ytick.labelcolor` is set to a non-`'inherit'` value (e.g. `'red'`)
+      in rcParams, the offsetText color at initialization reflects that value rather
+      than `ytick.color`, so `ax.yaxis.get_offset_text().get_color()` would return
+      the labelcolor.
+    weight: 3
+  - id: R2
+    description: When `xtick.labelcolor` or `ytick.labelcolor` is set to `'inherit'`
+      (the default), the offsetText color falls back to `xtick.color` or `ytick.color`
+      respectively, preserving backward-compatible behavior.
+    weight: 2

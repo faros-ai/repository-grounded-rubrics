@@ -1,0 +1,70 @@
+metadata:
+  task_summary: Allow Prefetch() objects to accept sliced querysets so that Category.objects.prefetch_related(Prefetch('post_set',
+    queryset=Post.objects.all()[:3], to_attr='example_posts')) works without raising
+    TypeError.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/db/models/query.py to handle sliced querysets in
+      the prefetch pipeline (either in prefetch_one_level or in Prefetch class logic).
+    weight: 3
+  - id: FC2
+    description: Modifies one or more get_prefetch_queryset methods in django/db/models/fields/related_descriptors.py
+      to avoid calling .filter(**query) directly on an already-sliced queryset.
+    weight: 3
+  - id: FC3
+    description: Confines changes to the prefetch and/or related-descriptor code paths,
+      without introducing unrelated churn in other Django subsystems.
+    weight: 2
+  - id: FC4
+    description: Adds or updates tests in the prefetch_related test suite (e.g., tests/prefetch_related/tests.py)
+      to exercise a Prefetch() with a sliced queryset and a to_attr argument.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Enables Category.objects.prefetch_related(Prefetch('post_set', queryset=Post.objects.all()[:3],
+      to_attr='example_posts')) (or equivalent FK/M2M sliced-prefetch patterns) to
+      execute without raising TypeError or AssertionError.
+    weight: 3
+  - id: SA2
+    description: Ensures that sliced prefetch only retrieves the requested number
+      of related objects per parent instance (respecting the slice limit, e.g. [:3]
+      yields at most 3 objects per parent).
+    weight: 3
+  - id: SA3
+    description: Adds a ValueError or TypeError in Prefetch.__init__ or at prefetch
+      execution time when a sliced queryset is used without a to_attr, preventing
+      silent incorrect behavior from storing sliced results in a manager-backed cache.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing ValueError raised for Prefetch querysets using
+      raw(), values(), and values_list() (the existing check in Prefetch.__init__
+      is not weakened or removed).
+    weight: 2
+  - id: I2
+    description: Preserves the existing behavior of non-sliced Prefetch() objects,
+      so that prefetch_related with unsliced querysets continues to bulk-fetch with
+      a single IN-filter query.
+    weight: 3
+  - id: I3
+    description: Does not weaken existing tests by removing assertions, adding skip
+      decorators, or broadening expected exceptions in the prefetch_related test suite.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Adds a conditional branch (anywhere in the prefetch pipeline) that
+      detects query.is_sliced on the Prefetch queryset and takes a distinct code path,
+      avoiding the TypeError from calling .filter() on a sliced queryset.
+    weight: 3
+  - id: R2
+    description: When a sliced queryset is used, the per-instance result list assigned
+      via setattr(obj, to_attr, vals) is bounded by the slice limit rather than returning
+      all matching related objects.
+    weight: 2
+  - id: R3
+    description: 'Backward compatibility is maintained: non-sliced Prefetch() objects
+      without to_attr continue to populate obj._prefetched_objects_cache using the
+      manager-backed queryset path (the else branch in prefetch_one_level assigning
+      to qs._result_cache remains intact).'
+    weight: 2

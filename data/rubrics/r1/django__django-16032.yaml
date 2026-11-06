@@ -1,0 +1,59 @@
+metadata:
+  task_summary: Fix __in lookup failing to clear selected fields on the RHS QuerySet
+    when QuerySet.alias() is used after annotate(), causing 'sub-select returns N
+    columns - expected 1' errors.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/db/models/lookups.py or django/db/models/sql/query.py
+      to fix the logic that determines whether to call clear_select_clause() on the
+      RHS query in __in subquery handling.
+    weight: 3
+  - id: FC2
+    description: Confines changes to the minimal set of files related to query building
+      (e.g., django/db/models/lookups.py, django/db/models/sql/query.py) without modifying
+      unrelated modules.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test in tests/annotations/tests.py covering the
+      annotate().alias() with __in subquery scenario described in the PR (i.e., a
+      test using Book.objects.filter(pages__gt=400).annotate(...).alias(...) on the
+      RHS of a Publisher.objects.filter(book__in=...) lookup).
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the root cause where has_select_fields (in django/db/models/sql/query.py)
+      incorrectly returns True when annotation_select_mask is non-empty due to annotate(),
+      even though the effective annotation_select after alias() masking may include
+      only unneeded annotations.
+    weight: 3
+  - id: SA2
+    description: Ensures the In.get_prep_lookup method in django/db/models/lookups.py
+      correctly calls clear_select_clause() and add_fields(['pk']) on the RHS Query
+      when annotate().alias() is used as a subquery for __in.
+    weight: 3
+  - id: SA3
+    description: Preserves the existing behavior where a RHS Query that has explicitly
+      user-selected fields (via .values() or .values_list()) is NOT cleared and has
+      pk added, so intentional multi-column subqueries are still respected.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms the fix does not weaken, skip, or remove any existing tests
+      in tests/annotations/tests.py or django/db/models/lookups.py test suite.
+    weight: 2
+  - id: I2
+    description: Confirms the public QuerySet API (annotate(), alias(), filter() with
+      __in) remains unchanged and no method signatures are altered.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a QuerySet used as an __in RHS that combines annotate()
+      followed by alias() generates a subquery selecting only the primary key column,
+      preventing the 'sub-select returns N columns - expected 1' OperationalError.
+    weight: 3
+  - id: R2
+    description: Ensures that a QuerySet with only annotate() (no alias()) used as
+      an __in RHS is still reduced to a pk-only subquery when no explicit .values()
+      or .values_list() has been applied.
+    weight: 2

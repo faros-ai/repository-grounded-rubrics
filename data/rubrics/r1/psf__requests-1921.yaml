@@ -1,0 +1,55 @@
+metadata:
+  task_summary: Fix merge_setting in sessions.py so that None values in session-level
+    dict settings (e.g., session.headers['Accept-Encoding'] = None) are filtered out
+    and not sent as the literal string 'None' in requests.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `merge_setting` function in `requests/sessions.py` (and
+      only that function) to handle None-valued entries originating from the session-level
+      dictionary, with no unrelated file changes.
+    weight: 3
+  - id: FC2
+    description: Adds a filtering step inside `merge_setting` that removes keys whose
+      value is None from `merged_setting`, covering values that come from `session_setting`
+      (not just from `request_setting`).
+    weight: 3
+  - id: FC3
+    description: Avoids modifying the `merge_setting` function signature or its call
+      sites in `prepare_request` (the `merge_setting(request.headers, self.headers,
+      dict_class=CaseInsensitiveDict)` call) or elsewhere.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Implements the behavior described in the PR: setting a session header
+      to None (e.g., `session.headers[''Accept-Encoding''] = None`) results in that
+      header being suppressed (omitted from the final merged headers), not sent as
+      the string ''None''.'
+    weight: 3
+  - id: SA2
+    description: 'Preserves the existing documented behavior where setting a header
+      to None in per-request arguments (e.g., `session.get(url, headers={''FOO'':
+      None})`) still suppresses that header.'
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: 'Confirms that the fix does not weaken or remove any existing test
+      that exercises the per-request None-header suppression behavior (such as the
+      test at line 804 of test_requests.py using `headers={''FOO'': None}`).'
+    weight: 2
+  - id: I2
+    description: 'Confirms that `merge_setting` continues to return the session_setting
+      unchanged when request_setting is None (the `if request_setting is None: return
+      session_setting` guard remains intact or equivalent).'
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that after merging, no key with a None value survives in
+      the returned dict from `merge_setting`, regardless of whether the None originated
+      from session_setting or request_setting.
+    weight: 3
+  - id: R2
+    description: Ensures that non-None session headers (e.g., User-Agent, Accept)
+      are still included in the merged result after the fix, so normal session default
+      headers continue to be sent.
+    weight: 2

@@ -1,0 +1,51 @@
+metadata:
+  task_summary: Fix cross-references not being generated for type annotations in property
+    directives by using _parse_annotation instead of plain text in PyProperty.handle_signature.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the PyProperty.handle_signature method in sphinx/domains/python.py
+      to call _parse_annotation(typ, self.env) instead of concatenating the type as
+      a plain string.
+    weight: 3
+  - id: FC2
+    description: Confines the fix to sphinx/domains/python.py without modifying unrelated
+      files or modules (no churn in autodoc, napoleon, or other domain files).
+    weight: 2
+  - id: FC3
+    description: 'Replaces the plain-text desc_annotation call (addnodes.desc_annotation(typ,
+      '': '' + typ)) in PyProperty.handle_signature with a form that passes parsed
+      annotation nodes as children, mirroring how PyAttribute.handle_signature constructs
+      its annotation node.'
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Ensures that the type string from the :type: option of a py:property
+      directive is parsed into cross-reference nodes (pending_xref) rather than rendered
+      as a plain text string.'
+    weight: 3
+  - id: SA2
+    description: 'Aligns PyProperty.handle_signature type handling with the existing
+      pattern in PyAttribute.handle_signature, which already uses _parse_annotation
+      to produce cross-references for the :type: option.'
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the fix does not remove or weaken any existing tests
+      for PyProperty or py:property directives in test_domain_py.py or test_ext_autodoc_autoproperty.py.
+    weight: 2
+  - id: I2
+    description: Confirms that the public API and option_spec of PyProperty (including
+      its 'type', 'abstractmethod', and 'classmethod' options) remains unchanged.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that property type annotations containing class names (e.g.,
+      Point) produce pending_xref nodes with refdomain='py' and reftype='class' in
+      the generated doctree, enabling cross-reference resolution.
+    weight: 3
+  - id: R2
+    description: Ensures that property type annotations composed of complex types
+      (e.g., Optional[Point], List[int]) are parsed by _parse_annotation into their
+      constituent pending_xref nodes rather than rendered as a flat string.
+    weight: 2

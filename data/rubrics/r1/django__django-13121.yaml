@@ -1,0 +1,85 @@
+metadata:
+  task_summary: Fix durations-only expressions (e.g. DurationField + timedelta) crashing
+    on SQLite and MySQL due to convert_durationfield_value receiving a non-numeric
+    string.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies code in django/db/backends/sqlite3/base.py or django/db/backends/sqlite3/operations.py
+      related to duration arithmetic (e.g. _sqlite_format_dtdelta or combine_duration_expression)
+      to fix the duration-only case.
+    weight: 3
+  - id: FC2
+    description: Modifies code in django/db/backends/mysql/operations.py related to
+      duration arithmetic (e.g. combine_duration_expression or format_for_duration_arithmetic)
+      to fix the duration-only case on MySQL.
+    weight: 3
+  - id: FC3
+    description: 'Avoids unrelated file churn: changes are confined to backend operations/expression
+      files and test files, without touching unrelated modules.'
+    weight: 2
+  - id: FC4
+    description: Adds or modifies a test in tests/expressions/tests.py (or a related
+      expressions test file) that exercises a duration-only expression such as F('estimated_time')
+      + timedelta on SQLite and/or MySQL backends.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the root cause that django/db/backends/base/operations.py
+      convert_durationfield_value receives a non-numeric string (e.g. '2 days, 0:00:00')
+      from SQLite's django_format_dtdelta when both operands are DurationFields.
+    weight: 3
+  - id: SA2
+    description: Ensures that duration-only expressions (both operands are DurationField,
+      no datetime/date operand) produce a microseconds integer result on SQLite so
+      that convert_durationfield_value can reconstruct a timedelta correctly.
+    weight: 3
+  - id: SA3
+    description: Ensures that duration-only expressions on MySQL produce a microseconds
+      integer (bigint) result rather than a TIME value, so that convert_durationfield_value
+      can reconstruct a timedelta correctly.
+    weight: 3
+  - id: SA4
+    description: Preserves correct behavior for mixed datetime+duration expressions
+      (e.g. datetime + DurationField) on SQLite and MySQL, which were working before
+      the patch.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing tests related to DurationField, duration
+      arithmetic, or temporal expressions are removed or have their assertions weakened
+      (e.g. no skips or expected-failure markers added without justification).
+    weight: 2
+  - id: I2
+    description: Confirms that the public API of DurationField, DurationExpression,
+      and convert_durationfield_value is preserved (no signature changes) unless the
+      PR description explicitly requires them.
+    weight: 2
+  - id: I3
+    description: Confirms that the fix does not alter behavior on PostgreSQL or Oracle
+      backends, which have has_native_duration_field = True and are unaffected by
+      the bug.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that annotating a queryset with a duration-only expression
+      such as ExpressionWrapper(F('estimated_time') + Value(timedelta(days=1), output_field=DurationField()),
+      output_field=DurationField()) no longer raises decimal.InvalidOperation or TypeError
+      when iterating on SQLite.
+    weight: 3
+  - id: R2
+    description: Ensures that the fixed code path in _sqlite_format_dtdelta (or equivalent)
+      returns a numeric microseconds value (int or float) rather than a human-readable
+      timedelta string when both operands represent durations, so that convert_durationfield_value's
+      datetime.timedelta(0, 0, value) call succeeds.
+    weight: 3
+  - id: R3
+    description: Ensures that duration-only expressions on MySQL produce a result
+      compatible with convert_durationfield_value, i.e. a numeric microseconds value
+      rather than a MySQL TIME string or interval type.
+    weight: 2
+  - id: R4
+    description: 'Maintains correct arithmetic result for duration-only addition:
+      e.g. DurationField value of 1 day plus timedelta(1) should yield a timedelta
+      of 2 days, not zero or an incorrect value.'
+    weight: 2

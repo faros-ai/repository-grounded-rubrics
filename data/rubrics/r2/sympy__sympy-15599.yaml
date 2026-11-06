@@ -1,0 +1,72 @@
+metadata:
+  task_summary: Fix Mod(3*i, 2) to reduce to Mod(i, 2) by extending the Mul branch
+    in sympy/core/mod.py to also simplify non-mod factors even when no mod_l terms
+    are present.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the condition guarding the distributive simplification block
+      inside the 'elif isinstance(p, Mul)' branch in sympy/core/mod.py so it triggers
+      even when mod_l is empty, as long as applying cls(x, q) to non_mod_l elements
+      produces a change.
+    weight: 3
+  - id: FC2
+    description: Moves or restructures the 'non_mod_l = [cls(x, q) for x in non_mod_l]'
+      assignment in sympy/core/mod.py so it is evaluated before (or as part of) the
+      branch condition rather than only inside the original conditional block.
+    weight: 3
+  - id: FC3
+    description: Confines all production-code changes to sympy/core/mod.py and does
+      not modify unrelated files (e.g., other core modules, setup files, or documentation
+      files outside of any test file).
+    weight: 2
+  - id: FC4
+    description: Adds a test assertion for 'Mod(3*i, 2) == Mod(i, 2)' (with i being
+      a Symbol with integer=True) inside the existing test_Mod function in sympy/core/tests/test_arit.py.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements logic that detects when applying Mod to individual non-mod
+      factors changes them (i.e., 'was != non_mod_l' or equivalent comparison), making
+      that change a sufficient condition to enter the distributive simplification
+      path.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior for cases where mod_l is non-empty
+      and all inner.args[1] == q, ensuring those paths still return the correct distributive
+      result.
+    weight: 2
+  - id: SA3
+    description: 'Ensures the fix handles the specific case from the PR description:
+      Mod(3*i, 2) reduces to Mod(i, 2) when i is an integer Symbol, by factoring out
+      the integer coefficient.'
+    weight: 3
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the existing passing assertion 'assert Mod(4*i, 4)
+      == 0' is not removed or weakened in the test file.
+    weight: 2
+  - id: I2
+    description: Confirms that the existing assertion 'assert (3*i*x) % (2*i*y) ==
+      i*Mod(3*x, 2*y)' is not removed or weakened, preserving the behavior where a
+      common factor i is extracted.
+    weight: 2
+  - id: I3
+    description: Avoids introducing new imports, new public methods, or changes to
+      the public Mod class signature that are not required by the PR description.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when p is a Mul containing only non-mod factors (mod_l
+      is empty) but some factor simplifies under Mod with q, the simplification still
+      proceeds rather than falling through to the generic gcd path unchanged.
+    weight: 3
+  - id: R2
+    description: Ensures that when none of the non_mod_l factors change under cls(x,
+      q) and mod_l is empty, the Mul branch does NOT incorrectly enter the distributive
+      block, preserving the fallthrough to subsequent simplification steps.
+    weight: 2
+  - id: R3
+    description: Maintains backward compatibility for Mod calls where p is not a Mul
+      or Add instance, leaving all non-Mul/Add code paths in mod.py unaffected.
+    weight: 2

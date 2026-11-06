@@ -1,0 +1,57 @@
+metadata:
+  task_summary: Fix tearDown() being incorrectly called for unittest.TestCase classes
+    decorated with @unittest.skip when running with --pdb.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the condition in `runtest` of `TestCaseFunction` (in `src/_pytest/unittest.py`)
+      that guards the `usepdb` tearDown-postponement path to also check if the test's
+      *class* or *instance* is skipped, not only `self.obj` (the test method).
+    weight: 3
+  - id: FC2
+    description: Confines changes to `src/_pytest/unittest.py` (and optionally test
+      files), without modifying unrelated files or introducing new module-level dependencies.
+    weight: 2
+  - id: FC3
+    description: Reuses the existing `_is_skipped` helper (or an equivalent `getattr(...,
+      '__unittest_skip__', False)` check) rather than duplicating skip-detection logic.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures the fix targets the class-level `@unittest.skip` scenario
+      described in the PR (a class decorated with `@unittest.skip` whose `tearDown`
+      was incorrectly executed under `--pdb`).
+    weight: 3
+  - id: SA2
+    description: 'Preserves the existing function-level skip guard so that method-decorated
+      `@unittest.skip` tests also avoid spurious `tearDown` calls under `--pdb` (regression:
+      the pre-existing `not _is_skipped(self.obj)` check must not be removed without
+      an equivalent replacement).'
+    weight: 2
+  - id: SA3
+    description: Adds a test case (or extends an existing parametrized test such as
+      `test_pdb_teardown_skipped`) that exercises `@unittest.skip` applied at the
+      *class* level with `--pdb` and asserts that `tearDown` is not called.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the `test_pdb_teardown_called` test (which verifies
+      `tearDown` *is* called for non-skipped tests under `--pdb`) is not weakened,
+      removed, or made to expect fewer teardown invocations.
+    weight: 3
+  - id: I2
+    description: Confirms the public API of `TestCaseFunction` (including `runtest`,
+      `setup`, `teardown`, and `_is_skipped`) is not renamed or removed.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: 'Ensures that when `--pdb` is given and the test class carries `__unittest_skip__
+      = True`, the `self._explicit_tearDown` assignment and the `setattr(self._testcase,
+      ''tearDown'', lambda *args: None)` replacement are both skipped, so `tearDown`
+      is never invoked for skipped classes.'
+    weight: 3
+  - id: R2
+    description: 'Maintains correct behavior for non-skipped `unittest.TestCase` subclasses
+      under `--pdb`: `tearDown` is still postponed (assigned to `_explicit_tearDown`)
+      and called during `teardown()` rather than immediately after `runTest`.'
+    weight: 2

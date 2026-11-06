@@ -1,0 +1,80 @@
+metadata:
+  task_summary: Fix evaluation of powers of TensorProduct expressions so that tensor_product_simp
+    and expand(tensorproduct=True) correctly simplify tp(A,B)**n into TensorProduct(A**n,
+    B**n).
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sympy/physics/quantum/tensorproduct.py and no other unrelated
+      production files, keeping the fix local to the quantum tensor product module.
+    weight: 2
+  - id: FC2
+    description: Adds or modifies the Pow-handling branch inside tensor_product_simp
+      (the function defined in sympy/physics/quantum/tensorproduct.py) so that when
+      the base of a Pow is a TensorProduct, it distributes the exponent across the
+      TensorProduct arguments.
+    weight: 3
+  - id: FC3
+    description: Modifies _eval_expand_tensorproduct inside the TensorProduct class
+      so that Pow args whose base is a TensorProduct are expanded (i.e., handles the
+      case where tp(A,B)*tp(A,B) is stored as TensorProduct(A,B)**2 inside the args).
+    weight: 3
+  - id: FC4
+    description: Adds test cases in the quantum tensor product test file that exercise
+      power simplification, covering at least the case of tensor_product_simp applied
+      to a Pow of a TensorProduct.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements the fix so that tensor_product_simp applied to tp(1,1)*tp(1,1)
+      or tp(1,1)**2 returns TensorProduct(1,1) (the identity), matching the expected
+      result shown in the PR description.
+    weight: 3
+  - id: SA2
+    description: Implements the fix so that tensor_product_simp applied to tp(1,Pauli(3))*tp(1,Pauli(3))
+      or tp(1,Pauli(3))**2 returns TensorProduct(1,1), matching the expected result
+      shown in the PR description.
+    weight: 2
+  - id: SA3
+    description: Implements the fix so that expand(tensorproduct=True) on a product
+      of equal TensorProduct expressions (such as tp(1,1)*tp(1,1)) also produces an
+      expanded or simplified result, addressing the second failure mode shown in the
+      PR description.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing tensor_product_simp behavior for Mul expressions
+      (non-Pow cases), confirmed by the existing test_tensor_product_simp assertion
+      that tensor_product_simp(TP(A,B)*TP(B,C)) == TP(A*B, B*C) still holding.
+    weight: 3
+  - id: I2
+    description: Preserves the public API signatures of tensor_product_simp and TensorProduct,
+      introducing no new required parameters or breaking changes.
+    weight: 2
+  - id: I3
+    description: Avoids weakening or removing any existing assertions in the test
+      suite for TensorProduct, tensor_product_simp, or _eval_expand_tensorproduct.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when tensor_product_simp encounters a Pow whose base
+      is a TensorProduct (e.g., TensorProduct(A,B)**n), it constructs TensorProduct(A**n,
+      B**n) rather than returning the Pow unchanged, so subsequent simplification
+      by the underlying algebra can evaluate the powers.
+    weight: 3
+  - id: R2
+    description: Ensures that _eval_expand_tensorproduct handles Pow args by detecting
+      when a TensorProduct arg is itself a Pow with a TensorProduct base and expanding
+      it, so that expand(tensorproduct=True) on products like tp(A,B)*tp(A,B) does
+      not leave the expression unchanged.
+    weight: 3
+  - id: R3
+    description: Maintains backward-compatible behavior for tensor_product_simp on
+      Add and Mul inputs (e.g., sums of TensorProducts and scalar-multiplied TensorProducts)
+      so that no regression is introduced in the non-Pow paths.
+    weight: 2
+  - id: R4
+    description: Ensures that the Pow-handling in tensor_product_simp recursively
+      simplifies the base before distributing the exponent (i.e., calls tensor_product_simp
+      on the base first), so that nested or composite expressions are fully reduced.
+    weight: 2

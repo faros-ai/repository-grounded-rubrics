@@ -1,0 +1,62 @@
+metadata:
+  task_summary: Fix composed queries (union/intersection/difference) so that calling
+    values()/values_list() with different columns on the same queryset multiple times
+    returns the correct columns each time.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `get_combinator_sql` method in `django/db/models/sql/compiler.py`
+      to fix the mutation of combined query objects when applying values_select.
+    weight: 3
+  - id: FC2
+    description: Avoids modifying files unrelated to the `get_combinator_sql` logic
+      in `compiler.py` (e.g., no changes to query.py's `set_values` signature, no
+      ORM-level API changes, no unrelated churn).
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test in `tests/queries/test_qs_combinators.py`
+      that exercises calling `values_list()` with different column subsets on the
+      same composed queryset sequentially, matching the example from the PR description.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the case where the same queryset is passed as both operands
+      to a combinator (e.g., `qs1.union(qs1)`), so that subsequent `values_list()`
+      calls with different fields return distinct correct column subsets rather than
+      always returning the first-evaluated column set.
+    weight: 3
+  - id: SA2
+    description: Ensures that the condition governing when `set_values` is called
+      on combined query compilers is no longer gated solely on `not compiler.query.values_select`,
+      so that a non-empty `values_select` from a prior evaluation does not suppress
+      the update.
+    weight: 3
+  - id: SA3
+    description: Preserves the behavior of propagating the outer query's `values_select`
+      (along with `extra_select` and `annotation_select`) into combined sub-queries
+      when those sub-queries do not independently specify column selection.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing tests for `test_union_with_values`, `test_intersection_with_values`,
+      and `test_difference_with_values` in `tests/queries/test_qs_combinators.py`
+      are not weakened, removed, or skipped.
+    weight: 2
+  - id: I2
+    description: Confirms that the fix does not permanently mutate the original combined
+      query objects stored in `self.query.combined_queries`, so that repeated evaluation
+      of the same composed queryset remains safe.
+    weight: 3
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that calling `qs1.union(qs1).values_list('order').get()`
+      after a prior call to `qs1.union(qs1).values_list('name', 'order').get()` returns
+      a tuple containing only the `order` value rather than returning all columns
+      from the earlier evaluation.
+    weight: 3
+  - id: R2
+    description: Ensures that composed queries with sub-queries that already have
+      their own `values_select` (set via explicit `values()`/`values_list()` on the
+      sub-query itself) are not overwritten by the outer query's column selection
+      during `get_combinator_sql`.
+    weight: 2

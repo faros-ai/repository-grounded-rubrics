@@ -1,0 +1,57 @@
+metadata:
+  task_summary: Apply simplified deconstruct paths (e.g., django.db.models.Value)
+    to expression classes that are importable from django.db.models, mirroring the
+    technique already used for F.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Adds @deconstructible(path='django.db.models.Value') (or equivalent
+      path= decorator) to the Value class in django/db/models/expressions.py, since
+      Value is exported from django.db.models.
+    weight: 3
+  - id: FC2
+    description: Adds simplified path= arguments to other expression classes that
+      are exported from django.db.models (such as Case, When, Exists, Subquery, ExpressionWrapper,
+      OrderBy, Window, WindowFrame, RowRange, ValueRange, ExpressionList, Func, OuterRef)
+      in django/db/models/expressions.py.
+    weight: 3
+  - id: FC3
+    description: Confines expression-related changes to django/db/models/expressions.py
+      (and optionally test files), without modifying unrelated modules or adding new
+      dependencies.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Uses the same technique applied to F (i.e., @deconstructible with
+      a path= keyword argument resolving to django.db.models.<ClassName>) for all
+      applicable expression classes, as described in the PR description.
+    weight: 3
+  - id: SA2
+    description: Only applies simplified paths to expression classes that are actually
+      importable from django.db.models (as listed in django/db/models/__init__.py),
+      not to internal-only classes such as Col, Ref, Star, RawSQL, or ResolvedOuterRef.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Updates any existing test assertions that compared deconstruct()
+      paths against long-form strings like 'django.db.models.expressions.Value' to
+      use the new simplified paths like 'django.db.models.Value'.
+    weight: 2
+  - id: I2
+    description: Preserves the existing @deconstructible(path='django.db.models.F')
+      on the F class without alteration, confirming no regression on the previously
+      fixed class.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that calling deconstruct() on an instance of a simplified
+      expression class (e.g., Value, Case, When) returns a path string of the form
+      'django.db.models.<ClassName>' rather than 'django.db.models.expressions.<ClassName>',
+      as the deconstructible path= mechanism produces.
+    weight: 3
+  - id: R2
+    description: 'Confirms backward compatibility for subclasses: the deconstructible
+      path= mechanism in django/utils/deconstruct.py only applies the simplified path
+      when type(obj) is exactly the decorated class, so subclasses still resolve their
+      own module path.'
+    weight: 1

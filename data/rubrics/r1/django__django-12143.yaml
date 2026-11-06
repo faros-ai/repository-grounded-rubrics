@@ -1,0 +1,56 @@
+metadata:
+  task_summary: Fix potential data loss in admin changelist view by applying re.escape()
+    to the formset prefix (and pk name) when building pk_pattern in _get_edited_object_pks.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/contrib/admin/options.py and only that production
+      file (no unrelated file churn) to address the regex-injection issue.
+    weight: 2
+  - id: FC2
+    description: Changes the pk_pattern construction line inside _get_edited_object_pks
+      so that re.escape() is applied to the prefix argument before it is interpolated
+      into the compiled regex string.
+    weight: 3
+  - id: FC3
+    description: Applies re.escape() to self.model._meta.pk.name in the pk_pattern
+      construction, or leaves it unescaped with a clear justification visible in the
+      diff (since the PR description notes it is likely safe but not 100% certain).
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the described regression by making the regex in _get_edited_object_pks
+      safe when prefix contains regex special characters such as parentheses, dots,
+      or plus signs.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing pattern structure (prefix, digits, pk name,
+      end anchor) so that the fixed regex still correctly matches POST keys of the
+      form prefix-<digit>+-pkname.
+    weight: 2
+  - id: SA3
+    description: Adds a test or updates an existing test in the admin_changelist test
+      suite that exercises _get_edited_object_pks with a prefix containing regex special
+      characters.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing tests for _get_edited_object_pks or _get_list_editable_queryset
+      are removed or have their assertions weakened.
+    weight: 2
+  - id: I2
+    description: Confirms that the public signature of _get_edited_object_pks(self,
+      request, prefix) is unchanged in the diff.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when prefix is a plain alphanumeric string (e.g. 'form'),
+      the escaped pattern behaves identically to the original pattern, preserving
+      backward compatibility.
+    weight: 2
+  - id: R2
+    description: Ensures that when prefix contains regex metacharacters (e.g. parentheses
+      or dots), the compiled pk_pattern correctly matches only literal occurrences
+      of that prefix rather than treating metacharacters as regex operators, preventing
+      incorrect pk extraction or silent data loss.
+    weight: 3

@@ -1,0 +1,54 @@
+metadata:
+  task_summary: Fix dateformat.y() in django/utils/dateformat.py so that years < 1000
+    are returned as a zero-padded 2-digit last-two-digits string, consistent with
+    Python strftime('%y') and PHP date('y').
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the def y( method inside django/utils/dateformat.py and
+      no other production files to fix the two-digit year formatting.
+    weight: 3
+  - id: FC2
+    description: Removes the old implementation of def y( that uses string slicing
+      (str(self.data.year)[2:]) and replaces it with arithmetic on self.data.year
+      (e.g., modulo 100 with zero-padding).
+    weight: 3
+  - id: FC3
+    description: Avoids unrelated changes to other methods or files in django/utils/dateformat.py
+      outside the def y( body.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements def y( so that a year like 123 returns '23' (the last
+      two digits, zero-padded to two characters), matching Python's strftime('%y')
+      and PHP's date('y') behavior described in the PR.
+    weight: 3
+  - id: SA2
+    description: Implements def y( so that a year like 9 returns '09' (single-digit
+      years are zero-padded to two characters), covering the boundary case mentioned
+      in the PR description.
+    weight: 2
+  - id: SA3
+    description: Preserves the existing behavior of def y( for years >= 1000 (e.g.,
+      year 1979 still returns '79'), so normal cases are unaffected.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that def Y( (four-digit year) is unchanged and continues
+      to return self.data.year without modification.
+    weight: 2
+  - id: I2
+    description: Confirms that existing test assertions such as dateformat.format(my_birthday,
+      'y') == '79' for year 1979 remain valid under the new implementation.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures def y( computes the two-digit year via arithmetic (self.data.year
+      % 100) or an equivalent zero-padded expression, guaranteeing a fixed-width two-character
+      string for any valid year.
+    weight: 3
+  - id: R2
+    description: Ensures def y( always returns exactly a 2-character string (never
+      more, never fewer digits), preventing regressions where years >= 10000 could
+      produce more than 2 digits.
+    weight: 2

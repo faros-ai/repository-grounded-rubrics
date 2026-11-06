@@ -1,0 +1,63 @@
+metadata:
+  task_summary: Fix DPI doubling on each pickle/unpickle cycle for figures on M1 Mac
+    by preserving the original (unscaled) DPI across pickling.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies code in lib/matplotlib/figure.py, specifically within the
+      Figure.__getstate__ or Figure.__setstate__ method, to address the DPI doubling
+      bug.
+    weight: 3
+  - id: FC2
+    description: Avoids unrelated file churn — changes are confined to the pickling-related
+      code paths (Figure.__getstate__ or Figure.__setstate__ or FigureCanvasBase.__init__)
+      and do not alter unrelated modules or backend files outside of the DPI pickling
+      issue.
+    weight: 2
+  - id: FC3
+    description: Introduces handling for _original_dpi (the unscaled DPI stored by
+      FigureCanvasBase.__init__) so that it is either saved in __getstate__, restored
+      in __setstate__, or reset before FigureCanvasBase(self) is called during unpickling.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause described in the PR: the figure''s DPI
+      is scaled by device_pixel_ratio each time a canvas is created, so the fix ensures
+      that on unpickling the figure''s dpi is restored to the logical (unscaled) value
+      before a new canvas is attached.'
+    weight: 3
+  - id: SA2
+    description: Ensures that _original_dpi is not set to the already-scaled DPI value
+      when FigureCanvasBase(self) is called in Figure.__setstate__, preventing repeated
+      doubling across multiple pickle/unpickle cycles.
+    weight: 3
+  - id: SA3
+    description: Adds or updates a test that exercises the pickle/unpickle cycle for
+      a Figure and verifies that the figure's dpi remains unchanged after unpickling.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that Figure.__getstate__ still removes the canvas from the
+      pickled state (state.pop('canvas') remains), preserving existing pickling behavior
+      for the canvas.
+    weight: 2
+  - id: I2
+    description: Confirms that the public Figure.dpi property and Figure._set_dpi/_get_dpi
+      interface are not removed or renamed, preserving the public API.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that after unpickling a Figure on a high-DPI display (device_pixel_ratio
+      > 1), figure.dpi equals the original logical DPI (not a multiple of it), preventing
+      the exponential DPI growth described in the PR.
+    weight: 3
+  - id: R2
+    description: Ensures that the fix does not break the normal (non-HiDPI) case where
+      device_pixel_ratio equals 1, so that figures unpickled on standard displays
+      retain their original dpi value unchanged.
+    weight: 2
+  - id: R3
+    description: Prevents the OverflowError described in the PR that occurs when the
+      doubled DPI value exceeds the maximum signed integer — by keeping DPI stable
+      across pickle/unpickle cycles the canvas size computation no longer overflows.
+    weight: 2

@@ -1,0 +1,79 @@
+metadata:
+  task_summary: Fix `_check_homomorphism` raising a spurious ValueError for PermutationGroup
+    homomorphisms by correctly handling inverted generators in the internal `_image()`
+    function.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies `_check_homomorphism` (or its nested `_image` function)
+      in `sympy/combinatorics/homomorphisms.py` and no other unrelated production
+      files.
+    weight: 3
+  - id: FC2
+    description: Removes or replaces the broken `r[i] in gens` conditional branch
+      (lines 336-337 in the original file) that misidentified inverted generators
+      for `PermutationGroup` domains.
+    weight: 3
+  - id: FC3
+    description: Ensures the fix handles the `PermutationGroup` case without referencing
+      an undefined or out-of-scope `gens` variable when `domain` has a `relators`
+      attribute (i.e., the `gens = domain.presentation().generators` branch is not
+      entered for `PermutationGroup`).
+    weight: 2
+  - id: FC4
+    description: Confines changes to the `_check_homomorphism` function and/or its
+      inner `_image` function, with no unrelated refactoring of `GroupHomomorphism`
+      methods or other top-level functions.
+    weight: 2
+  - id: FC5
+    description: Adds a test (anywhere in the diff) that constructs a `homomorphism`
+      from a `PermutationGroup` to itself mapping generators to themselves, matching
+      the exact reproducer `homomorphism(D3, D3, D3.generators, D3.generators)` from
+      the PR description.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the stated root cause: inverted generators not found via
+      `in gens` when `domain` is a `PermutationGroup`, so that both forward and inverse
+      generators are correctly resolved to their image.'
+    weight: 3
+  - id: SA2
+    description: Preserves correct behavior for `FpGroup` and `FreeGroup` domains
+      by keeping (or not disturbing) the existing array-form iteration logic used
+      when `domain` is not a `PermutationGroup`.
+    weight: 2
+  - id: SA3
+    description: Implements a simplification of the `_image` logic for the `PermutationGroup`
+      case (e.g., using `r_arr` symbol and power directly without the dual-index `r[i]`/`r_arr[j]`
+      scheme, or delegating to `generator_product`), consistent with the PR's remark
+      that 'the whole thing can be greatly simplified'.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the public API of `homomorphism()`, `_check_homomorphism()`,
+      and `GroupHomomorphism` with no signature changes or removed parameters.
+    weight: 2
+  - id: I2
+    description: Does not weaken any existing test assertions in `sympy/combinatorics/tests/test_homomorphisms.py`
+      (e.g., does not remove `raises` calls or change expected values).
+    weight: 2
+  - id: I3
+    description: Does not introduce changes to unrelated modules (e.g., `perm_groups.py`,
+      `fp_groups.py`, `free_groups.py`) as a workaround.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Enables `homomorphism(D3, D3, D3.generators, D3.generators)` to return
+      a valid `GroupHomomorphism` object without raising `ValueError`, as demonstrated
+      by the PR reproducer.
+    weight: 3
+  - id: R2
+    description: Correctly evaluates relators containing inverted generators (power
+      -1) in a `PermutationGroup` domain, so that a valid identity homomorphism is
+      recognized as valid and an invalid mapping still raises `ValueError`.
+    weight: 3
+  - id: R3
+    description: Maintains correct behavior when `domain` is an `FpGroup` with explicit
+      `relators`, so that existing FpGroup-to-PermutationGroup homomorphism checks
+      continue to work without regression.
+    weight: 2

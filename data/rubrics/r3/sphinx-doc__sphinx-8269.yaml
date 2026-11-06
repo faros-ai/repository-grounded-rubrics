@@ -1,0 +1,54 @@
+metadata:
+  task_summary: Fix linkcheck so that HTTP error responses (e.g. 404, 500) are reported
+    as broken links instead of 'Anchor not found' when linkcheck_anchors is True.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Adds a call to response.raise_for_status() inside the anchor-checking
+      branch of check_uri in sphinx/builders/linkcheck.py, placed before check_anchor
+      is invoked so that HTTP error responses are raised as HTTPError.
+    weight: 3
+  - id: FC2
+    description: Confines all substantive changes to sphinx/builders/linkcheck.py,
+      without introducing unrelated edits to other production source files.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test case that exercises the scenario where a URL
+      with a fragment (anchor) returns an HTTP error status code, verifying that the
+      broken-link message contains the HTTP error description rather than 'Anchor
+      not found'.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Produces an HTTP error message (such as '404 Client Error') in the
+      broken-link output when a URL containing an anchor fragment receives an HTTP
+      error response, matching the expected output described in the PR.
+    weight: 3
+  - id: SA2
+    description: Preserves the 'Anchor not found' error message for URLs that return
+      a 200-OK response but do not contain the requested anchor, so that the fix only
+      affects error-response cases.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing assertions for 'Anchor top not found' and
+      'Anchor does-not-exist not found' in the linkcheck test suite are not removed
+      or skipped.
+    weight: 3
+  - id: I2
+    description: Confirms that the existing HTTPError handling logic (treating 401
+      as working and 503 as ignored) in the outer except HTTPError block of check_uri
+      is not removed or altered.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that HTTPError raised by response.raise_for_status() in the
+      anchor-checking branch propagates to the outer except HTTPError handler, so
+      broken HTTP responses are classified as 'broken' with the HTTP error string
+      rather than as an anchor-not-found exception.
+    weight: 3
+  - id: R2
+    description: Ensures that a 401 Unauthorized response for a URL with an anchor
+      fragment is still reported as 'working' because the HTTPError handler's 401
+      special-case remains in effect for the anchor-checking code path.
+    weight: 1

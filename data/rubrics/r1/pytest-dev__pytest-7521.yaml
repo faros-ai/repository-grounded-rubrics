@@ -1,0 +1,55 @@
+metadata:
+  task_summary: Fix capfd.readouterr() incorrectly converting carriage return (\r)
+    characters to newlines (\n) due to missing newline='' argument when wrapping captured
+    file descriptors.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies src/_pytest/capture.py to fix the carriage-return translation
+      bug, with no unrelated files changed.
+    weight: 3
+  - id: FC2
+    description: Confines the fix to the io.TextIOWrapper-based wrapping code (either
+      in the EncodedFile class definition or at the EncodedFile instantiation site
+      inside FDCaptureBinary.__init__), without restructuring unrelated capture logic.
+    weight: 2
+  - id: FC3
+    description: Adds newline='' (empty string) somewhere in the diff to disable universal-newlines
+      translation for FD-level capture, mirroring the existing newline='' already
+      present in CaptureIO.__init__.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the regression where capfd.readouterr() returned '\n' in
+      place of '\r', as demonstrated by the test_cafd_includes_carriage_return reproducer
+      in the PR description.
+    weight: 3
+  - id: SA2
+    description: Ensures the fix applies to FDCapture (the fd-level fixture used by
+      capfd), not only to SysCapture or CaptureIO-based fixtures.
+    weight: 2
+  - id: SA3
+    description: Adds a test case (anywhere in the diff) that exercises capfd or the
+      underlying FDCapture mechanism with a carriage return character, verifying the
+      captured output preserves '\r'.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the existing CaptureIO newline='' argument is left
+      unchanged, so capsys behavior is unaffected by the patch.
+    weight: 2
+  - id: I2
+    description: Confirms that no existing tests related to capture are deleted or
+      have their assertions weakened in the diff.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Preserves the existing behavior that captured bytes containing '\r\n'
+      sequences are not normalized to '\n' when read back via capfd.readouterr(),
+      matching the pre-regression behavior documented in the PR.
+    weight: 3
+  - id: R2
+    description: Maintains the encoding and error-handling settings (encoding='utf-8',
+      errors='replace', write_through=True) on the EncodedFile wrapper so that non-ASCII
+      captured output continues to be decoded correctly.
+    weight: 2

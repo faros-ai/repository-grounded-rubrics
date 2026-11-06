@@ -1,0 +1,59 @@
+metadata:
+  task_summary: Move use_required_attribute() from ClearableFileInput to FileInput
+    so that the required attribute is suppressed whenever initial file data exists,
+    regardless of which file widget is used.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Adds a def use_required_attribute( method to the FileInput class
+      in django/forms/widgets.py that returns False (or delegates to super and suppresses)
+      when initial data is truthy.
+    weight: 3
+  - id: FC2
+    description: Removes or simplifies the def use_required_attribute( override inside
+      ClearableFileInput in django/forms/widgets.py, since the logic is now inherited
+      from FileInput.
+    weight: 2
+  - id: FC3
+    description: Confines production-code changes to django/forms/widgets.py without
+      modifying unrelated modules (e.g., no churn in form fields, model fields, or
+      unrelated widget classes).
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements use_required_attribute in FileInput such that it returns
+      False when the initial argument is truthy, matching the behavior previously
+      only present in ClearableFileInput.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior of ClearableFileInput.use_required_attribute
+      so that it still returns False when initial data is provided (whether via inherited
+      FileInput logic or its own override).
+    weight: 2
+  - id: SA3
+    description: Adds or updates tests in the FileInput test module (e.g., test_fileinput.py)
+      to cover the use_required_attribute method, exercising both the no-initial (True
+      expected) and with-initial (False expected) cases.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that FileInput.use_required_attribute calls super().use_required_attribute(initial)
+      (i.e., respects the Widget base class logic such as is_hidden) in addition to
+      checking for initial data.
+    weight: 2
+  - id: I2
+    description: Confirms that the existing ClearableFileInput test for use_required_attribute
+      (asserting True for None initial and False for a truthy initial) continues to
+      pass under the new implementation, with no test assertions removed or weakened.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a FileInput widget with initial data (truthy initial
+      argument) does not include the required attribute in its rendered HTML, preventing
+      invalid browser validation when a file is already saved.
+    weight: 3
+  - id: R2
+    description: Ensures that a FileInput widget with no initial data (None or falsy
+      initial argument) still returns True from use_required_attribute, preserving
+      the required attribute for empty file fields.
+    weight: 2

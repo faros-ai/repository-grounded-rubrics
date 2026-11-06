@@ -1,0 +1,55 @@
+metadata:
+  task_summary: The auto-reloader's get_child_arguments() must propagate CPython -X
+    options (sys._xoptions) to the restarted subprocess, just as it already propagates
+    -W options (sys.warnoptions).
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the get_child_arguments function in django/utils/autoreload.py
+      to include -X option arguments built from sys._xoptions.
+    weight: 3
+  - id: FC2
+    description: Confines all production-code changes to django/utils/autoreload.py
+      without modifying unrelated files or introducing new dependencies.
+    weight: 2
+  - id: FC3
+    description: Adds or updates test cases in the autoreload test file that cover
+      the new -X option propagation behavior in get_child_arguments or restart_with_reloader.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements -X option argument construction by reading from sys._xoptions
+      (the dict documented at https://docs.python.org/3/library/sys.html#sys._xoptions)
+      rather than any ad-hoc alternative source.
+    weight: 3
+  - id: SA2
+    description: Handles both boolean -X options (where the value is True, e.g. -X
+      utf8) and key=value -X options (where the value is a non-True string, e.g. -X
+      key=val), producing correctly formatted -X arguments for each case.
+    weight: 2
+  - id: SA3
+    description: Positions the -X arguments in the constructed args list after the
+      executable and alongside other interpreter flags (such as -W options), and before
+      the script or -m module argument.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing -W option handling (the '-W%s' % o pattern
+      iterating sys.warnoptions) without removing or altering it.
+    weight: 3
+  - id: I2
+    description: Does not weaken or remove existing test assertions for get_child_arguments,
+      test_warnoptions, test_manage_py, or test_python_m_django.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when sys._xoptions is empty the constructed argument
+      list is identical to the pre-patch list, preserving backward-compatible behavior
+      for users who do not pass -X flags.
+    weight: 2
+  - id: R2
+    description: 'Ensures that when sys._xoptions contains an entry such as {''utf8'':
+      True}, the corresponding ''-Xutf8'' (or equivalent ''-X utf8'') argument appears
+      in the child process argument list so the reloaded subprocess inherits the same
+      CPython mode.'
+    weight: 3

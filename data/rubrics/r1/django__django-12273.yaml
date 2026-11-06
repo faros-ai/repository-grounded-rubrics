@@ -1,0 +1,62 @@
+metadata:
+  task_summary: Fix _save_parents() in django/db/models/base.py so that resetting
+    the primary key to None on a child model in multi-table inheritance causes a new
+    INSERT (instead of an UPDATE) for both the parent and child tables.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the _save_parents() method in django/db/models/base.py to
+      fix the pk-reset logic, without touching unrelated files or methods.
+    weight: 3
+  - id: FC2
+    description: Adds or modifies a conditional branch in _save_parents() that handles
+      the case where parent._meta.pk.attname is None, ensuring the child link field
+      (field.attname) is also set to None so that the child table is treated as a
+      new INSERT.
+    weight: 3
+  - id: FC3
+    description: Avoids modifying _save_table(), save_base(), or save() to implement
+      the fix, keeping the change minimal and localized to _save_parents().
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause described in the PR: when the pk of a child
+      model (e.g., Derived inheriting from Item) is reset to None, the existing sync
+      condition in _save_parents() previously restored the parent pk from the stale
+      link field attname (e.g., item_ptr_id), preventing a new row from being created.'
+    weight: 3
+  - id: SA2
+    description: Ensures that after the fix, resetting both the parent's pk attname
+      and the child's link field attname to None causes _save_parents() to perform
+      an INSERT for the parent row rather than an UPDATE.
+    weight: 2
+  - id: SA3
+    description: Adds a test case (anywhere in the test suite) that exercises the
+      scenario where a child model instance (multi-table inheritance) has its pk set
+      to None and then saved, verifying that a new object is created rather than overwriting
+      the existing one.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing sync behavior of _save_parents() for the case
+      where parent._meta.pk.attname is None AND field.attname is not None due to a
+      genuine sync gap (not user reset), or restructures it in a way that is semantically
+      equivalent for all pre-existing scenarios.
+    weight: 2
+  - id: I2
+    description: Does not weaken or skip existing tests related to multi-table inheritance
+      saving behavior in tests/model_inheritance/.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when pk is reset to None on a child model instance and
+      save() is called, _save_parents() propagates None to the link field (field.attname),
+      so that _save_table() for both the parent cls and the child cls performs an
+      INSERT (not an UPDATE), creating a new database row.
+    weight: 3
+  - id: R2
+    description: Maintains backward-compatible behavior for regular saves (where pk
+      is not reset to None) by not affecting the parent_inserted/updated flow in _save_parents()
+      when parent._meta.pk.attname and field.attname already hold consistent non-None
+      values.
+    weight: 2

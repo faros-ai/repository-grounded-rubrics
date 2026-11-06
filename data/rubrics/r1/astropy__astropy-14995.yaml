@@ -1,0 +1,60 @@
+metadata:
+  task_summary: Fix NDDataRef mask propagation failure when one operand has no mask
+    by handling the case where self.mask is set but operand.mask is None in _arithmetic_mask.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies `_arithmetic_mask` in `astropy/nddata/mixins/ndarithmetic.py`
+      to add a guard that returns a copy of `self.mask` when `operand` is not None
+      but `operand.mask` is None.
+    weight: 3
+  - id: FC2
+    description: Confines production-code changes to `astropy/nddata/mixins/ndarithmetic.py`
+      without introducing unrelated file churn.
+    weight: 2
+  - id: FC3
+    description: Adds a test case (anywhere in the test suite) that exercises an arithmetic
+      operation with `handle_mask=np.bitwise_or` when one operand has a mask and the
+      other does not.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that when `self.mask` is not None and `operand.mask` is None,
+      `_arithmetic_mask` returns a deep copy of `self.mask` rather than passing `None`
+      to `handle_mask`, matching the v5.2 behavior described in the PR.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior in `_arithmetic_mask` where both
+      masks are None results in a `None` return value.
+    weight: 2
+  - id: SA3
+    description: Preserves the existing behavior in `_arithmetic_mask` where both
+      operands have masks by still delegating to `handle_mask(self.mask, operand.mask,
+      ...)` in that case.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing tests in `test_ndarithmetic.py` are removed,
+      skipped, or weakened (e.g., no `@pytest.mark.skip` annotations added, no assertions
+      deleted or replaced with weaker ones).
+    weight: 2
+  - id: I2
+    description: Confirms that the public API signatures of `add`, `subtract`, `multiply`,
+      and `divide` on `NDArithmeticMixin` remain unchanged.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: 'Avoids calling `handle_mask` with a `None` second argument when
+      `operand.mask is None`, eliminating the `TypeError: unsupported operand type(s)
+      for |: ''int'' and ''NoneType''` described in the PR.'
+    weight: 3
+  - id: R2
+    description: Ensures that multiplying a masked NDDataRef by a scalar constant
+      with `handle_mask=np.bitwise_or` produces a result whose mask equals the original
+      mask array, rather than raising a TypeError.
+    weight: 2
+  - id: R3
+    description: Ensures that multiplying a masked NDDataRef by an unmasked NDDataRef
+      with `handle_mask=np.bitwise_or` produces a result whose mask equals the original
+      mask array, rather than raising a TypeError.
+    weight: 2

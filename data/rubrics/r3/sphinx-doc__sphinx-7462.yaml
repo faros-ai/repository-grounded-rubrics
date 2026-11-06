@@ -1,0 +1,63 @@
+metadata:
+  task_summary: 'Fix IndexError: pop from empty list in sphinx/domains/python.py unparse()
+    when handling empty tuple type annotation Tuple[()].'
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sphinx/domains/python.py and no other production files,
+      keeping the change local to the unparse() function inside _parse_annotation().
+    weight: 3
+  - id: FC2
+    description: Guards the result.pop() call in the ast.Tuple branch of unparse()
+      against an empty node.elts list, so it is only called when at least one element
+      was appended.
+    weight: 3
+  - id: FC3
+    description: Guards the result.pop() call in the ast.List branch of unparse()
+      against an empty node.elts list for consistency, or leaves it untouched if the
+      empty-List case is not reachable in practice.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the specific annotation Tuple[()] from the PR description,
+      which causes the unparse() function to reach result.pop() on an empty list when
+      the subscript slice is an ast.Tuple with zero elements.
+    weight: 3
+  - id: SA2
+    description: Ensures that docs for a function returning Tuple[()] can be built
+      without raising IndexError, matching the expected behavior stated in the PR
+      description.
+    weight: 3
+  - id: SA3
+    description: Adds a test case (anywhere in the test suite) that exercises _parse_annotation
+      with Tuple[()] or an equivalent empty-tuple annotation string, confirming the
+      crash is no longer triggered.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing behavior of the ast.Tuple branch for non-empty
+      tuples (e.g., Tuple[int, int]) by only adding an early-return or conditional
+      guard for the empty case, without restructuring the general comma-separated
+      rendering logic.
+    weight: 3
+  - id: I2
+    description: Preserves the existing behavior of the ast.List branch for non-empty
+      lists (e.g., Callable[[int, int], int]) by not changing its rendering logic
+      beyond any empty-guard addition.
+    weight: 2
+  - id: I3
+    description: Does not weaken, skip, or remove existing tests in test_domain_py.py
+      or any other test file that exercise _parse_annotation().
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Produces a non-error output (a list of Sphinx nodes rather than an
+      IndexError) when unparse() encounters an ast.Tuple node whose elts attribute
+      is an empty list, as happens with Tuple[()].
+    weight: 3
+  - id: R2
+    description: Returns a stable, non-crashing result for Tuple[()] that renders
+      the annotation meaningfully (e.g., an empty subscript or just the brackets),
+      rather than falling back silently to a raw string via the SyntaxError exception
+      handler.
+    weight: 2

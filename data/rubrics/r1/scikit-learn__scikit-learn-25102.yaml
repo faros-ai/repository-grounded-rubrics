@@ -1,0 +1,74 @@
+metadata:
+  task_summary: Add dtype preservation for pandas DataFrame output when transformers
+    do not modify input values, by extending `_wrap_in_pandas_container` and `_wrap_data_with_container`
+    in `sklearn/utils/_set_output.py`.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies `_wrap_in_pandas_container` in `sklearn/utils/_set_output.py`
+      to accept a `dtypes` keyword argument.
+    weight: 3
+  - id: FC2
+    description: Adds logic inside `_wrap_in_pandas_container` that calls `astype`
+      on the output DataFrame when the `dtypes` argument is not None, to restore column
+      dtypes.
+    weight: 3
+  - id: FC3
+    description: Modifies `_wrap_data_with_container` in `sklearn/utils/_set_output.py`
+      to extract dtypes from `original_input` (e.g., via `getattr(original_input,
+      'dtypes', None)`) and pass them to `_wrap_in_pandas_container`.
+    weight: 3
+  - id: FC4
+    description: Adds or modifies a configuration mechanism (in `sklearn/_config.py`
+      or `sklearn/utils/_set_output.py`) so that dtype preservation is gated on a
+      user-controlled setting, rather than always being applied.
+    weight: 2
+  - id: FC5
+    description: Confines changes to files directly related to the set_output pipeline
+      (`sklearn/utils/_set_output.py` and/or `sklearn/_config.py`) without unrelated
+      modifications to other modules.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements dtype preservation specifically for pandas DataFrame output,
+      consistent with the PR description's requirement that `category` dtype and custom
+      numeric dtypes (e.g., `np.float16`) survive the transform.
+    weight: 3
+  - id: SA2
+    description: Passes the `dtypes` of the `original_input` DataFrame (captured before
+      transformation) into `_wrap_in_pandas_container`, so that only dtypes from the
+      original input's selected columns are applied to the output, not all input columns
+      indiscriminately.
+    weight: 2
+  - id: SA3
+    description: Applies dtype restoration only when the output container is pandas
+      (i.e., when `dense_config == 'pandas'`), leaving the default numpy output path
+      unchanged.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing public API of `_wrap_in_pandas_container`
+      by making the new `dtypes` parameter keyword-only with a default of `None`,
+      ensuring callers that do not pass `dtypes` behave identically to before.
+    weight: 3
+  - id: I2
+    description: Avoids weakening existing tests in `sklearn/utils/tests/test_set_output.py`
+      by not removing assertions or skipping test functions.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: When dtype preservation is enabled and `original_input` is a pandas
+      DataFrame, the output DataFrame produced by `_wrap_in_pandas_container` has
+      the same dtypes as the corresponding columns in `original_input` (e.g., `category`
+      remains `category`, `float16` remains `float16`).
+    weight: 3
+  - id: R2
+    description: When `original_input` is a numpy ndarray (no `dtypes` attribute),
+      the dtype preservation path is skipped gracefully without raising an error,
+      maintaining backward compatibility.
+    weight: 2
+  - id: R3
+    description: When dtype preservation is disabled or not configured, the output
+      DataFrame dtypes are determined solely by the underlying transformer's output
+      array (original behavior), ensuring no regression for existing workflows.
+    weight: 2

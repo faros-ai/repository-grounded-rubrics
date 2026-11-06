@@ -1,0 +1,54 @@
+metadata:
+  task_summary: Fix autodoc ignoring an empty __all__ attribute, which should cause
+    automodule to document no members.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the condition in get_object_members (in sphinx/ext/autodoc/__init__.py)
+      that distinguishes between a missing __all__ (None) and an empty __all__ ([])
+      so that an empty list does not fall through to the 'return all members' branch.
+    weight: 3
+  - id: FC2
+    description: Confines changes to sphinx/ext/autodoc/__init__.py and optionally
+      test/fixture files, without modifying unrelated modules such as sphinx/util/inspect.py's
+      getall function.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test fixture file (e.g., a target module with __all__
+      = []) or a test function that exercises the empty __all__ scenario in automodule.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements handling so that when a module defines __all__ = [] and
+      automodule is used with :members:, no members (such as foo, bar, baz from the
+      PR description example) are documented.
+    weight: 3
+  - id: SA2
+    description: Preserves existing behavior so that when __all__ is absent entirely
+      (self.__all__ is None), all implicit module members are still returned as before.
+    weight: 3
+  - id: SA3
+    description: Preserves existing behavior so that when __all__ is a non-empty list,
+      only members listed in __all__ are documented.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Avoids weakening or skipping existing tests related to __all__ filtering
+      or sort_by_all behavior in the autodoc test suite.
+    weight: 2
+  - id: I2
+    description: Preserves the public type annotation of self.__all__ as Optional[Sequence[str]]
+      (initialized to None) so that the distinction between None and [] is maintained
+      rather than changing initialization to an empty list.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that the guard condition in get_object_members distinguishes
+      None (no __all__ attribute) from [] (empty __all__) by using an identity check
+      such as 'self.__all__ is None' rather than a truthiness check 'not self.__all__'.
+    weight: 3
+  - id: R2
+    description: Maintains that when __all__ = [] (empty), get_object_members marks
+      all discovered members as skipped or returns an empty member list, so the documenter
+      emits no member entries.
+    weight: 3

@@ -1,0 +1,60 @@
+metadata:
+  task_summary: Prevent instance/class variable field entries (`:ivar:`, `:var:`,
+    `:cvar:`) in Python docstrings from auto-linking to unrelated variables of the
+    same name elsewhere in the project.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies code in `sphinx/domains/python.py` to address the unwanted
+      cross-reference behavior for `var`/`ivar`/`cvar` field entries.
+    weight: 3
+  - id: FC2
+    description: Confines changes to files directly responsible for Python domain
+      xref resolution or field processing (e.g., `sphinx/domains/python.py` or `sphinx/util/docfields.py`)
+      without unrelated file churn.
+    weight: 2
+  - id: FC3
+    description: Adds or modifies logic related to `PyTypedField`, `PyXrefMixin`,
+      `find_obj`, or the `'variable'` field definition (with `names=('var', 'ivar',
+      'cvar')`) to suppress or scope the auto-linking.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Prevents the fuzzy suffix-based matching (the `oname.endswith(searchname)`
+      branch in `find_obj`) or the field-level xref creation from linking `:ivar:`/`:var:`/`:cvar:`
+      field entries to variables of the same name in different classes or modules.
+    weight: 3
+  - id: SA2
+    description: Ensures that when a class attribute (e.g., `somepackage.subA.Foo.somename`)
+      is documented via an instance/class variable field, it does not resolve to an
+      unrelated object (e.g., `somepackage.subB.Bar.somename` or `somepackage.somename`).
+    weight: 3
+  - id: SA3
+    description: Preserves existing behavior where a user explicitly writes a cross-reference
+      role (e.g., `:const:`, `:attr:`) to link to a related variable, meaning the
+      fix only suppresses the implicit/automatic linking from `ivar`/`var`/`cvar`
+      field arguments.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Avoids weakening or skipping existing tests for Python domain xref
+      resolution or `find_obj` behavior (no `pytest.mark.skip`, no deletion of assertions
+      in test functions covering `resolve_xref` or `find_obj`).
+    weight: 2
+  - id: I2
+    description: Preserves the public API of `PythonDomain.find_obj` and `PythonDomain.resolve_xref`
+      (no signature changes that would break existing callers or downstream extensions).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a `:ivar somename:` or `:var somename:` field within
+      a class docstring does not produce a hyperlink node pointing to a different
+      object (e.g., a module-level `data` object or an attribute on a different class)
+      that merely shares the same short name.
+    weight: 3
+  - id: R2
+    description: Maintains correct cross-reference resolution for explicitly scoped
+      references (e.g., `:attr:`.somename`` or `:py:attr:`ClassName.somename``) so
+      that users who intentionally link variable fields to other documented objects
+      are not broken.
+    weight: 2

@@ -1,0 +1,59 @@
+metadata:
+  task_summary: Replace the __file__-based detection of `python -m django` in get_child_arguments
+    with __main__.__spec__.parent-based detection to support autoreloading of any
+    `python -m pkg runserver` invocation, not just django.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies `get_child_arguments` in `django/utils/autoreload.py` to
+      remove the import of `django.__main__` and the path-comparison logic that used
+      `django.__main__.__file__`.
+    weight: 3
+  - id: FC2
+    description: Adds logic inside `get_child_arguments` (in `django/utils/autoreload.py`)
+      that reads `__main__.__spec__` and uses `__main__.__spec__.parent` to determine
+      the package name passed to `-m`.
+    weight: 3
+  - id: FC3
+    description: Adds or updates a test in the autoreload test file that exercises
+      `get_child_arguments` for a non-django module invoked with `-m` (e.g., mocking
+      `__main__.__spec__.parent` to a value other than `'django'`).
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements the check `__main__.__spec__ is not None` (or an equivalent
+      guard) before accessing `__main__.__spec__.parent`, so that direct-script invocations
+      (where `__spec__` is None) are not misidentified as `-m` invocations.
+    weight: 3
+  - id: SA2
+    description: Uses `__main__.__spec__.parent` (rather than `__main__.__package__`
+      or `__main__.__spec__.name`) as the source of the package name reconstructed
+      in the `-m pkg` argument, consistent with the PR description's algorithm.
+    weight: 2
+  - id: SA3
+    description: Constructs the child argument list with `['-m', __main__.__spec__.parent]`
+      (or equivalent) instead of the hard-coded `['-m', 'django']`, enabling any package's
+      `runserver` to be reloaded.
+    weight: 3
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing Windows fallback branches (`exe_entrypoint`,
+      `script_entrypoint`, and `RuntimeError`) in `get_child_arguments` unchanged,
+      so non-`-m` invocation paths are unaffected.
+    weight: 2
+  - id: I2
+    description: Avoids introducing changes to files outside `django/utils/autoreload.py`
+      and the autoreload test file (e.g., does not modify management commands, settings,
+      or unrelated modules).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when `__main__.__spec__` is None (direct-script execution),
+      `get_child_arguments` falls through to the existing `sys.argv`-based path rather
+      than raising an AttributeError.
+    weight: 3
+  - id: R2
+    description: Ensures that when `__main__.__spec__.parent` is the empty string
+      (Python started with a directory or zipfile, not `-m pkg`), the function does
+      not incorrectly prepend a `-m` flag to the child arguments.
+    weight: 2

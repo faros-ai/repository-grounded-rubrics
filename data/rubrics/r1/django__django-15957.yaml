@@ -1,0 +1,67 @@
+metadata:
+  task_summary: Allow Prefetch() objects to work with sliced querysets by handling
+    the case where calling .filter() on a sliced queryset would raise TypeError/AssertionError.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies at least one `get_prefetch_queryset` method in `django/db/models/fields/related_descriptors.py`
+      to handle sliced querysets without calling `.filter()` directly on them.
+    weight: 3
+  - id: FC2
+    description: Modifies `django/db/models/query.py` or `django/db/models/fields/related_descriptors.py`
+      (but not unrelated files) to implement sliced-queryset support, keeping changes
+      confined to the prefetch machinery.
+    weight: 2
+  - id: FC3
+    description: Adds or updates test cases in the `tests/prefetch_related/` directory
+      that exercise `Prefetch()` with a sliced queryset (e.g., `queryset=Post.objects.all()[:3]`
+      or equivalent).
+    weight: 1
+  - id: FC4
+    description: Adds a conditional branch (anywhere in the diff) that checks `queryset.query.is_sliced`
+      before deciding how to apply the relational filter, so that non-sliced querysets
+      continue using the existing `.filter()` code path.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Implements a mechanism that allows `Prefetch(lookup, queryset=qs[:N],
+      to_attr=...)` to execute without raising `TypeError: Cannot filter a query once
+      a slice has been taken.`'
+    weight: 3
+  - id: SA2
+    description: Handles sliced querysets by wrapping the user-provided sliced queryset
+      as a subquery (e.g., `pk__in`) or by some equivalent means that avoids calling
+      `.filter(**query)` on an already-sliced queryset.
+    weight: 3
+  - id: SA3
+    description: Ensures that when a sliced Prefetch queryset is used without `to_attr`,
+      the result is still stored correctly per-instance in `_prefetched_objects_cache`,
+      matching the existing non-sliced behavior.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the existing `ValueError` raised in `Prefetch.__init__`
+      for `raw()`, `values()`, and `values_list()` querysets is preserved and not
+      removed.
+    weight: 2
+  - id: I2
+    description: Confirms that the non-sliced `get_prefetch_queryset` code path (calling
+      `.filter(**query)` directly) is still present and used when `queryset.query.is_sliced`
+      is False, preserving backward compatibility.
+    weight: 3
+  - id: I3
+    description: Avoids weakening existing prefetch-related tests (no test deletions,
+      no `skip` annotations, no loosening of assertions in the `tests/prefetch_related/`
+      test files).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a sliced Prefetch queryset (e.g., `Post.objects.all()[:3]`)
+      fetches at most the sliced number of results per parent instance, not all related
+      objects, by structuring the subquery to carry the LIMIT clause.
+    weight: 2
+  - id: R2
+    description: Preserves the behavior that `Prefetch` with `to_attr` on a sliced
+      queryset stores a plain list on the instance attribute rather than a manager
+      queryset, consistent with the existing `as_attr` path in `prefetch_one_level`.
+    weight: 2

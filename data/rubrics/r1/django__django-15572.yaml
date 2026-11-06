@@ -1,0 +1,55 @@
+metadata:
+  task_summary: Fix Django autoreload breakage caused by empty strings in TEMPLATES
+    DIRS being normalized to the project root by pathlib.Path, making template_changed()
+    always return True.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/template/autoreload.py and no other production source
+      files, keeping the change minimal and scoped to the root cause.
+    weight: 2
+  - id: FC2
+    description: Adds a filter or guard inside get_template_directories() in django/template/autoreload.py
+      that skips empty or falsy directory entries before constructing the Path.
+    weight: 3
+  - id: FC3
+    description: Preserves the existing iteration logic for both backend.engine.dirs
+      and loader.get_dirs() paths in get_template_directories(), modifying only the
+      filtering step rather than restructuring the function.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the stated regression where an empty string in TEMPLATES
+      DIRS (e.g., ''DIRS'': ['''']) is normalized via pathlib.Path to the project
+      root, causing template_changed() to always return True.'
+    weight: 3
+  - id: SA2
+    description: Ensures that empty string entries are excluded from the set returned
+      by get_template_directories(), so that no Path resolved from an empty string
+      is included in items.
+    weight: 3
+  - id: SA3
+    description: Adds or updates a test covering the case where DIRS contains an empty
+      string (e.g., ''), verifying that get_template_directories() does not include
+      a path corresponding to the empty entry.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing test cases in tests/template_tests/test_autoreloader.py
+      are not weakened, removed, or skipped.
+    weight: 2
+  - id: I2
+    description: Preserves the public signatures of get_template_directories(), watch_for_template_changes(),
+      and template_changed() without renaming or altering their parameters.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when DIRS contains only empty strings, get_template_directories()
+      returns an empty set (or a set not containing Path.cwd()), so that template_changed()
+      no longer always returns True for every file change.
+    weight: 3
+  - id: R2
+    description: 'Preserves backward-compatible behavior for valid non-empty DIRS
+      entries: absolute paths, relative paths, and Path objects continue to be included
+      in get_template_directories() as before.'
+    weight: 2

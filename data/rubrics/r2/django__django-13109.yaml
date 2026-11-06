@@ -1,0 +1,53 @@
+metadata:
+  task_summary: ForeignKey.validate() must use _base_manager instead of _default_manager
+    so that FK references to objects excluded by a custom default manager still pass
+    validation.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Replaces _default_manager with _base_manager in the ForeignKey.validate()
+      method inside django/db/models/fields/related.py at the queryset construction
+      line.
+    weight: 3
+  - id: FC2
+    description: Confines production-code changes to django/db/models/fields/related.py
+      without modifying unrelated files (e.g., form field queryset lines at line ~987
+      or ~1671 are not altered).
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the exact symptom described in the PR: the validate()
+      call on a ForeignKey whose related model uses a custom default manager that
+      filters out some objects no longer incorrectly rejects valid FK values.'
+    weight: 3
+  - id: SA2
+    description: Preserves the get_limit_choices_to() complex_filter application on
+      the queryset, ensuring limit_choices_to constraints still raise ValidationError
+      for values excluded by those limits.
+    weight: 2
+  - id: SA3
+    description: Retains the router.db_for_read() call with the same arguments (self.remote_field.model
+      and instance=model_instance) so that multi-database routing is still respected.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public signature of ForeignKey.validate(self, value,
+      model_instance) is unchanged.
+    weight: 3
+  - id: I2
+    description: Confirms that existing validation test cases for wrong FK values
+      and limit_choices_to (e.g., test_wrong_FK_value_raises_error, test_limited_FK_raises_error)
+      are not deleted or weakened.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a ForeignKey pointing to a model with a custom default
+      manager that filters rows (e.g., filtering archived=False) will pass validation
+      when the referenced object exists in the database but is excluded by the default
+      manager.
+    weight: 3
+  - id: R2
+    description: Ensures that a ForeignKey referencing a genuinely non-existent pk
+      still raises ValidationError with the 'invalid' error code and params including
+      'model', 'pk', 'field', and 'value' keys.
+    weight: 2

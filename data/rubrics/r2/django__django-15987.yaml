@@ -1,0 +1,61 @@
+metadata:
+  task_summary: Fix the duplicate detection in loaddata's fixture_dirs property so
+    that Path instances in FIXTURE_DIRS are properly compared with string paths during
+    both the duplicate check and the app default directory membership check.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the duplicate-detection expression in the `fixture_dirs`
+      cached property inside `django/core/management/commands/loaddata.py` so that
+      Path entries in `settings.FIXTURE_DIRS` are normalized to a comparable type
+      before being passed to `set()`.
+    weight: 3
+  - id: FC2
+    description: Modifies the `app_dir in fixture_dirs` membership check in the `fixture_dirs`
+      cached property so that a string `app_dir` (produced by `os.path.join`) is correctly
+      compared against Path instances in `settings.FIXTURE_DIRS`.
+    weight: 3
+  - id: FC3
+    description: Confines all changes to `django/core/management/commands/loaddata.py`
+      and/or test files for fixtures, without modifying unrelated modules or settings.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that when `settings.FIXTURE_DIRS` contains two `Path` instances
+      pointing to the same directory, the `ImproperlyConfigured` exception with message
+      'settings.FIXTURE_DIRS contains duplicates.' is still raised.
+    weight: 3
+  - id: SA2
+    description: Ensures that when `settings.FIXTURE_DIRS` contains a `Path` instance
+      pointing to an app's default fixtures directory, the `ImproperlyConfigured`
+      exception about a default fixture directory is still raised (i.e., the `app_dir
+      in fixture_dirs` check works for Path entries).
+    weight: 3
+  - id: SA3
+    description: Adds or updates a test case exercising duplicate detection in `FIXTURE_DIRS`
+      when the entries are `Path` instances (e.g., `[Path(...), Path(...)]` with the
+      same directory), confirming the fix covers the reported scenario.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing behavior of `fixture_dirs` for plain string
+      entries in `settings.FIXTURE_DIRS`, so that non-Path fixture dir configurations
+      continue to work unchanged.
+    weight: 3
+  - id: I2
+    description: Does not remove or weaken the existing `test_fixture_dirs_with_duplicates`
+      or `test_fixture_dirs_with_default_fixture_path` test logic (no `skip`, `xfail`,
+      or reduced assertions).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Raises `ImproperlyConfigured` with message 'settings.FIXTURE_DIRS
+      contains duplicates.' when `FIXTURE_DIRS` is `[Path('/some/dir'), Path('/some/dir')]`,
+      rather than silently allowing the duplicates to pass through.
+    weight: 3
+  - id: R2
+    description: Returns the correct list of fixture directories (without duplicates)
+      from `fixture_dirs` when `FIXTURE_DIRS` contains a single valid `Path` instance,
+      so that normal `loaddata` execution continues to work with Path-based fixture
+      dirs.
+    weight: 2

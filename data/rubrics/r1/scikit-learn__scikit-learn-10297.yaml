@@ -1,0 +1,60 @@
+metadata:
+  task_summary: Add store_cv_values parameter to RidgeClassifierCV.__init__ so the
+    documented cv_values_ attribute is actually accessible.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Adds store_cv_values parameter to RidgeClassifierCV.__init__ signature
+      in sklearn/linear_model/ridge.py.
+    weight: 3
+  - id: FC2
+    description: Passes store_cv_values to the super().__init__ call inside RidgeClassifierCV.__init__
+      so _BaseRidgeCV receives it.
+    weight: 3
+  - id: FC3
+    description: Confines changes to sklearn/linear_model/ridge.py (and optionally
+      its test file), without modifying unrelated files.
+    weight: 2
+  - id: FC4
+    description: Adds or updates a test exercising store_cv_values=True on RidgeClassifierCV
+      (e.g. verifying cv_values_ shape after fit).
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements store_cv_values with a boolean default of False in RidgeClassifierCV.__init__,
+      matching the default used by _BaseRidgeCV and RidgeCV.
+    weight: 3
+  - id: SA2
+    description: Adds store_cv_values parameter documentation to the RidgeClassifierCV
+      docstring Parameters section, consistent with how it appears in the RidgeCV
+      docstring.
+    weight: 1
+  - id: SA3
+    description: Preserves the existing class_weight parameter in RidgeClassifierCV.__init__
+      after the change, keeping it set via self.class_weight as before.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves all existing parameters of RidgeClassifierCV.__init__ (alphas,
+      fit_intercept, normalize, scoring, cv, class_weight) without renaming or removing
+      any.
+    weight: 3
+  - id: I2
+    description: Does not weaken or skip existing tests for RidgeClassifierCV (e.g.
+      no @pytest.mark.skip or assert removals in tests touching RidgeClassifierCV).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that passing store_cv_values=True to RidgeClassifierCV no
+      longer raises TypeError, because the parameter is now accepted by __init__.
+    weight: 3
+  - id: R2
+    description: Ensures that after calling fit with store_cv_values=True and cv=None,
+      the cv_values_ attribute is populated on the RidgeClassifierCV instance (propagated
+      from _BaseRidgeCV.fit logic).
+    weight: 3
+  - id: R3
+    description: Ensures that the default store_cv_values=False preserves backward-compatible
+      behavior where cv_values_ is not set, so existing code using RidgeClassifierCV
+      without the flag is unaffected.
+    weight: 2

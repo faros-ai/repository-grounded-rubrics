@@ -1,0 +1,61 @@
+metadata:
+  task_summary: Fix log-scale axis inversion so that calling set_xlim/set_ylim with
+    (max, min) correctly inverts the axis when yscale='log'.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the LogLocator.nonsingular method in lib/matplotlib/ticker.py
+      to handle the inverted-limits case (vmin > vmax) without permanently discarding
+      the original ordering.
+    weight: 3
+  - id: FC2
+    description: Avoids making unrelated changes outside of the scale/locator/axis
+      code (e.g., no churn in unrelated modules).
+    weight: 2
+  - id: FC3
+    description: 'Confines the core fix to one or more of: LogLocator.nonsingular,
+      LogScale.limit_range_for_scale, or set_xlim/set_ylim — without altering unrelated
+      locator or scale classes (e.g., LinearLocator, SymmetricalLogLocator, FixedLocator).'
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that when vmin > vmax (inverted-axis case) is passed to the
+      log-scale handling code, the returned limits preserve the inverted order (vmin
+      > vmax) after the fix.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior for non-inverted log-scale limits
+      (vmin < vmax with positive values) — the corrected function still returns valid
+      positive limits in non-decreasing order for that case.
+    weight: 2
+  - id: SA3
+    description: Preserves the existing guard that replaces non-positive vmin or vmax
+      with a small positive value (minpos) when the axis is log-scaled.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Does not weaken or skip existing tests (no addition of @pytest.mark.skip,
+      @pytest.mark.xfail, or deletion of test assertions) for log-scale or axis-inversion
+      behavior.
+    weight: 2
+  - id: I2
+    description: Preserves the public signatures of LogLocator.nonsingular and LogScale.limit_range_for_scale
+      — no argument names or return-type changes that would break callers.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Adds a conditional branch (in LogLocator.nonsingular or equivalent
+      fix site) that detects a swapped/inverted input (vmin > vmax) and restores that
+      order before returning, so that ax.set_ylim(y.max(), y.min()) on a log-scaled
+      axis results in get_ylim() returning (larger_value, smaller_value).
+    weight: 3
+  - id: R2
+    description: Ensures that after the fix, the 'Data has no positive values' warning
+      path (vmax <= 0) still fires correctly and does not regress for inputs where
+      all data is non-positive.
+    weight: 2
+  - id: R3
+    description: Adds a test case (or expands an existing test) that exercises log-scale
+      axis inversion via set_xlim or set_ylim with (larger, smaller) positive limits
+      and asserts the resulting limits are inverted.
+    weight: 1

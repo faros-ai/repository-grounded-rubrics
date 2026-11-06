@@ -1,0 +1,52 @@
+metadata:
+  task_summary: Fix Expression.compile crashing the Python debug interpreter when
+    given 'True', 'False', or 'None' as identifiers by avoiding ast.Name nodes for
+    Python reserved literals.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies src/_pytest/mark/expression.py and no other production source
+      files, keeping the change minimal and local to the affected module.
+    weight: 2
+  - id: FC2
+    description: Changes the not_expr function in src/_pytest/mark/expression.py so
+      that ast.Name(ident.value, ast.Load()) is no longer used unconditionally for
+      all identifiers.
+    weight: 3
+  - id: FC3
+    description: Adds handling in src/_pytest/mark/expression.py that produces an
+      ast.Constant (or ast.NameConstant) node instead of ast.Name when the identifier
+      value is one of the Python reserved literals 'True', 'False', or 'None'.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the crash described in the PR for Expression.compile called
+      with 'False' (and by extension 'True' and 'None') without disabling or skipping
+      the valid-identifier test cases for 'True' and 'False' in the test suite.
+    weight: 3
+  - id: SA2
+    description: Ensures that 'True', 'False', and 'None' as expression inputs are
+      treated as matchable identifiers (passed to the matcher function) rather than
+      as Python boolean/None literals, preserving the semantics described in the grammar
+      comment that ident evaluates via a provided matcher function.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public API of Expression.compile and Expression.evaluate
+      remains unchanged, with no added or removed parameters.
+    weight: 2
+  - id: I2
+    description: Confirms that existing test cases for 'True' and 'False' in test_valid_idents
+      are not removed or weakened to work around the bug.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Prevents the compiler_nameop assertion failure at runtime on Python
+      3.8+ debug builds by ensuring no ast.Name node is constructed with the value
+      'True', 'False', or 'None' anywhere in the compiled AST.
+    weight: 3
+  - id: R2
+    description: Preserves the runtime behavior that an empty expression (empty string
+      or whitespace) evaluates to False, by retaining the ast.NameConstant(False)
+      or equivalent ast.Constant(False) fallback in the expression function.
+    weight: 2

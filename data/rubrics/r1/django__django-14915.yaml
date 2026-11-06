@@ -1,0 +1,44 @@
+metadata:
+  task_summary: Add a __hash__ method to ModelChoiceIteratorValue so instances can
+    be used as dictionary keys and set members without raising TypeError.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Adds a __hash__ method inside the ModelChoiceIteratorValue class
+      in django/forms/models.py.
+    weight: 3
+  - id: FC2
+    description: Confines the change to django/forms/models.py (and optionally related
+      test files) without modifying unrelated files.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements __hash__ such that its return value is derived from self.value,
+      consistent with the __eq__ method that compares self.value to other values.
+    weight: 3
+  - id: SA2
+    description: Ensures that a ModelChoiceIteratorValue instance whose value equals
+      a plain Python value (e.g., an integer) produces the same hash as that plain
+      value, so dict/set lookups using either form work interchangeably.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing __eq__ method of ModelChoiceIteratorValue
+      (which unwraps another ModelChoiceIteratorValue before comparing) without alteration
+      or removal.
+    weight: 3
+  - id: I2
+    description: Does not weaken or remove any existing tests related to ModelChoiceIteratorValue
+      or ModelChoiceIterator.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Allows ModelChoiceIteratorValue instances to be used as dictionary
+      keys (e.g., value in self.show_fields where show_fields is a dict keyed by plain
+      integers) without raising TypeError.
+    weight: 3
+  - id: R2
+    description: Allows ModelChoiceIteratorValue instances to be used in set-membership
+      tests (e.g., value in allowed_values where allowed_values is a set or list of
+      plain values) without raising TypeError.
+    weight: 2

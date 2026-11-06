@@ -1,0 +1,69 @@
+metadata:
+  task_summary: Optimize Collector.related_objects() in deletion.py to fetch only
+    the primary key and FK fields rather than all model fields during .delete(), avoiding
+    UnicodeDecodeError on irrelevant text columns and improving performance.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the related_objects method in django/db/models/deletion.py
+      to restrict the queryset to only required fields (primary key and/or the foreign
+      key field) rather than fetching all model columns.
+    weight: 3
+  - id: FC2
+    description: Confines changes to django/db/models/deletion.py (and optionally
+      its tests) without making unrelated modifications to other files such as query.py,
+      compiler.py, or MySQL backend files.
+    weight: 2
+  - id: FC3
+    description: Adds or updates tests in the delete test suite (e.g., tests/delete/tests.py)
+      to exercise the field-limiting behavior of related_objects during deletion.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause described in the PR: the DELETE collector
+      fetches non-pk, non-FK text fields (such as text_log_error.line) that are not
+      needed for deletion, by ensuring only necessary fields are selected in the related
+      objects query.'
+    weight: 3
+  - id: SA2
+    description: Uses .only() (or an equivalent field-restricting mechanism such as
+      .values() or .values_list()) on the queryset returned by related_objects to
+      limit selected columns to at minimum the model's primary key field and the related
+      FK field.
+    weight: 3
+  - id: SA3
+    description: Preserves the existing filter logic in related_objects that uses
+      the related.field.name to filter objects by the parent queryset (the '%s__in'
+      % related.field.name filter).
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the public signature of Collector.related_objects(self,
+      related, objs) without changing its name or removing parameters.
+    weight: 2
+  - id: I2
+    description: Avoids weakening existing delete-related tests (e.g., does not remove
+      assertions, skip markers, or reduce expected query counts in tests/delete/tests.py
+      or tests/delete_regress/).
+    weight: 2
+  - id: I3
+    description: Does not introduce changes to on_delete handler functions (CASCADE,
+      PROTECT, SET, SET_NULL, SET_DEFAULT, DO_NOTHING) that would alter their publicly
+      documented behavior.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when related_objects returns a queryset with only required
+      fields, downstream code in collect() that accesses obj.pk (for deletion batching)
+      and the FK field (for filtering) still receives valid data without AttributeError.
+    weight: 3
+  - id: R2
+    description: Prevents the UnicodeDecodeError scenario described in the PR by avoiding
+      fetching text/blob columns (such as text_log_error.line) that contain invalid
+      byte sequences, since those columns are not selected by the restricted queryset.
+    weight: 3
+  - id: R3
+    description: Ensures the fast_delete path (Collector.can_fast_delete) still functions
+      correctly when sub_objs is a field-restricted queryset, since fast_delete checks
+      queryset model metadata rather than column values.
+    weight: 2

@@ -1,0 +1,61 @@
+metadata:
+  task_summary: Extend the linkcheck builder in sphinx/builders/linkcheck.py to actually
+    verify local (non-HTTP) links instead of silently marking them as 'local' without
+    checking.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sphinx/builders/linkcheck.py so that the branch handling
+      non-HTTP URIs (currently returning 'local', '', 0 unconditionally) is replaced
+      or extended with logic that checks whether the local path or document target
+      actually exists.
+    weight: 3
+  - id: FC2
+    description: Confines changes to sphinx/builders/linkcheck.py (and optionally
+      test fixtures or test files) without introducing unrelated file churn to other
+      builder modules or utilities.
+    weight: 2
+  - id: FC3
+    description: Adds or updates process_result or logging code in sphinx/builders/linkcheck.py
+      so that a local link that cannot be resolved is reported as 'broken' (not silently
+      as 'local') and written via write_entry with 'broken' status.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements checking of local (internal) links such that a URI like
+      'doesntexist' pointing to a nonexistent document or file causes the builder
+      to emit a broken-link report rather than silently outputting '-local-'.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior that URIs starting with '#', 'mailto:',
+      or 'ftp:' remain 'unchecked' and that only URIs starting with 'http:' or 'https:'
+      are checked via the network, so the scope of local checking is restricted to
+      path-like local URIs.
+    weight: 2
+  - id: SA3
+    description: Sets self.app.statuscode = 1 (or equivalent build-failure signal)
+      when a broken local link is detected, so that the build fails as described in
+      the expected results of the PR description.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the existing check() function logic for 'working',
+      'broken', 'redirected', and 'ignored' statuses for external HTTP/HTTPS URIs
+      is not removed or altered by the patch.
+    weight: 3
+  - id: I2
+    description: Confirms that no existing tests are weakened, skipped, or deleted
+      (no addition of pytest.mark.skip, no removal of assert statements from pre-existing
+      test functions).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Produces a distinguishable 'broken' status entry in output.txt for
+      a local URI that references a nonexistent document, matching the same output
+      format used for broken external links (via write_entry with 'broken').
+    weight: 3
+  - id: R2
+    description: Avoids making network requests when resolving local (non-HTTP) URIs,
+      since local link checking should be done via filesystem path resolution using
+      self.env or self.app.srcdir rather than HTTP.
+    weight: 2

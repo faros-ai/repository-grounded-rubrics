@@ -1,0 +1,59 @@
+metadata:
+  task_summary: Fix AnnotationBbox.draw() to pass gid to the SVG renderer via renderer.open_group/close_group,
+    so that set_gid labels appear in SVG output.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the AnnotationBbox.draw() method in lib/matplotlib/offsetbox.py
+      to add renderer.open_group and renderer.close_group calls.
+    weight: 3
+  - id: FC2
+    description: Passes gid=self.get_gid() to the renderer.open_group call inside
+      AnnotationBbox.draw(), following the same pattern used in legend.py, lines.py,
+      patches.py, and other artists.
+    weight: 3
+  - id: FC3
+    description: Confines edits to lib/matplotlib/offsetbox.py (and optionally test
+      files), without modifying unrelated source files or introducing new dependencies.
+    weight: 2
+  - id: FC4
+    description: Adds or updates a test (in test_backend_svg.py or test_offsetbox.py)
+      that exercises AnnotationBbox gid propagation to SVG output.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the stated bug that AnnotationBbox.draw() did not call
+      renderer.open_group/close_group, causing the gid set via set_gid() to be absent
+      from saved SVG files.
+    weight: 3
+  - id: SA2
+    description: Ensures the open_group label string used for AnnotationBbox is a
+      stable, non-empty identifier (e.g., 'annotation_bbox' or 'AnnotationBbox') consistent
+      with how other artists name their groups.
+    weight: 2
+  - id: SA3
+    description: Ensures renderer.close_group is called unconditionally after the
+      drawing calls within AnnotationBbox.draw(), pairing correctly with the renderer.open_group
+      call.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the existing AnnotationBbox.draw() logic (visibility
+      check, update_positions, arrow_patch drawing, patch drawing, offsetbox drawing,
+      stale reset) is preserved and not removed.
+    weight: 3
+  - id: I2
+    description: Confirms that the public API of AnnotationBbox (including set_gid,
+      get_gid, draw signature) is unchanged by the patch.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when AnnotationBbox has a gid set via set_gid(), the
+      gid value is emitted into the SVG renderer's group element so it appears in
+      the output SVG file, matching the behavior of other gid-supporting artists.
+    weight: 3
+  - id: R2
+    description: Maintains backward compatibility for AnnotationBbox instances where
+      no gid is set (i.e., get_gid() returns None), relying on the renderer's open_group
+      to handle a None gid gracefully without error.
+    weight: 2

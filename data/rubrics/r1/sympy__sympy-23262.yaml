@@ -1,0 +1,45 @@
+metadata:
+  task_summary: Fix `_recursive_to_string` in lambdify.py so that single-element Python
+    tuples are printed with a trailing comma (e.g., `(1,)` instead of `(1)`).
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies `_recursive_to_string` in `sympy/utilities/lambdify.py`
+      to handle the single-element tuple case specially, producing a trailing comma.
+    weight: 3
+  - id: FC2
+    description: Avoids modifying unrelated files outside of `sympy/utilities/lambdify.py`
+      (and optionally its test file), keeping the diff minimal and focused on the
+      reported regression.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that `lambdify([], tuple([1]))` generates code containing
+      `return (1,)` with the trailing comma, matching the SymPy 1.9 behavior described
+      in the PR.
+    weight: 3
+  - id: SA2
+    description: Preserves correct output for tuples with two or more elements, so
+      that e.g. `lambdify([], tuple([1, 2]))` still generates `return (1, 2)` unchanged.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the fix is additive (adds a branch or condition for
+      the single-element case) rather than removing or weakening existing tuple-handling
+      logic in `_recursive_to_string`.
+    weight: 2
+  - id: I2
+    description: Confirms that list handling in `_recursive_to_string` is not changed
+      (lists do not need a trailing comma) and the fix does not break the list branch.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures the generated function body contains a trailing comma after
+      the sole element when a single-element tuple is used as the `lambdify` expression,
+      so evaluating the generated code yields a `tuple` and not an `int`.
+    weight: 3
+  - id: R2
+    description: Adds or updates a test case exercising `lambdify` with a single-element
+      tuple expression (e.g., `tuple([1])` or `(x,)`) to prevent future regressions
+      of this specific bug.
+    weight: 1

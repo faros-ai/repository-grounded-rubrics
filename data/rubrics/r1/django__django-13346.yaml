@@ -1,0 +1,72 @@
+metadata:
+  task_summary: Add a KeyTransformIn lookup class to django/db/models/fields/json.py
+    so that __in lookups on JSONField key transforms work correctly on MySQL, Oracle,
+    and SQLite.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Adds a new class (e.g., KeyTransformIn) in django/db/models/fields/json.py
+      that inherits from lookups.In and overrides process_rhs to handle value conversion
+      for non-native JSON backends.
+    weight: 3
+  - id: FC2
+    description: Registers the new KeyTransformIn (or equivalent) lookup on KeyTransform
+      via KeyTransform.register_lookup in django/db/models/fields/json.py.
+    weight: 3
+  - id: FC3
+    description: Confines edits to django/db/models/fields/json.py and optionally
+      test files, without modifying unrelated files such as the core lookups.py In
+      class or backend feature files.
+    weight: 2
+  - id: FC4
+    description: Adds at least one test case exercising a key transform __in lookup
+      (e.g., value__key__in=[...]) against expected queryset results, in the JSONField
+      test file.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements value transformation for MySQL in the new In lookup so
+      that each rhs value is wrapped with JSON_EXTRACT(..., '$'), matching the pattern
+      used by JSONExact.process_rhs for MySQL.
+    weight: 3
+  - id: SA2
+    description: Implements value transformation for Oracle in the new In lookup so
+      that each rhs value is rendered using JSON_QUERY or JSON_VALUE with the '$.value'
+      path pattern, matching the pattern used by KeyTransformExact.process_rhs for
+      Oracle.
+    weight: 3
+  - id: SA3
+    description: Implements value transformation for SQLite in the new In lookup so
+      that non-null rhs values are wrapped with JSON_EXTRACT(..., '$'), matching the
+      pattern used by KeyTransformExact.process_rhs for SQLite.
+    weight: 3
+  - id: SA4
+    description: Ensures that a None or null value in the rhs list is handled correctly
+      (either excluded from the IN list as per the parent In.process_rhs, or serialized
+      as 'null' matching JSONExact behavior).
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the existing KeyTransformExact, KeyTransformIsNull,
+      and all other KeyTransform.register_lookup calls remain intact in django/db/models/fields/json.py.
+    weight: 2
+  - id: I2
+    description: Confirms that the new class does not weaken any existing test assertions
+      (no deletions of test assertion lines or skip decorators added to existing tests).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that filtering with value__key__in=[val] on MySQL produces
+      the same results as filtering with value__key=val, by correctly wrapping each
+      IN-list value in JSON_EXTRACT so the JSON value is comparable.
+    weight: 3
+  - id: R2
+    description: Ensures that PostgreSQL is not affected by the new In lookup (i.e.,
+      the new class relies on the standard In behavior for has_native_json_field=True
+      backends, or defers to as_postgresql which uses the native operator).
+    weight: 2
+  - id: R3
+    description: Ensures that the new lookup handles multiple values in the rhs list
+      correctly, not just single-element lists, by iterating over all rhs values during
+      SQL construction.
+    weight: 2

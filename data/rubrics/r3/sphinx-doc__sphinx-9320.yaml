@@ -1,0 +1,60 @@
+metadata:
+  task_summary: Fix sphinx-quickstart so pressing Enter at the 'new root path (or
+    just Enter to exit)' prompt exits cleanly instead of raising 'Please enter a valid
+    path name'.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sphinx/cmd/quickstart.py and no other unrelated source files
+      (change is confined to the quickstart module).
+    weight: 2
+  - id: FC2
+    description: Adds or modifies a validator (in sphinx/cmd/quickstart.py) that accepts
+      an empty string without raising ValidationError, so that pressing Enter at the
+      'new root path' prompt is treated as a valid response.
+    weight: 3
+  - id: FC3
+    description: Changes the do_prompt call for 'Please enter a new root path (or
+      just Enter to exit)' to use the updated validator (not the bare is_path validator)
+      so empty input no longer triggers 'Please enter a valid path name'.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that when the user presses Enter (empty input) at the 'new
+      root path (or just Enter to exit)' prompt, the code reaches the existing sys.exit(1)
+      branch (i.e., d['path'] is falsy after do_prompt returns), matching the stated
+      expected behavior that sphinx-quickstart exits.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior that a non-empty, valid directory
+      path entered at the 'new root path' prompt is accepted and the while loop continues
+      checking for conf.py.
+    weight: 2
+  - id: SA3
+    description: Preserves the existing behavior that a non-empty, invalid (non-existent)
+      directory path entered at the 'new root path' prompt still raises ValidationError
+      with a message like 'Please enter a valid path name'.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the is_path function retains its original validation
+      logic (calling path.expanduser and checking path.isdir) for non-empty inputs,
+      so existing callers using is_path remain unaffected.
+    weight: 2
+  - id: I2
+    description: Confirms that no existing test cases are deleted, skipped, or weakened
+      (no addition of @pytest.mark.skip, xfail markers, or removal of assertions from
+      the test suite).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: 'Ensures the code path for empty user input returns an empty/falsy
+      string from do_prompt so the subsequent ''if not d["path"]: sys.exit(1)'' guard
+      triggers, producing a clean exit with code 1 rather than an infinite re-prompt
+      loop.'
+    weight: 3
+  - id: R2
+    description: Ensures the fix does not introduce an infinite loop when a user enters
+      an empty string, by allowing do_prompt to return without re-prompting for that
+      case (i.e., the new validator does not raise ValidationError on empty input).
+    weight: 3

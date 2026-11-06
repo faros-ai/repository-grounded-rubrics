@@ -1,0 +1,58 @@
+metadata:
+  task_summary: Fix KeyboardTransform in sphinx/builders/html/transforms.py so that
+    compound-key separators (-, +, ^) used as standalone keystrokes or as keys within
+    compound keystrokes are not incorrectly treated as separators.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the KeyboardTransform class inside sphinx/builders/html/transforms.py
+      and no other unrelated production files.
+    weight: 3
+  - id: FC2
+    description: Changes the 'pattern' attribute or the splitting/parsing logic in
+      KeyboardTransform so that a separator character (-,+,^) that is the entire kbd
+      text is no longer split, resulting in a single literal node rather than three
+      nodes (empty, sep, empty).
+    weight: 3
+  - id: FC3
+    description: Changes the parsing logic in KeyboardTransform to handle the case
+      where a separator character (-,+,^) appears as a keystroke in a compound sequence
+      (e.g. Shift-+), so no empty-string literal child nodes are emitted.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements logic that produces a single <kbd> element (no child kbd
+      nodes) for a standalone keystroke that is itself a separator character, such
+      as :kbd:`-` or :kbd:`+`.
+    weight: 3
+  - id: SA2
+    description: Implements logic that correctly handles compound keystrokes where
+      one key is a separator character (e.g. :kbd:`Shift-+`), producing exactly two
+      non-empty child kbd nodes (Shift and +) separated by the compound separator,
+      with no empty kbd nodes.
+    weight: 3
+  - id: SA3
+    description: Preserves correct behavior for previously working compound keystrokes
+      like :kbd:`Control+X` and :kbd:`M-x  M-s`, where no key is itself a separator
+      character.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing test cases for :kbd:`space`, :kbd:`Control+X`,
+      and :kbd:`M-x  M-s` are not removed or weakened in the diff.
+    weight: 2
+  - id: I2
+    description: Confirms that new or updated tests covering the three bug cases (:kbd:`-`,
+      :kbd:`+`, and :kbd:`Shift-+`) are added somewhere in the diff.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when the kbd text consists solely of a single separator
+      character (-, +, or ^), the transform's run() method skips decomposition and
+      leaves the node unchanged, emitting no child nodes.
+    weight: 3
+  - id: R2
+    description: Ensures that separator characters appearing immediately after another
+      separator in the split result (i.e. as a keystroke token, not as a delimiter)
+      are wrapped in a kbd literal node rather than emitted as plain text separators.
+    weight: 2

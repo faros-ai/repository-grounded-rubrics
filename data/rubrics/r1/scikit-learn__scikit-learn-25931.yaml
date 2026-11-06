@@ -1,0 +1,67 @@
+metadata:
+  task_summary: Fix IsolationForest.fit() emitting a spurious 'X does not have valid
+    feature names' warning when contamination != 'auto' and X is a pandas DataFrame.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sklearn/ensemble/_iforest.py as the sole or primary changed
+      file, keeping edits confined to the IsolationForest fit path rather than touching
+      unrelated modules.
+    weight: 3
+  - id: FC2
+    description: Changes the code path near the line 'self.offset_ = np.percentile(self.score_samples(X),
+      100.0 * self.contamination)' in sklearn/ensemble/_iforest.py to avoid triggering
+      feature-name validation during fit.
+    weight: 3
+  - id: FC3
+    description: Avoids modifying the public signature or docstring of score_samples,
+      predict, or decision_function in sklearn/ensemble/_iforest.py.
+    weight: 2
+  - id: FC4
+    description: Adds or modifies a test in sklearn/ensemble/tests/test_iforest.py
+      that exercises IsolationForest fitted on a pandas DataFrame with contamination
+      != 'auto' to cover the regression.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Resolves the spurious warning 'X does not have valid feature names,
+      but IsolationForest was fitted with feature names' that was raised by IsolationForest.fit()
+      when contamination is a float and X is a DataFrame.
+    weight: 3
+  - id: SA2
+    description: Ensures the offset_ computation (np.percentile of scores, scaled
+      by contamination) still executes correctly when contamination != 'auto', so
+      the fix does not skip or alter the logic.
+    weight: 2
+  - id: SA3
+    description: Preserves the existing 'contamination == auto' branch that sets self.offset_
+      = -0.5 unchanged, confirming only the non-auto path is touched.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms the public API of IsolationForest (fit, predict, decision_function,
+      score_samples parameters and return types) is unchanged.
+    weight: 2
+  - id: I2
+    description: Confirms no existing tests in sklearn/ensemble/tests/test_iforest.py
+      are removed, skipped, or weakened (e.g. no added pytest.mark.skip, xfail, or
+      deletion of assert statements).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that calling IsolationForest(contamination=0.05).fit(X) on
+      a pandas DataFrame no longer calls self._validate_data (with reset=False) on
+      an already-converted numpy array, eliminating the feature-name mismatch check
+      that produced the spurious warning.
+    weight: 3
+  - id: R2
+    description: Preserves correct behavior when X is a plain numpy ndarray and contamination
+      != 'auto', so that offset_ is still computed from score_samples or equivalent
+      scoring logic without raising any new exception.
+    weight: 2
+  - id: R3
+    description: Ensures that calling score_samples on unseen data after fit still
+      performs feature-name validation (i.e. the fix does not disable _check_feature_names
+      globally for score_samples), so legitimate mismatches are still caught at inference
+      time.
+    weight: 2

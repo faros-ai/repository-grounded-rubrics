@@ -1,0 +1,56 @@
+metadata:
+  task_summary: Fix autodoc_type_aliases having no effect when autodoc_typehints is
+    set to 'description' by passing type_aliases to inspect.signature in record_typehints.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sphinx/ext/autodoc/typehints.py so that the record_typehints
+      function passes autodoc_type_aliases to the inspect.signature call (e.g., inspect.signature(obj,
+      type_aliases=app.config.autodoc_type_aliases)) instead of calling inspect.signature(obj)
+      without alias information.
+    weight: 3
+  - id: FC2
+    description: Confines changes primarily to sphinx/ext/autodoc/typehints.py (the
+      record_typehints or related function) rather than introducing unrelated modifications
+      to other modules.
+    weight: 2
+  - id: FC3
+    description: Fixes the rtype field body in modify_field_list to use annotations['return']
+      rather than the loop variable annotation, so that the return type annotation
+      is correctly inserted into the rtype field.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that when both autodoc_typehints='description' and autodoc_type_aliases
+      are configured, the annotations stored by record_typehints reflect the aliased
+      type names (e.g., types.JSONObject) rather than the raw expanded form (e.g.,
+      Dict[str, Any]).
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior of autodoc_type_aliases when autodoc_typehints
+      is not set to 'description', so that aliases continue to appear in function
+      signatures as before.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Avoids weakening or skipping existing tests for autodoc_type_aliases
+      (e.g., test_autodoc_type_aliases in tests/test_ext_autodoc_configs.py) by removing
+      assertions or adding skip markers.
+    weight: 2
+  - id: I2
+    description: 'Preserves the public signature of record_typehints (parameters:
+      app, objtype, name, obj, options, args, retann) so that other code connecting
+      to the autodoc-process-signature event is unaffected.'
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that annotations recorded in app.env.temp_data['annotations']
+      by record_typehints contain type alias strings (e.g., 'types.JSONObject') when
+      autodoc_type_aliases maps the underlying type, so that merge_typehints propagates
+      aliased names into the description field list.
+    weight: 3
+  - id: R2
+    description: Ensures backward compatibility for the case where autodoc_type_aliases
+      is an empty dict (the default), so that record_typehints continues to record
+      the stringified annotations unchanged.
+    weight: 2

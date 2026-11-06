@@ -1,0 +1,62 @@
+metadata:
+  task_summary: 'Fix inconsistent handling of None in autodoc_typehints: None used
+    as a return type annotation should generate a clickable cross-reference link in
+    both ''signature'' and ''description'' modes.'
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the _parse_annotation function in sphinx/domains/python.py
+      to handle ast.Constant (Python 3.8+) or ast.NameConstant (older Python) node
+      types in its unparse inner function, so that None literals in annotations are
+      parsed rather than falling through to the SyntaxError fallback.
+    weight: 3
+  - id: FC2
+    description: Modifies the make_xref helper inside _parse_annotation in sphinx/domains/python.py
+      (or adjusts the node type produced for None) so that when the annotation target
+      is 'None', the generated pending_xref uses reftype='obj' instead of reftype='class',
+      consistent with the handling in PyField.make_xref and PyTypedField.make_xref.
+    weight: 3
+  - id: FC3
+    description: Confines changes to the annotation-parsing or cross-reference-generation
+      code (such as _parse_annotation in sphinx/domains/python.py) without modifying
+      unrelated files outside of the autodoc/Python domain area.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause stated in the PR description: that None
+      as a return type annotation in ''signature'' mode does not produce a clickable
+      link to None''s documentation, while ''description'' mode does.'
+    weight: 3
+  - id: SA2
+    description: Ensures the fix applies to return-type annotations (retann / desc_returns)
+      in signature mode, not only to parameter type annotations.
+    weight: 2
+  - id: SA3
+    description: Adds or updates test coverage in the test suite (e.g., in test_domain_py.py)
+      that exercises _parse_annotation with 'None' as the annotation string and asserts
+      a pending_xref with reftype='obj' and reftarget='None' is produced.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: 'Confirms that existing handling of non-None annotations (e.g., int,
+      str, List[int]) by _parse_annotation is not broken: these annotations must continue
+      to produce pending_xref nodes with reftype=''class''.'
+    weight: 3
+  - id: I2
+    description: Confirms that PyField.make_xref and PyTypedField.make_xref special-casing
+      of None (lines checking rolename == 'class' and target == 'None') is preserved
+      and not removed, since it handles 'description' mode cross-references.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that parsing the annotation string 'None' via _parse_annotation
+      produces a pending_xref node with reftarget='None' and reftype='obj' (not reftype='class'),
+      so that intersphinx can resolve it to https://docs.python.org/3/library/constants.html#None
+      in signature mode.
+    weight: 3
+  - id: R2
+    description: Ensures that non-None singleton-like annotations (e.g., True, False,
+      Ellipsis) that are represented as ast.Constant or ast.NameConstant nodes are
+      handled gracefully (either producing a plain text node or a cross-reference)
+      without raising an unhandled exception in _parse_annotation.
+    weight: 1

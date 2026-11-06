@@ -1,0 +1,58 @@
+metadata:
+  task_summary: Fix confusing MatplotlibDeprecationWarning triggered by empty data
+    passed to axes with category (StrCategoryConverter) units by handling the empty-array
+    edge case in category.py.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies lib/matplotlib/category.py and confines all changes to the
+      StrCategoryConverter.convert method, avoiding unrelated file churn.
+    weight: 3
+  - id: FC2
+    description: Adds an early-return guard in StrCategoryConverter.convert that detects
+      an empty values array (e.g., checking values.size == 0 or len(values) == 0)
+      and returns an empty float array before the is_numlike check is reached.
+    weight: 3
+  - id: FC3
+    description: Adds a test case (in any test file) that exercises StrCategoryConverter.convert
+      or ax.plot with empty data on an axis that already has category units, asserting
+      no MatplotlibDeprecationWarning is raised.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Resolves the root cause described in the PR: the vacuous truth of
+      all() over an empty iterable causing is_numlike to be True for empty arrays,
+      which incorrectly triggered the deprecation warning about passing numbers through
+      unit converters.'
+    weight: 3
+  - id: SA2
+    description: Ensures that the fix allows ax.plot([], []) to succeed without raising
+      a ConversionError or MatplotlibDeprecationWarning when the axis already has
+      a StrCategoryConverter set via update_units.
+    weight: 2
+  - id: SA3
+    description: Preserves the existing deprecation warning for genuinely numeric
+      (non-empty) data passed through StrCategoryConverter.convert, keeping the warn_deprecated
+      call intact for is_numlike cases.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing tests for test_convert_one_number and test_convert_float_array
+      (which assert MatplotlibDeprecationWarning is raised for numeric data) are not
+      removed or weakened.
+    weight: 3
+  - id: I2
+    description: Confirms that the public signature of StrCategoryConverter.convert(value,
+      unit, axis) is unchanged by the patch.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures the empty-array early return in StrCategoryConverter.convert
+      produces a float-typed ndarray (e.g., np.array([], dtype=float)) consistent
+      with the return type of non-empty conversions, preventing downstream type errors.
+    weight: 2
+  - id: R2
+    description: Ensures the is_numlike deprecation warning path is still reached
+      only for non-empty arrays that are entirely numeric, preserving correct deprecation
+      signaling for legitimate numeric pass-through cases.
+    weight: 2

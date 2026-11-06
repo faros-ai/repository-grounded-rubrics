@@ -1,0 +1,90 @@
+metadata:
+  task_summary: 'Add params={''value'': value} to ValidationError raises in built-in
+    validators so custom error messages can use a %(value)s placeholder.'
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/core/validators.py as the primary (and ideally only
+      production) file changed, with no unrelated file churn.
+    weight: 3
+  - id: FC2
+    description: 'Adds params={''value'': value} (or includes ''value'': value in
+      existing params) to the ValidationError raise in RegexValidator.__call__, which
+      previously raised ValidationError(self.message, code=self.code) without any
+      params.'
+    weight: 3
+  - id: FC3
+    description: 'Adds ''value'': value to the params dict in each ValidationError
+      raise in EmailValidator.__call__, which previously raised ValidationError(self.message,
+      code=self.code) without params.'
+    weight: 2
+  - id: FC4
+    description: 'Adds ''value'': value to the params dict in each ValidationError
+      raise in URLValidator.__call__, which previously raised ValidationError(self.message,
+      code=self.code) without params.'
+    weight: 2
+  - id: FC5
+    description: 'Adds ''value'': value to the params in the ValidationError raises
+      inside the standalone validate_ipv4_address and validate_ipv6_address functions,
+      which previously raised ValidationError without any params argument.'
+    weight: 2
+  - id: FC6
+    description: 'Adds ''value'': value to the params dict in each ValidationError
+      raise inside DecimalValidator.__call__, which already used params dicts containing
+      ''max'' but did not include ''value''.'
+    weight: 2
+  - id: FC7
+    description: 'Adds ''value'': value to the params dict in the ValidationError
+      raise inside FileExtensionValidator.__call__, which already had params containing
+      ''extension'' and ''allowed_extensions'' but not ''value''.'
+    weight: 1
+  - id: FC8
+    description: 'Adds params={''value'': value} to the ValidationError raise in ProhibitNullCharactersValidator.__call__,
+      which previously raised ValidationError(self.message, code=self.code) without
+      params.'
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that every ValidationError raised by built-in validators
+      in django/core/validators.py passes a params dict containing the key 'value'
+      mapped to the input being validated, enabling %(value)s substitution in custom
+      error messages.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing 'value' key already present in BaseValidator.__call__'s
+      params dict (containing limit_value, show_value, and value) without removing
+      or renaming it.
+    weight: 2
+  - id: SA3
+    description: Ensures DecimalValidator's 'invalid' message ValidationError raise
+      (ValidationError(self.messages['invalid'])) also receives a params argument
+      containing 'value', consistent with the other DecimalValidator raises.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing test assertions in tests/validators/tests.py
+      are not weakened, removed, or skipped to accommodate the new params.
+    weight: 3
+  - id: I2
+    description: Confirms that the public-facing call signatures of all validator
+      classes and standalone functions (including RegexValidator, EmailValidator,
+      URLValidator, DecimalValidator, FileExtensionValidator, ProhibitNullCharactersValidator)
+      remain unchanged.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a custom error message using %(value)s on a built-in
+      validator such as RegexValidator or EmailValidator correctly interpolates the
+      invalid input string, because 'value' is now present in params when ValidationError
+      is raised.
+    weight: 3
+  - id: R2
+    description: Ensures that validators continue to raise ValidationError (not return
+      silently or raise a different exception type) when given invalid input, preserving
+      the original error-raising behavior for all modified validators.
+    weight: 2
+  - id: R3
+    description: 'Ensures backward compatibility: validators that previously received
+      custom message=None or default messages continue to work identically when valid
+      input is passed, so adding params does not affect the happy path.'
+    weight: 2

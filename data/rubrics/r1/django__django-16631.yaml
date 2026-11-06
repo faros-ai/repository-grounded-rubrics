@@ -1,0 +1,66 @@
+metadata:
+  task_summary: Make session authentication hash verification use SECRET_KEY_FALLBACKS
+    so that rotating the secret key does not immediately log out all users.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies `get_session_auth_hash` in `django/contrib/auth/base_user.py`
+      to accept an optional `secret` keyword argument and pass it to the `salted_hmac`
+      call, enabling callers to compute the hash with a non-default secret.
+    weight: 3
+  - id: FC2
+    description: Modifies session hash verification in `django/contrib/auth/__init__.py`
+      (inside `get_user` or `login`) to iterate over the current secret plus fallbacks
+      from `settings.SECRET_KEY_FALLBACKS`, mirroring the pattern used in `PasswordResetTokenGenerator.check_token`.
+    weight: 3
+  - id: FC3
+    description: Confines all changes to `django/contrib/auth/base_user.py` and/or
+      `django/contrib/auth/__init__.py`, without modifying unrelated modules (e.g.,
+      `django/utils/crypto.py`, `django/contrib/auth/tokens.py`, or unrelated settings
+      files).
+    weight: 2
+  - id: FC4
+    description: Adds or updates test coverage (in the `tests/auth_tests/` directory
+      or equivalent) to exercise session hash verification with a rotated `SECRET_KEY`
+      and a value present in `SECRET_KEY_FALLBACKS`.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that when a session hash stored in the session was computed
+      with an old secret key that is now in `SECRET_KEY_FALLBACKS`, the `get_user`
+      function (or equivalent session verification path) accepts it rather than flushing
+      the session.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior that a session hash computed with
+      a secret key that is not in `SECRET_KEY` nor in `SECRET_KEY_FALLBACKS` is still
+      rejected and the session is flushed.
+    weight: 2
+  - id: SA3
+    description: Ensures that `get_session_auth_hash` called without a `secret` argument
+      continues to use `settings.SECRET_KEY` as default, keeping backward compatibility
+      for callers that do not supply a secret.
+    weight: 3
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the public signature of `AbstractBaseUser.get_session_auth_hash`
+      by only adding an optional parameter (not removing or renaming existing parameters),
+      so existing subclasses and callers are unaffected.
+    weight: 3
+  - id: I2
+    description: Does not weaken or remove existing session-hash invalidation logic
+      (e.g., does not remove the `request.session.flush()` call when no valid hash
+      is found across any secret).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Maintains a loop (or equivalent multi-secret check) in session hash
+      verification that terminates as soon as any secret in `[settings.SECRET_KEY,
+      *settings.SECRET_KEY_FALLBACKS]` produces a matching hash, avoiding unnecessary
+      iterations.
+    weight: 2
+  - id: R2
+    description: Ensures session hash comparison uses constant-time comparison (via
+      `constant_time_compare`) for every secret tried in the fallback loop, preventing
+      timing-based information leakage.
+    weight: 2

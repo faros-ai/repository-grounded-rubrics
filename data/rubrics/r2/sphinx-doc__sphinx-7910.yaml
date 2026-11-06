@@ -1,0 +1,60 @@
+metadata:
+  task_summary: Fix _skip_member in sphinx.ext.napoleon so that decorated __init__
+    methods (e.g. wrapped with functools.wraps) are correctly identified as class
+    members and included in docs when napoleon_include_init_with_doc is True.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sphinx/ext/napoleon/__init__.py and no unrelated files (changes
+      are confined to the napoleon extension, not to unrelated modules).
+    weight: 2
+  - id: FC2
+    description: Adds unwrapping of the decorated obj before accessing obj.__globals__
+      (or obj.__module__ / obj.__qualname__) inside the _skip_member function, using
+      inspect.unwrap, sphinx.util.inspect.unwrap, or obj.__wrapped__ traversal.
+    weight: 3
+  - id: FC3
+    description: Adds an import of inspect (standard library) or sphinx.util.inspect
+      somewhere in the diff to support the unwrapping call introduced in _skip_member.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause stated in the PR description: obj.__globals__
+      not containing the class when obj is a decorator wrapper, by resolving the original
+      (unwrapped) function before the cls_path lookup.'
+    weight: 3
+  - id: SA2
+    description: Preserves the existing cls_path resolution branches (the dot-in-cls_path
+      importlib path and the simple obj.__globals__[cls_path] path) and only adds
+      unwrapping around the obj used for __globals__ access, not replacing the overall
+      logic.
+    weight: 2
+  - id: SA3
+    description: Ensures that __qualname__ used for cls_path derivation is also taken
+      from the unwrapped object (or equivalently from the wrapper, since functools.wraps
+      copies __qualname__), so cls_path correctly reflects the class hierarchy.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the _skip_member function signature (app, what, name,
+      obj, skip, options) is not changed, preserving the autodoc-skip-member event
+      contract.
+    weight: 3
+  - id: I2
+    description: Confirms that no existing test cases for _skip_member are removed
+      or weakened (e.g. no assertSkip calls are deleted, no skip markers added to
+      existing tests).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: When a class __init__ is decorated with functools.wraps (or any decorator
+      that sets __wrapped__), _skip_member returns False (include in docs) rather
+      than None (skip) when napoleon_include_init_with_doc is True, because cls_is_owner
+      is correctly set to True after unwrapping resolves obj.__globals__ to the original
+      function's globals.
+    weight: 3
+  - id: R2
+    description: 'When __init__ is NOT decorated (the common case), the behavior of
+      _skip_member is unchanged: cls_is_owner is still computed correctly and napoleon_include_init_with_doc
+      is still respected.'
+    weight: 2

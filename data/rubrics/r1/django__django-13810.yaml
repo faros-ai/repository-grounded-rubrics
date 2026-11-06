@@ -1,0 +1,55 @@
+metadata:
+  task_summary: Fix MiddlewareNotUsed side effect in load_middleware that overwrites
+    the handler variable with an adapted version before the exception is caught, corrupting
+    the ASGI middleware chain.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies only django/core/handlers/base.py in the load_middleware
+      method to address the MiddlewareNotUsed side-effect bug, without touching unrelated
+      files.
+    weight: 2
+  - id: FC2
+    description: Saves the pre-adaptation value of handler (and optionally handler_is_async)
+      into a temporary variable before calling self.adapt_method_mode inside the try
+      block in load_middleware, so that the original value is available for rollback.
+    weight: 3
+  - id: FC3
+    description: Restores handler (and, if applicable, handler_is_async) to their
+      pre-adaptation values inside the except MiddlewareNotUsed block in load_middleware,
+      before the continue statement.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that when MiddlewareNotUsed is raised during middleware loading
+      in an ASGI context, the handler variable passed to the next middleware is not
+      the one produced by adapt_method_mode for the skipped middleware, preventing
+      the middleware chain from being 'poisoned' with an incorrectly adapted handler.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behaviour of logging the MiddlewareNotUsed
+      exception message (both with and without a custom message) unchanged in the
+      except block.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the existing MiddlewareNotUsed logging tests (test_log
+      and test_log_custom_message in MiddlewareNotUsedTests) are not weakened, removed,
+      or skipped by the patch.
+    weight: 2
+  - id: I2
+    description: Confirms that the public signature of BaseHandler.load_middleware
+      (including the is_async parameter) is preserved, with no renames or removals.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when a sync-only middleware (async_capable=False) raises
+      MiddlewareNotUsed in an ASGI handler context, the subsequent middleware in the
+      chain receives the handler in the correct async mode rather than a sync-adapted
+      handler, avoiding TypeError when awaiting the response.
+    weight: 3
+  - id: R2
+    description: Ensures that middleware following a MiddlewareNotUsed-raising middleware
+      in a WSGI context still receives the handler in the correct synchronous mode
+      (no regression for the synchronous path).
+    weight: 2

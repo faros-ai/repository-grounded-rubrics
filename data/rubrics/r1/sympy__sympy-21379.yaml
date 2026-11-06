@@ -1,0 +1,57 @@
+metadata:
+  task_summary: Fix unexpected PolynomialError raised during subs() on expressions
+    with Piecewise inside hyperbolic functions with real symbols by catching PolynomialError
+    in the gcd call inside Mod.__new__.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sympy/core/mod.py to guard the gcd(p, q) call that can raise
+      PolynomialError when expressions contain Piecewise subexpressions.
+    weight: 3
+  - id: FC2
+    description: Avoids unrelated file modifications outside the narrowly scoped fix;
+      the diff does not touch files unrelated to the Piecewise/gcd interaction such
+      as polytools.py, relational.py, or hyperbolic.py logic.
+    weight: 2
+  - id: FC3
+    description: 'Adds a test (anywhere in the test suite) that exercises the subs({1:
+      1.0}) call on an expression of the form exp(sinh(Piecewise((x, y > x), (y, True))
+      / z)) with real symbols x and y, confirming no PolynomialError is raised.'
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause described in the PR: the PolynomialError
+      with message ''Piecewise generators do not make sense'' propagating out of a
+      subs() call on expressions containing Piecewise inside sinh/cosh/tanh with real
+      symbols.'
+    weight: 3
+  - id: SA2
+    description: Preserves the behavior that running the same subs() call a second
+      time (after cache population) also works, consistent with the PR observation
+      that the error disappears on re-run.
+    weight: 2
+  - id: SA3
+    description: Ensures the fix applies when x and y are declared with real=True,
+      matching the PR condition that the error only occurs with real symbols.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing test is deleted, skipped, or weakened to
+      hide the failure; any modified test files only add new assertions or test cases.
+    weight: 2
+  - id: I2
+    description: 'Confirms that the public behavior of the Mod class is preserved:
+      when gcd succeeds normally (no Piecewise generators), simplification still proceeds
+      as before.'
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures the PolynomialError raised inside parallel_poly_from_expr
+      is caught (via a try/except block or equivalent guard around the gcd call in
+      Mod.__new__) so that it does not propagate to the caller of subs().
+    weight: 3
+  - id: R2
+    description: Ensures that when PolynomialError is caught, the Mod expression is
+      returned unevaluated (i.e., the fallback does not silently drop the modulo operation
+      or return an incorrect value), preserving mathematical correctness.
+    weight: 2

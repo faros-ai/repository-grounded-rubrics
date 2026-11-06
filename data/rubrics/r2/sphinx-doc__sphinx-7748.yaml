@@ -1,0 +1,93 @@
+metadata:
+  task_summary: Extend autodoc_docstring_signature to collect all leading overloaded
+    method signatures from a docstring, not just the first one.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `_find_signature` method in `DocstringSignatureMixin`
+      so it does not break after the first matching signature line, instead continuing
+      to collect subsequent consecutive signature lines.
+    weight: 3
+  - id: FC2
+    description: Modifies `_find_signature` (or its callers) so that all matched leading
+      signature lines are stripped from `self._new_docstrings`, not just the first
+      matched line.
+    weight: 3
+  - id: FC3
+    description: Modifies `DocstringSignatureMixin.format_signature` to handle multiple
+      returned signatures (e.g., a list of `(args, retann)` pairs) and produce a newline-joined
+      multi-signature string that `add_directive_header` can split on.
+    weight: 3
+  - id: FC4
+    description: Modifies `DocstringStripSignatureMixin.format_signature` to handle
+      the updated return type or structure from `_find_signature` when multiple signatures
+      are present, while still discarding args (stripping only).
+    weight: 2
+  - id: FC5
+    description: Confines changes to `sphinx/ext/autodoc/__init__.py` and optionally
+      test/fixture files, with no unrelated file churn outside of these paths.
+    weight: 2
+  - id: FC6
+    description: Adds or updates a test fixture class or method (in `tests/roots/test-ext-autodoc/target/__init__.py`
+      or equivalent) that has multiple consecutive signature lines at the start of
+      a docstring to exercise the overloaded-signature scenario.
+    weight: 1
+  - id: FC7
+    description: Adds or updates a test case (in `tests/test_ext_autodoc_configs.py`
+      or equivalent) that asserts multiple overloaded signatures appear in the autodoc
+      output for a method with multiple docstring signatures.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements support for multiple consecutive overloaded-method signatures
+      at the start of a docstring, matching the PR description's requirement that
+      all SWIG-style overloaded C++ method signatures are picked up.
+    weight: 3
+  - id: SA2
+    description: Ensures that when only a single signature is present in the docstring,
+      behavior is unchanged (single signature is still extracted and displayed correctly).
+    weight: 3
+  - id: SA3
+    description: Ensures the scanning loop in `_find_signature` stops collecting signatures
+      once a docstring line no longer matches `py_ext_sig_re`, so that non-signature
+      body text is not consumed as signatures.
+    weight: 2
+  - id: SA4
+    description: Ensures that when `autodoc_docstring_signature` is `False`, no signatures
+      are extracted from the docstring (the existing opt-out behavior is preserved).
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the public return type annotation or calling convention
+      of `_find_signature` in a backward-compatible way, or updates all call sites
+      within the same diff so no existing caller is broken.
+    weight: 2
+  - id: I2
+    description: Does not weaken any existing test assertions in `test_autodoc_docstring_signature`
+      (e.g., does not remove or loosen checks for the single-signature or disabled-signature
+      cases).
+    weight: 2
+  - id: I3
+    description: Avoids introducing unrelated mass renames, import changes, or dependency
+      additions beyond what is required for the multi-signature feature.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Produces multiple `.. py:method::` (or `.. py:function::`) directive
+      lines (one per overloaded signature) in the rendered output when a docstring
+      contains multiple consecutive signature lines, leveraging the existing newline-split
+      behavior of `add_directive_header`.
+    weight: 3
+  - id: R2
+    description: Strips all matched leading signature lines from the rendered docstring
+      body, so overloaded signature text does not appear as body content in the output.
+    weight: 3
+  - id: R3
+    description: 'Maintains correct behavior when a docstring has zero signature lines:
+      no signature is extracted and the docstring body is displayed as-is.'
+    weight: 2
+  - id: R4
+    description: Does not cause infinite loops or excessive iteration by ensuring
+      the signature-collection loop terminates when a non-matching line is encountered
+      or when docstring lines are exhausted.
+    weight: 2

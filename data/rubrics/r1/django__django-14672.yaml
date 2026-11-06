@@ -1,0 +1,58 @@
+metadata:
+  task_summary: Apply make_hashable to through_fields in ManyToManyRel.identity to
+    fix TypeError when through_fields is a list.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the identity property of ManyToManyRel in django/db/models/fields/reverse_related.py
+      to wrap self.through_fields with make_hashable.
+    weight: 3
+  - id: FC2
+    description: Confines the fix to django/db/models/fields/reverse_related.py without
+      modifying unrelated files (no spurious imports, model changes, or other file
+      churn).
+    weight: 2
+  - id: FC3
+    description: Does not add a new import of make_hashable because it is already
+      imported at the top of django/db/models/fields/reverse_related.py.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Applies make_hashable specifically to self.through_fields in the
+      ManyToManyRel.identity property, matching the PR description's stated solution.
+    weight: 3
+  - id: SA2
+    description: Preserves existing make_hashable(self.limit_choices_to) usage in
+      ForeignObjectRel.identity unchanged, since the PR description only targets through_fields
+      in ManyToManyRel.
+    weight: 2
+  - id: SA3
+    description: Adds a regression test or model fixture exercising ManyToManyField
+      with through_fields specified as a list (e.g., ['child', 'parent']) alongside
+      a proxy model, covering the scenario described in the PR.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the public interface of ManyToManyRel.__init__ and ManyToManyRel.identity
+      without removing or renaming any parameters or return values.
+    weight: 3
+  - id: I2
+    description: Does not weaken any existing tests related to ManyToManyRel, ForeignObjectRel,
+      or through_fields (no removal of assertions, no skip markers added).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: 'Ensures that ManyToManyRel.identity returns a fully hashable tuple
+      when through_fields is a list, so that hash(self.identity) no longer raises
+      TypeError: unhashable type: ''list''.'
+    weight: 3
+  - id: R2
+    description: Ensures that when through_fields is None or a tuple (already hashable),
+      make_hashable passes it through unchanged, preserving backward-compatible behavior
+      for existing through_fields=None or tuple cases.
+    weight: 2
+  - id: R3
+    description: Ensures that model system checks involving proxy models with ManyToManyField
+      using list through_fields complete without TypeError, matching the _check_field_name_clashes
+      proxy-model failure described in the PR.
+    weight: 2

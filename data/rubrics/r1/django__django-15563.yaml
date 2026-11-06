@@ -1,0 +1,71 @@
+metadata:
+  task_summary: Fix queryset update() on a multiply-inherited child model so that
+    updates to a non-primary-parent's fields correctly filter by that parent's own
+    PKs instead of the primary parent's PKs.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `get_related_updates` method inside `django/db/models/sql/subqueries.py`
+      to fix the wrong-PK filtering bug.
+    weight: 3
+  - id: FC2
+    description: Avoids unrelated file churn — changes are confined to the ORM update
+      path (e.g., `subqueries.py` and optionally `compiler.py`) without touching unrelated
+      modules such as `deletion.py`, `options.py`, or migration files.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test (in the model_inheritance test suite or update
+      test suite) that exercises `Child.objects.update()` on a field belonging to
+      a non-primary parent model with multiple concrete inheritance (e.g., a `Child`
+      inheriting from both `Base` and `OtherBase`).
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Resolves the scenario from the PR description where `Child.objects.update(field_otherbase=55)`
+      was incorrectly updating `OtherBase` rows whose `otherbase_id` matched `base_ptr_id`
+      values instead of the correct `OtherBase` PKs.
+    weight: 3
+  - id: SA2
+    description: Ensures that when `self.related_ids` is not None in `get_related_updates`,
+      each ancestor update query filters by the correct PKs for that ancestor model
+      (via the parent-link field between the child and the ancestor) rather than using
+      the child model's own primary-key values unconditionally.
+    weight: 3
+  - id: SA3
+    description: Preserves the existing behavior for single-inheritance (non-multiple)
+      update paths, where `related_ids` correctly contains the child primary keys
+      that also serve as the lone parent's PKs.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing tests are weakened, removed, disabled (e.g.,
+      via `@unittest.skip`), or have their assertions loosened to accommodate the
+      fix.
+    weight: 3
+  - id: I2
+    description: Preserves the public API of `UpdateQuery`, including the signatures
+      of `get_related_updates`, `add_related_update`, and `update_batch`, so callers
+      are unaffected.
+    weight: 2
+  - id: I3
+    description: Avoids introducing new third-party dependencies or mass-renaming
+      existing symbols in `django/db/models/sql/subqueries.py`.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that the UPDATE SQL generated for a non-primary ancestor
+      (e.g., `OtherBase`) uses a `WHERE pk__in` clause whose values are derived from
+      the parent-link field's referenced column (the ancestor's own PK), not from
+      the child model's primary key column.
+    weight: 3
+  - id: R2
+    description: Ensures that `OtherBase` rows that do NOT correspond to any `Child`
+      instance are left unmodified when `Child.objects.update()` is called — i.e.,
+      the fix does not widen or narrow the set of updated ancestor rows beyond those
+      actually linked to matched child rows.
+    weight: 3
+  - id: R3
+    description: Maintains backward compatibility for the normal (single-parent) multi-table
+      inheritance update path, so that e.g. `Restaurant.objects.update(name='X')`
+      continues to update the correct `Place` rows without regression.
+    weight: 2

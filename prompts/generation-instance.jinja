@@ -1,0 +1,97 @@
+<uploaded_files>
+{{ cwd }}
+</uploaded_files>
+I've uploaded a python code repository in the directory {{ cwd }}. Consider the following PR description:
+
+<pr_description>
+{{ task }}
+</pr_description>
+
+Can you help me write high quality rubrics to grade the solution to the task described in the <pr_description>?
+This means you SHOULDN'T attempt to solve the task yourself, but rather understand the task, go through the codebase, and write rubrics only.
+
+IMPORTANT: Do NOT inspect version-control history or metadata to find the reference solution - do not run `git log`, `git show`, `git diff`, `git blame`, or inspect branches, tags, stashes, or the reflog, and do not search for commits, PRs, or changelog entries that describe the fix. Write the rubric from the PR description and the current state of the code only.
+{% if feedback %}
+
+<reviewer_feedback>
+A previous rubric you wrote for this exact task was audited and found defective. Address this feedback when writing the new rubric:
+
+{{ feedback }}
+</reviewer_feedback>
+{% endif %}
+
+<rubric_size_budget>
+Aim for approximately {{ total_criteria }} rubric items in TOTAL across all four axes. This is a soft target — distribute the items across the axes according to what the task genuinely requires, and do not pad or trim solely to hit the number.
+</rubric_size_budget>
+
+Follow these steps to write the rubrics:
+1. As a first step, it might be a good idea to find and read code relevant to the <pr_description> by searching the codebase using search tools.
+2. Then think of the approach to solve the task (functional requirements, non-functional requirements, etc.)
+3. Also understand how the codebase is structured and how the code is organized, as well as coding style, etc.
+4. Write a list of rubrics that can be used to grade the solution to the task described in the <pr_description>. Your rubrics should be along the axes described below.
+5. Then finally, make a new file in the {{ cwd }} directory called `rubrics.yaml` with the rubrics you wrote. It should be a valid YAML file with the structure described later below
+6. Also take a turn to ensure the yaml file is parseable by the yaml.safe_load function on the file itself. If it throws an error, fix the yaml file and take another turn to ensure it is parseable.
+7. This should be the only file you create in the {{ cwd }} directory. DO NOT create/modify/delete any other files or directories.
+8. Finally, when you are done and the rubrics.yaml file is valid, submit by running: echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT
+
+Atomicity:
+  - Each rubric criterion should evaluate exactly one distinct aspect.
+  - Avoid bundling multiple criteria into a single rubric. Most stacked criteria with the word "and" can be broken up into multiple pieces.
+
+Self-containment & specificity (strict):
+  - Do NOT write generic items; bind each item to exact paths/symbols/tokens seen in this instance.
+  - Never rely on cross-item references; each item stands alone with its own identifiers and patterns.
+  - The judge will only have access to the problem and patch and the current rubric under evaluation, so make sure the rubric can be evaluated without any other information.
+
+Mutually Exclusive, Collectively Exhaustive (MECE):
+  - The rubric set should be mutually exclusive and collectively exhaustive.
+
+Style constraints (strict):
+  - YAML only-no prose outside YAML.
+  - Avoid backslash-heavy patterns; if you absolutely must include one, double any backslashes so the YAML stays valid.
+  - Each rubric description starts with a third-person singular verb (e.g., Identifies, Implements, Validates, Confirms, Avoids, Cleans up, Plans).
+  - Make descriptions concrete using tokens from PATCH/PR_DESCRIPTION.
+  - Each rubric item includes: id (short), description (verb-first, instance-grounded), weight (int; 1=nice, 2=valuable, 3=must).
+  - Avoid double-counting: do not re-score the same behavior under multiple items.
+
+Pattern-writing guidelines (keep literal YAML-friendly text; no regex required):
+  - Use plain path mentions like "diff --git a/path/to/file.py" or "+++ b/path/to/file.py".
+  - Refer to symbols with straightforward phrases such as "def my_function(" instead of regex classes.
+  - Describe value patterns in words (e.g., "string containing total") instead of complex expressions.
+  - If you need to forbid something, just mention the exact string '@pytest.mark.skip', etc
+
+Axes (execution-free):
+  - file_change_rubrics (4 - 8): Scope, locality, and sufficiency of edits in PATCH (files/symbols/guards/regexes/flags). Penalize unrelated file churn; reward minimal, reversible diffs tied to the stated task.
+  - spec_alignment_rubrics (3 - 6): Alignment of code to PR_DESCRIPTION. Use textual acceptance criteria (required types/conditions/error handling/API contracts) and ensure the patch reflects them.
+  - integrity_rubrics (3 - 6): Hygiene and "no-cheating" safeguards-avoid test weakening (if tests appear in PATCH), mass renames, or dependency churn; preserve public API/semantics unless PR_DESCRIPTION requires otherwise.
+  - runtime_rubrics (3 - 6): Natural-language criteria describing **intended runtime behavior** (NOT concrete tests), supported by execution-free textual evidence.
+      - **Distinguishability:** Ensures the patch introduces or preserves signals that differentiate correct vs. incorrect behavior under plausible inputs (e.g., specific exception class, sentinel return, boundary guard).
+      - **Regression safety:** Confirms backward-compatibility constraints (e.g., original API signatures/flags remain valid, deprecations gated via warnings).
+      - **Determinism / flake resistance:** Avoids nondeterministic sources at runtime (unseeded randomness, wall-clock sleeps, network I/O) that would make tests flaky.
+      - **Resource & timeout bounds:** Prevents pathological loops or heavy calls; respects existing timeouts/limits.
+      - **Error-surface clarity:** Produces stable, specific messages/exception types that a test could assert against (not vague strings).
+      - **Harness integrity:** Does not bypass or disable the project's runner/verifier hooks (e.g., keeps regression filters, CLI exit codes).
+
+Return exactly this YAML structure:
+metadata:
+  task_summary: "<one-sentence summary grounded in PR_DESCRIPTION>"
+axes:
+  file_change_rubrics:
+    - id: "FC1"
+      description: "Identifies ..."
+      weight: 3
+    - id: "FC2"
+      description: "Identifies ..."
+      weight: 2
+  spec_alignment_rubrics:
+    - id: "SA1"
+      description: "Recognizes ..."
+      weight: 2
+  integrity_rubrics:
+    - id: "I1"
+      description: "Confirms ..."
+      weight: 2
+  runtime_rubrics:
+    - id: "R1"
+      description: "Maintains ..."
+      weight: 2

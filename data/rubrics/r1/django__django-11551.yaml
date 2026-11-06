@@ -1,0 +1,84 @@
+metadata:
+  task_summary: Fix _check_list_display_item in django/contrib/admin/checks.py to
+    not raise admin.E108 for fields accessible only via model instance (e.g., PositionField)
+    by removing the hasattr(model, item) gate and instead trying get_field first then
+    getattr as a fallback.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies only django/contrib/admin/checks.py for the core logic change,
+      with no unrelated files altered.
+    weight: 2
+  - id: FC2
+    description: Removes the hasattr(obj.model, item) branch that gates access to
+      model._meta.get_field(item), which is the direct cause of the false admin.E108
+      for PositionField-like descriptors.
+    weight: 3
+  - id: FC3
+    description: Restructures _check_list_display_item so that model._meta.get_field(item)
+      is attempted first (inside a try/except FieldDoesNotExist block) and getattr(obj.model,
+      item) is used as a fallback inside the except block, rather than depending on
+      hasattr.
+    weight: 3
+  - id: FC4
+    description: Moves the isinstance(field, models.ManyToManyField) check outside
+      (after) the try/except block so it applies regardless of whether the field was
+      obtained via get_field or via getattr, covering the case where hasattr(model,
+      item) is True but get_field raises FieldDoesNotExist.
+    weight: 2
+  - id: FC5
+    description: Returns admin.E108 only when both model._meta.get_field(item) raises
+      FieldDoesNotExist and getattr(obj.model, item) raises AttributeError, ensuring
+      both retrieval paths are exhausted before reporting an error.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Preserves the early-exit return [] when callable(item) is True, matching
+      the PR description's requirement that callable items are always valid.
+    weight: 2
+  - id: SA2
+    description: Preserves the early-exit return [] when hasattr(obj, item) is True
+      (i.e., the item is an attribute of the ModelAdmin itself), matching the PR description's
+      spec.
+    weight: 2
+  - id: SA3
+    description: Returns admin.E109 with message 'The value of ... must not be a ManyToManyField.'
+      when the resolved field is an instance of models.ManyToManyField, covering all
+      acquisition paths (both get_field and getattr fallback).
+    weight: 3
+  - id: SA4
+    description: Adds a test case (in tests/modeladmin/test_checks.py or equivalent)
+      that exercises a field whose descriptor raises an exception when accessed on
+      the model class (simulating PositionField behavior) and asserts no admin.E108
+      is raised.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms existing test cases for admin.E108 (missing/non-existent
+      field) and admin.E109 (ManyToManyField in list_display) still pass without modification
+      to their assertions.
+    weight: 2
+  - id: I2
+    description: Confirms the public signature of _check_list_display_item(self, obj,
+      item, label) is unchanged, preserving compatibility with any callers.
+    weight: 2
+  - id: I3
+    description: Avoids introducing new imports beyond those already present (such
+      as FieldDoesNotExist and models) in django/contrib/admin/checks.py.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a field whose descriptor raises an exception on class-level
+      access (like PositionField) does not trigger admin.E108 when it can be found
+      via model._meta.get_field(item), producing an empty error list instead.
+    weight: 3
+  - id: R2
+    description: Ensures that a ManyToManyField present in list_display triggers admin.E109
+      regardless of whether hasattr(obj.model, item) is True or False, by checking
+      isinstance(field, models.ManyToManyField) after both acquisition paths.
+    weight: 2
+  - id: R3
+    description: Ensures that a truly non-existent field name (one that fails both
+      model._meta.get_field and getattr(obj.model, item)) still produces admin.E108
+      with the message containing 'which is not a callable, an attribute of'.
+    weight: 3

@@ -1,0 +1,49 @@
+metadata:
+  task_summary: Fix RenameContentType._rename() to save the content type on the correct
+    database by passing using=db to content_type.save().
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/contrib/contenttypes/management/__init__.py and no
+      other unrelated production files, keeping the diff minimal and confined to the
+      _rename method.
+    weight: 3
+  - id: FC2
+    description: Changes the content_type.save call inside _rename to include the
+      using=db keyword argument, i.e., content_type.save(using=db, update_fields={'model'})
+      or equivalent.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause described in the PR: the content_type.save
+      call was not routing to the database specified by schema_editor.connection.alias
+      (db), causing an OperationalError when the default database does not have django_content_types.'
+    weight: 3
+  - id: SA2
+    description: Preserves the existing update_fields={'model'} argument alongside
+      the newly added using=db argument so that the save still performs a targeted
+      UPDATE rather than a full object save.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the transaction.atomic(using=db) context manager wrapping
+      the save call is not removed or weakened, maintaining transactional safety on
+      the correct database.
+    weight: 2
+  - id: I2
+    description: Confirms that the IntegrityError fallback branch (restoring content_type.model
+      = old_model) and the ContentType.objects.clear_cache() call in the else branch
+      remain intact and unmodified.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when _rename is called with a schema_editor whose connection.alias
+      is a non-default database, the content type record is saved on that same database
+      rather than the default database, preventing OperationalError when the default
+      database lacks django_content_types.
+    weight: 3
+  - id: R2
+    description: 'Ensures backward-compatibility: when the database alias is ''default'',
+      the behavior of content_type.save is unchanged because using=''default'' produces
+      the same routing as the prior implicit default.'
+    weight: 2

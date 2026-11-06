@@ -1,0 +1,50 @@
+metadata:
+  task_summary: Fix SelectDateWidget.value_from_datadict to catch OverflowError when
+    very large integer values (e.g., year=1234567821345678) are supplied as date components.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/forms/widgets.py and no other production source files,
+      keeping the fix local to the SelectDateWidget implementation.
+    weight: 2
+  - id: FC2
+    description: Adds OverflowError (alone or combined with ValueError) to the except
+      clause surrounding 'datetime.date(int(y), int(m), int(d))' in value_from_datadict.
+    weight: 3
+  - id: FC3
+    description: Leaves the fallback return path (pseudo-ISO string such as '%s-%s-%s'
+      % (y or 0, m or 0, d or 0)) unchanged and reachable for both ValueError and
+      OverflowError cases.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the crash path described in the PR: the fix targets the
+      try/except block in SelectDateWidget.value_from_datadict where datetime.date(int(y),
+      int(m), int(d)) is called.'
+    weight: 3
+  - id: SA2
+    description: Ensures that supplying an oversized year (e.g., my_date_year=1234567821345678)
+      no longer propagates an OverflowError out of value_from_datadict, matching the
+      PR's acceptance criterion.
+    weight: 3
+  integrity_rubrics:
+  - id: I1
+    description: 'Preserves the existing ValueError handling behaviour: invalid but
+      non-overflowing integer date components still return the pseudo-ISO fallback
+      string rather than raising.'
+    weight: 3
+  - id: I2
+    description: Does not weaken existing tests in tests/forms_tests/widget_tests/test_selectdatewidget.py
+      (e.g., no removal of assertions, no addition of skip/xfail markers).
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Returns a non-crashing value (the pseudo-ISO fallback string) instead
+      of propagating OverflowError when any of y, m, or d triggers an integer overflow
+      in the datetime.date constructor.
+    weight: 3
+  - id: R2
+    description: 'Does not alter the behaviour of value_from_datadict for valid date
+      inputs: a well-formed year/month/day triple still returns a properly formatted
+      date string via strftime.'
+    weight: 2

@@ -1,0 +1,56 @@
+metadata:
+  task_summary: Fix IndexError in `minimal_blocks()` caused by unsynchronized deletion
+    of parallel lists `blocks`, `num_blocks`, and `rep_blocks` when multiple block
+    systems are removed in a single iteration.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies `minimal_blocks` in `sympy/combinatorics/perm_groups.py`
+      and limits changes to that function (or its immediate helpers), without touching
+      unrelated files.
+    weight: 3
+  - id: FC2
+    description: Removes or replaces the `del num_blocks[i], blocks[i]` deletion pattern
+      inside the `for i, r in enumerate(rep_blocks)` loop in `minimal_blocks`.
+    weight: 3
+  - id: FC3
+    description: Ensures the `rep_blocks` list is kept in sync with `num_blocks` and
+      `blocks` throughout the deletion logic, so all three parallel lists are pruned
+      together rather than at different times.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the `IndexError: list assignment index out of range` reported
+      for `DihedralGroup(18).sylow_subgroup(p=2)` by fixing the root cause in `minimal_blocks`.'
+    weight: 3
+  - id: SA2
+    description: Adds a test case in the combinatorics test file that calls `sylow_subgroup`
+      (or `minimal_blocks`) on `DihedralGroup(18)` or `DihedralGroup(50)` (i.e., `DihedralGroup(2*25)`)
+      to cover the reported failure scenarios.
+    weight: 1
+  - id: SA3
+    description: 'Preserves the existing contract of `minimal_blocks`: returns `False`
+      for intransitive groups and returns a list of block-system arrays for transitive
+      groups.'
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing test assertions in `test_minimal_blocks`
+      or `test_sylow_subgroup` are weakened, removed, or commented out.
+    weight: 2
+  - id: I2
+    description: Confirms that the public signatures of `minimal_blocks` and `sylow_subgroup`
+      are unchanged (same parameters, same return types).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when multiple block systems must be removed in a single
+      outer iteration of `minimal_blocks`, the deletion is performed without index-shift
+      errors, for example by collecting indices and deleting in reverse order or by
+      rebuilding the lists via filtering.
+    weight: 3
+  - id: R2
+    description: Ensures that `minimal_blocks` with `randomized=True` (the default)
+      terminates without an `IndexError` for transitive groups where the stabilizer
+      orbits produce multiple competing minimal block candidates.
+    weight: 2

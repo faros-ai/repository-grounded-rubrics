@@ -1,0 +1,59 @@
+metadata:
+  task_summary: Replace builtin_str(method) with to_native_string(method) in requests/sessions.py
+    so that a bytes method like b'GET' is decoded to 'GET' rather than becoming the
+    literal string "b'GET'".
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Replaces the call to builtin_str(method) in requests/sessions.py
+      with a call that correctly decodes a bytes method value (e.g., to_native_string(method))
+      rather than wrapping it with str().
+    weight: 3
+  - id: FC2
+    description: Confines the fix to requests/sessions.py (and optionally related
+      test files) without modifying unrelated source files such as requests/compat.py,
+      requests/models.py, or requests/utils.py in ways unrelated to the method encoding
+      issue.
+    weight: 2
+  - id: FC3
+    description: Ensures to_native_string is available in requests/sessions.py either
+      via the existing import from .utils or an equivalent addition, without introducing
+      a new external dependency.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the case where method is a bytes object (e.g., b'GET')
+      in Python 3, ensuring it is decoded to a plain str ('GET') rather than converted
+      via str() which produces the literal "b'GET'".
+    weight: 3
+  - id: SA2
+    description: Preserves correct behavior for method arguments that are already
+      plain str values (e.g., 'GET', 'POST'), which must continue to pass through
+      unchanged.
+    weight: 2
+  - id: SA3
+    description: Adds or updates a test that exercises passing a bytes method value
+      (such as b'GET' or b'POST') to requests.request or Session.request, confirming
+      the method is handled without producing a "b'...'"-prefixed string.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public API signature of Session.request in requests/sessions.py
+      is unchanged (method remains the first positional parameter with no new required
+      arguments).
+    weight: 2
+  - id: I2
+    description: Confirms that the existing test for unicode method names (test_unicode_method_name)
+      is not weakened, removed, or skipped in the patch.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when a bytes method such as b'GET' is supplied, the
+      resulting PreparedRequest.method is a native str decoded from those bytes (e.g.,
+      'GET') and not the literal string "b'GET'".
+    weight: 3
+  - id: R2
+    description: Ensures backward compatibility in Python 2 where builtin_str is str
+      and bytes is also str, so decoding a method value that is already a str remains
+      a no-op and does not raise an encoding error.
+    weight: 2

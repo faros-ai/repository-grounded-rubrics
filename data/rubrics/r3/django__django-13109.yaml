@@ -1,0 +1,60 @@
+metadata:
+  task_summary: Change ForeignKey.validate() in django/db/models/fields/related.py
+    to use _base_manager instead of _default_manager so that FK validation succeeds
+    even when the referenced object is excluded by a custom default manager.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Replaces _default_manager with _base_manager in the ForeignKey.validate()
+      method body within django/db/models/fields/related.py, specifically on the line
+      that constructs the queryset using self.remote_field.model.
+    weight: 3
+  - id: FC2
+    description: Confines the manager change strictly to the ForeignKey.validate()
+      method, leaving the _default_manager references at lines ~987 and ~1671 (formfield
+      queryset construction) unchanged in the same file.
+    weight: 2
+  - id: FC3
+    description: Adds or updates at least one test (anywhere in the diff) that exercises
+      ForeignKey.validate() with a model whose default manager filters out some instances,
+      confirming validation passes for an instance that would be excluded by the default
+      manager.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements the fix so that self.remote_field.model._base_manager
+      (not _default_manager) is called inside ForeignKey.validate(), directly addressing
+      the scenario described in the PR where archived articles cause 'article instance
+      with id X does not exist' validation errors.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing complex_filter(self.get_limit_choices_to())
+      call on the queryset after switching to _base_manager, so that limit_choices_to
+      constraints are still enforced during validation.
+    weight: 2
+  - id: SA3
+    description: Keeps the router.db_for_read call and the using(using) chaining intact
+      on the new _base_manager queryset, maintaining correct database routing behavior.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public signature of ForeignKey.validate(self, value,
+      model_instance) remains unchanged, preserving backward compatibility for callers.
+    weight: 2
+  - id: I2
+    description: Confirms that the ValidationError raised (with error_messages['invalid'],
+      code='invalid', and params containing 'model', 'pk', 'field', 'value') is preserved
+      unchanged so existing error-message contracts are not broken.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a ForeignKey referencing a model with a custom default
+      manager that filters records (e.g., archived=False) passes validation when the
+      referenced instance exists in the database but is excluded by the default manager,
+      because _base_manager bypasses custom filters.
+    weight: 3
+  - id: R2
+    description: Ensures that validation still raises ValidationError when the referenced
+      primary-key value does not exist at all in the database (not merely filtered
+      by the default manager), so the fix does not disable FK existence checking.
+    weight: 2

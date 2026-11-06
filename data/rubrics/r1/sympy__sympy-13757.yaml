@@ -1,0 +1,58 @@
+metadata:
+  task_summary: Fix Poly.__rmul__ not being called when a SymPy expression is on the
+    left side of multiplication (e.g., x*Poly(x) returns unevaluated instead of Poly(x**2,
+    x, domain='ZZ')).
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the Poly class definition in sympy/polys/polytools.py to
+      address the operator-priority dispatch issue, without touching unrelated files.
+    weight: 3
+  - id: FC2
+    description: Adds or modifies an _op_priority class attribute on Poly (in sympy/polys/polytools.py)
+      to a value strictly greater than 10.0, so that Poly's right-hand arithmetic
+      methods take precedence over Expr's left-hand methods.
+    weight: 3
+  - id: FC3
+    description: Adds call_highest_priority decorators (or imports call_highest_priority
+      from sympy.core.decorators) in sympy/polys/polytools.py so that Poly.__mul__
+      and/or Poly.__rmul__ participate correctly in the priority dispatch mechanism.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the case where an Expr instance (such as the symbol x)
+      is on the left side of multiplication with a Poly, ensuring that Poly.__rmul__
+      is called and returns an evaluated Poly result rather than an unevaluated Mul
+      expression.
+    weight: 3
+  - id: SA2
+    description: Addresses the case where a SymPy numeric instance (such as S(-2))
+      is on the left side of multiplication with a Poly, ensuring that S(-2)*Poly(x)
+      evaluates to Poly(-2*x, x, domain='ZZ') rather than an unevaluated product.
+    weight: 2
+  - id: SA3
+    description: Preserves existing right-side multiplication behavior so that Poly(x)*x
+      still evaluates to Poly(x**2, x, domain='ZZ') and Poly(x)*S(-2) still evaluates
+      to Poly(-2*x, x, domain='ZZ').
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Avoids weakening or removing any existing assertions in test_Poly_mul
+      or other test functions in sympy/polys/tests/test_polytools.py.
+    weight: 3
+  - id: I2
+    description: Confines changes to operator-dispatch logic and does not alter the
+      public API or signature of Poly.mul, Poly.__mul__, or Poly.__rmul__ in ways
+      that would break callers using the named method directly.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that x*Poly(x, x) evaluates to a Poly instance (Poly(x**2,
+      x, domain='ZZ')) rather than an unevaluated Mul, as evidenced by the diff introducing
+      higher operator priority or call_highest_priority so Poly.__rmul__ is reached.
+    weight: 3
+  - id: R2
+    description: Ensures that when Poly.__rmul__ falls back to the PolynomialError
+      path (e.g., when g cannot be coerced to Poly), it still returns g*f.as_expr()
+      as an ordinary expression rather than raising or returning NotImplemented.
+    weight: 2

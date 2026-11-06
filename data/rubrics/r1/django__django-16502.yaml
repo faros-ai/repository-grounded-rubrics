@@ -1,0 +1,63 @@
+metadata:
+  task_summary: Fix runserver (WSGIServer) to strip response bodies for HTTP HEAD
+    requests per RFC 2616 section 4.3, matching the behavior of production WSGI servers
+    like gunicorn and mod_wsgi.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Confines the change to django/core/servers/basehttp.py without modifying
+      unrelated files such as Django's WSGI handler, middleware, or test infrastructure.
+    weight: 3
+  - id: FC2
+    description: Adds or overrides a method in the ServerHandler class (in django/core/servers/basehttp.py)
+      that checks the HTTP request method to suppress body output for HEAD requests.
+    weight: 3
+  - id: FC3
+    description: Adds a test (anywhere in the diff) that exercises the ServerHandler
+      or equivalent runserver handler with a HEAD request and verifies the response
+      body is empty.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements the body-suppression logic by inspecting REQUEST_METHOD
+      in the WSGI environ (self.environ) and skipping body writes when the method
+      equals 'HEAD'.
+    weight: 3
+  - id: SA2
+    description: Ensures the fix is applied in the builtin development server path
+      (ServerHandler in basehttp.py) rather than in generic Django middleware or the
+      base WSGI handler, matching the PR description's identification of runserver
+      as the non-compliant component.
+    weight: 2
+  - id: SA3
+    description: Preserves the response headers (such as Content-Length and Content-Type)
+      in the HEAD response, only omitting the response body, consistent with RFC 2616
+      section 4.3 requirements.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing tests in tests/builtin_server/tests.py for
+      GET requests (e.g., test_file_wrapper_no_sendfile, test_chunked_data) are not
+      weakened, skipped, or removed by the patch.
+    weight: 2
+  - id: I2
+    description: Avoids altering the public API of WSGIServer, WSGIRequestHandler,
+      or ServerHandler (constructor signatures, exported names in __all__) beyond
+      what is required to implement the HEAD body suppression.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a GET request through the builtin server still receives
+      a non-empty response body, so the fix does not accidentally suppress body for
+      non-HEAD methods.
+    weight: 3
+  - id: R2
+    description: Ensures that a HEAD request through the builtin server produces a
+      response body of zero bytes (empty stdout output after headers), matching the
+      behavior of gunicorn and mod_wsgi.
+    weight: 3
+  - id: R3
+    description: Avoids introducing nondeterministic or socket-level I/O inside the
+      body-suppression check; the condition is a simple string equality on environ['REQUEST_METHOD']
+      (or self.environ.get('REQUEST_METHOD')), which is deterministic and flake-free.
+    weight: 1

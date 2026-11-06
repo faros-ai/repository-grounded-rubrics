@@ -1,0 +1,52 @@
+metadata:
+  task_summary: Fix `len` of rank-0 NDimArray to return 1 instead of 0, matching the
+    number of iterable elements and numpy behavior.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Fixes the `_loop_size` computation for rank-0 arrays in dense array
+      code by replacing the fallback value of 0 with 1 (i.e., changing `if shape else
+      0` to `if shape else 1`) in `sympy/tensor/array/dense_ndim_array.py`.
+    weight: 3
+  - id: FC2
+    description: Fixes the `_loop_size` computation for rank-0 arrays in sparse array
+      code by replacing the fallback value of 0 with 1 (i.e., changing `if shape else
+      0` to `if shape else 1`) in `sympy/tensor/array/sparse_ndim_array.py`.
+    weight: 3
+  - id: FC3
+    description: Confines changes to files within `sympy/tensor/array/` without modifying
+      unrelated modules or introducing extraneous file churn.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures `len` of a rank-0 NDimArray (e.g., `sympy.Array(3)`) returns
+      1, matching the stated requirement in the PR description that the correct value
+      is one.
+    weight: 3
+  - id: SA2
+    description: Updates or removes the existing test assertion `assert len(rank_zero_array)
+      == 0` (in the array test files) so it asserts the corrected value of 1.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that `__len__` in `NDimArray` (in `sympy/tensor/array/ndim_array.py`)
+      continues to return `self._loop_size` unchanged, so the fix is localized to
+      the `_loop_size` initialization rather than introducing a special-case branch
+      in `__len__`.
+    weight: 2
+  - id: I2
+    description: Preserves the behavior of `len` for non-rank-0 arrays (e.g., a 3x3
+      array still returns 9) by not altering the `if shape else` branch in a way that
+      would affect non-empty shapes.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures iteration over a rank-0 NDimArray (via `__iter__`) yields
+      exactly one element, consistent with `len` returning 1 and the observed `len(list(a))
+      == 1` reported in the PR description.
+    weight: 2
+  - id: R2
+    description: Ensures that `reshape` validation and any code that compares against
+      `_loop_size` (e.g., `if new_total_size != self._loop_size`) continues to work
+      correctly for rank-0 arrays now that `_loop_size` is 1 rather than 0.
+    weight: 1

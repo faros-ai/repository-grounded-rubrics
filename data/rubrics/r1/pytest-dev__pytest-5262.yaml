@@ -1,0 +1,51 @@
+metadata:
+  task_summary: Fix _pytest.capture.EncodedFile to not expose a binary mode so that
+    code checking for 'b' in out.mode (e.g. youtube-dl) does not incorrectly write
+    bytes to it.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies src/_pytest/capture.py and only src/_pytest/capture.py in
+      the production-code portion of the diff, with no unrelated file churn.
+    weight: 2
+  - id: FC2
+    description: Adds a 'mode' property (or equivalent attribute override) inside
+      the EncodedFile class in src/_pytest/capture.py so that 'mode' is no longer
+      delegated via __getattr__ to self.buffer.
+    weight: 3
+  - id: FC3
+    description: Ensures the new 'mode' property returns a value that does not contain
+      the character 'b', derived from or consistent with the underlying buffer's mode.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause stated in the PR description: EncodedFile
+      incorrectly advertises the binary mode of the underlying stream by exposing
+      self.buffer.mode through __getattr__.'
+    weight: 3
+  - id: SA2
+    description: Preserves the existing write() behavior where passing bytes in Python
+      3 raises TypeError with a message containing 'write() argument must be str,
+      not', confirming EncodedFile is still a text-mode wrapper.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the write() method in EncodedFile is not weakened or
+      removed — it still rejects bytes on Python 3 and accepts str, maintaining the
+      text-only write contract.
+    weight: 2
+  - id: I2
+    description: Confirms that __getattr__ delegation to self.buffer is preserved
+      for all attributes other than the newly overridden 'mode', so existing callers
+      of EncodedFile attributes are unaffected.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that accessing the 'mode' attribute on an EncodedFile instance
+      returns a string without 'b', so that third-party code checking 'b' in out.mode
+      (as youtube-dl does) treats the stream as text-mode.
+    weight: 3
+  - id: R2
+    description: 'Ensures backward compatibility for text writes: str passed to EncodedFile.write()
+      is still encoded and forwarded to self.buffer without raising an error.'
+    weight: 2

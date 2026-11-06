@@ -1,0 +1,48 @@
+metadata:
+  task_summary: Add do_not_call_in_templates = True to Choices classes so that enumeration
+    types are usable in Django templates without being erroneously called.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Adds do_not_call_in_templates = True attribute somewhere in django/db/models/enums.py,
+      either on ChoicesMeta, Choices, or another class in that file.
+    weight: 3
+  - id: FC2
+    description: Confines the change to django/db/models/enums.py (and optionally
+      a test file), with no unrelated file modifications.
+    weight: 2
+  - id: FC3
+    description: Does not remove or alter any existing method or property in django/db/models/enums.py
+      such as choices, labels, values, names, __contains__, __str__, or label.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Applies do_not_call_in_templates to the Choices class hierarchy (Choices,
+      IntegerChoices, TextChoices, or their shared metaclass ChoicesMeta) so that
+      all three enumeration type classes are protected from being called in templates.
+    weight: 3
+  - id: SA2
+    description: Sets do_not_call_in_templates to the boolean value True (not a truthy
+      non-boolean), matching the convention used elsewhere in Django such as in django/db/models/fields/related_descriptors.py.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the public API of Choices, IntegerChoices, and TextChoices,
+      leaving their existing class-level attributes (choices, labels, values, names)
+      and instance attributes (label, value) intact.
+    weight: 3
+  - id: I2
+    description: Adds or updates a test that exercises the do_not_call_in_templates
+      behavior on a Choices-derived class (e.g., verifying that a YearInSchool or
+      similar enum class is not called when used in template context).
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a Choices-derived class accessed as a template variable
+      (e.g., YearInSchool) is not invoked by the template engine because do_not_call_in_templates
+      = True causes django/template/base.py to skip the callable() call path.
+    weight: 3
+  - id: R2
+    description: Preserves the str() behavior of enum members so that rendering an
+      enum instance in a template still returns str(self.value) as defined by Choices.__str__.
+    weight: 2

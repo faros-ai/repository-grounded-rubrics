@@ -1,0 +1,109 @@
+metadata:
+  task_summary: Add precomputed `_cdf` methods to continuous distribution classes
+    (Arcsin, Dagum, Frechet, Gamma, GammaInverse, Kumaraswamy, Laplace, Logistic,
+    Nakagami, StudentT, UniformSum) in sympy/stats/crv_types.py so that cdf() returns
+    closed-form symbolic expressions instead of hanging or returning unevaluated integrals.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Implements `_cdf` methods exclusively inside `sympy/stats/crv_types.py`,
+      with no unrelated files modified.
+    weight: 3
+  - id: FC2
+    description: Adds a `_cdf` method to `ArcsinDistribution` that returns a closed-form
+      expression involving `asin` (or equivalent inverse-trig) rather than leaving
+      an unevaluated integral.
+    weight: 3
+  - id: FC3
+    description: Adds a `_cdf` method to `DagumDistribution` that returns a closed-form
+      algebraic expression (no special functions, no integral) involving `(x/b)**a`.
+    weight: 3
+  - id: FC4
+    description: Adds a `_cdf` method to `GammaDistribution` that returns a closed-form
+      expression involving `lowergamma` (already imported), wrapped in a `Piecewise`
+      guard for `x >= 0`.
+    weight: 3
+  - id: FC5
+    description: Adds a `_cdf` method to `FrechetDistribution` that returns a closed-form
+      expression involving `exp` of a power of `(x - m)/s`, without any integral.
+    weight: 3
+  - id: FC6
+    description: Adds a `_cdf` method to `GammaInverseDistribution` that returns a
+      closed-form expression involving `uppergamma` (or equivalent), requiring the
+      import of `uppergamma` from sympy if not already present.
+    weight: 3
+  - id: FC7
+    description: Adds a `_cdf` method to `KumaraswamyDistribution` that returns a
+      closed-form algebraic expression (no special functions) involving `x**a`.
+    weight: 3
+  - id: FC8
+    description: Adds a `_cdf` method to `LaplaceDistribution` that returns a `Piecewise`
+      expression branching on whether `x < mu` and `x >= mu`.
+    weight: 3
+  - id: FC9
+    description: Adds a `_cdf` method to `LogisticDistribution` that returns a closed-form
+      expression involving `exp(-(x - mu)/s)` in a denominator (the logistic sigmoid
+      form), without an integral.
+    weight: 3
+  - id: FC10
+    description: Adds a `_cdf` method to `NakagamiDistribution` that returns a closed-form
+      expression involving `lowergamma` and a `Piecewise` guard for `x >= 0`.
+    weight: 3
+  - id: FC11
+    description: Adds a `_cdf` method to `StudentTDistribution` that returns a closed-form
+      expression involving `hyper` or `beta_fn` (hypergeometric or beta-function based
+      CDF formula).
+    weight: 2
+  - id: FC12
+    description: Adds a `_cdf` method to `UniformSumDistribution` that returns an
+      expression involving a `Sum` of binomial terms similar to the existing `pdf`,
+      wrapped in a `Piecewise` or otherwise bounded.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that `cdf(Erlang('x', 1, 1))(1)` (which delegates to `GammaDistribution`)
+      returns a symbolic exact expression using `lowergamma` rather than a float or
+      unevaluated integral.
+    weight: 2
+  - id: SA2
+    description: Ensures that any newly added imports required for `_cdf` implementations
+      (e.g., `uppergamma`, `hyper`, `asin`, `atan`) are added to the import statements
+      in `sympy/stats/crv_types.py`.
+    weight: 2
+  - id: SA3
+    description: 'Ensures that each new `_cdf` method follows the existing pattern
+      used in `NormalDistribution._cdf`, `ExponentialDistribution._cdf`, and `ChiSquaredDistribution._cdf`:
+      returning a direct symbolic expression or a `Piecewise`, not calling `integrate`.'
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing `_cdf` methods (on `NormalDistribution`, `ExponentialDistribution`,
+      `LogNormalDistribution`, `ParetoDistribution`, `UniformDistribution`, `ChiSquaredDistribution`)
+      are not removed or altered.
+    weight: 3
+  - id: I2
+    description: Confirms that existing `pdf` method implementations on all modified
+      distribution classes remain unchanged.
+    weight: 2
+  - id: I3
+    description: Confirms that no existing test assertions in `sympy/stats/tests/test_continuous_rv.py`
+      are weakened, removed, or marked with `@XFAIL` or `@skip` as a side effect of
+      the changes.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that `_cdf` implementations return a `Piecewise` expression
+      (or an expression bounded to the support) for distributions with a restricted
+      domain such as `GammaDistribution`, `GammaInverseDistribution`, `NakagamiDistribution`,
+      and `FrechetDistribution`, so that evaluations outside the support return 0
+      rather than incorrect values.
+    weight: 3
+  - id: R2
+    description: Ensures that the `cdf()` dispatch in `SingleContinuousDistribution.cdf`
+      (in `sympy/stats/crv.py`) will invoke the new `_cdf` methods automatically when
+      no extra kwargs are passed, without modifying `crv.py`.
+    weight: 2
+  - id: R3
+    description: Ensures that new `_cdf` methods return purely symbolic SymPy expressions
+      (no Python floats), consistent with symbolic inputs such as `S(1)/3` or `S(5)/7`.
+    weight: 2

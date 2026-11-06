@@ -1,0 +1,66 @@
+metadata:
+  task_summary: Fix AttributeError when using cross_val_predict(method='predict_proba')
+    with MultiOutputClassifier by correctly accessing per-label classes_ from estimators_[i].classes_
+    instead of estimator.classes_[i].
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the list-predictions branch in sklearn/model_selection/_validation.py
+      (the block handling 'isinstance(predictions, list)') to not unconditionally
+      access estimator.classes_[i_label].
+    weight: 3
+  - id: FC2
+    description: Confines changes to the minimal relevant files (e.g., sklearn/model_selection/_validation.py
+      and optionally sklearn/multioutput.py or tests), without unrelated file churn.
+    weight: 2
+  - id: FC3
+    description: Adds a test case (anywhere in the diff) that exercises cross_val_predict
+      with method='predict_proba' on a MultiOutputClassifier to prevent regression.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Resolves the AttributeError by providing a code path that correctly
+      retrieves per-label classes for estimators that lack a top-level classes_ attribute
+      (such as MultiOutputClassifier) when predictions is a list.
+    weight: 3
+  - id: SA2
+    description: Preserves existing behavior for estimators that do have a top-level
+      classes_ attribute indexed by label (such as RandomForestClassifier), so the
+      multilabel RF path still works correctly.
+    weight: 3
+  - id: SA3
+    description: Handles the case where classes_ must be obtained from estimator.estimators_[i_label].classes_
+      (i.e., from per-label sub-estimators) as described in the PR description.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public API of cross_val_predict (its signature
+      and return types) remains unchanged.
+    weight: 3
+  - id: I2
+    description: Confirms that no existing tests for multilabel cross_val_predict
+      (e.g., check_cross_val_predict_multilabel or test_cross_val_predict_with_method_multilabel_rf)
+      are removed or weakened.
+    weight: 2
+  - id: I3
+    description: Avoids introducing a classes_ attribute on MultiOutputClassifier
+      that returns something inconsistent with how other multioutput estimators (e.g.,
+      RandomForestClassifier) expose classes_, unless the PR description explicitly
+      requires it.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that cross_val_predict(method='predict_proba') on a MultiOutputClassifier
+      returns a list of per-label probability arrays without raising AttributeError,
+      by structurally providing a fallback or alternative access to per-label classes.
+    weight: 3
+  - id: R2
+    description: Maintains correct behavior for the rare-class case in multilabel
+      outputs, where the number of classes in a fold may differ from the full dataset,
+      by still invoking _enforce_prediction_order with the correct per-label classes.
+    weight: 2
+  - id: R3
+    description: Preserves backward-compatible behavior for the scalar (non-list)
+      predictions path that accesses estimator.classes_ directly, leaving the else-branch
+      in _fit_and_predict unchanged.
+    weight: 2

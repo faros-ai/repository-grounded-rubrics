@@ -1,0 +1,59 @@
+metadata:
+  task_summary: Fix prefetch_related on GenericForeignKey when the related model uses
+    a UUIDField as its primary key by replacing get_prep_value with to_python in the
+    gfk_key comparison function.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/contrib/contenttypes/fields.py and no other production
+      source file, keeping the change minimal and scoped to the GFK prefetch mismatch.
+    weight: 2
+  - id: FC2
+    description: Replaces the call to model._meta.pk.get_prep_value(...) inside the
+      gfk_key function in GenericForeignKey.get_prefetch_queryset with a call that
+      normalizes the fk_field value using to_python, so both sides of the prefetch
+      comparison produce the same Python type.
+    weight: 3
+  - id: FC3
+    description: 'Leaves the lambda obj: (obj.pk, obj.__class__) return value in get_prefetch_queryset
+      unchanged, since obj.pk already returns the correct Python-typed primary key.'
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the described scenario where Bar.objects.all().prefetch_related('foo')
+      returns None for the foo attribute when Foo uses a UUIDField primary key and
+      Bar stores the GFK in a CharField (foo_object_id).
+    weight: 3
+  - id: SA2
+    description: Ensures the fix applies inside GenericForeignKey.get_prefetch_queryset,
+      the method responsible for building the prefetch lookup for GFK fields.
+    weight: 3
+  - id: SA3
+    description: Adds or updates at least one test exercising prefetch_related on
+      a GenericForeignKey whose related model has a UUIDField primary key, confirming
+      the fix covers the described regression.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing six-element tuple returned by GenericForeignKey.get_prefetch_queryset
+      (ret_val, single_obj_key_lambda, gfk_key, True, self.name, True) without altering
+      its structure or the semantics of any element other than the gfk_key callable.
+    weight: 2
+  - id: I2
+    description: Does not weaken or remove any existing tests related to GFK prefetching
+      (e.g., test_prefetch_GFK, test_prefetch_GFK_nonint_pk, test_nullable_GFK) that
+      verify correct behavior for non-UUID primary keys.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that for a UUID-pk model, the value produced by gfk_key for
+      a Bar instance (holding foo_object_id as a string) becomes a uuid.UUID object
+      matching obj.pk from the Foo queryset, so the Python-side join in prefetch_related_objects
+      correctly pairs Bar instances with their Foo related objects.
+    weight: 3
+  - id: R2
+    description: Preserves correct prefetch behavior for existing GFK usage where
+      the related model uses integer or string primary keys, since to_python on IntegerField
+      or CharField is a no-op or identity-like conversion that does not break the
+      comparison.
+    weight: 2

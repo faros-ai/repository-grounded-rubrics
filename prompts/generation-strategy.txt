@@ -1,0 +1,61 @@
+Axis guidance:
+- file_change_rubrics: scope, locality, and sufficiency of edits — what the diff adds, removes, or modifies, and whether changes are confined to the appropriate locations.
+- spec_alignment_rubrics: alignment of the code changes to the PR description's stated problem and acceptance criteria — does the patch address what was broken?
+- integrity_rubrics: "no-cheating" hygiene — no test weakening, no mass renames, no dependency churn, public API preserved unless the PR description requires otherwise.
+- runtime_rubrics: intended runtime behavior supported by execution-free textual evidence (no concrete tests).
+
+Weight guidance:
+- 3 = must-have, 2 = valuable, 1 = nice-to-have.
+- When evaluating whether an item is a "must-have" (weight 3), ask: would a patch that omits this but correctly addresses the described task still be considered correct? If yes, do not use weight 3.
+- Never assign weight ≥ 2 to items that require test additions or changelog/documentation updates. Use weight 1 at most for these ancillary artifacts.
+
+Item shape:
+- Atomicity: one distinct aspect per item; split "and"-joined criteria. Do not write compound multi-part items using "(a) ... (b) ... (c) ..." — split into separate atomic items.
+- MECE (mutually exclusive, collectively exhaustive) across the set: items do not overlap, and together cover the required behavior.
+- Descriptions start with a third-person singular verb (e.g., Identifies, Implements, Validates, Confirms, Avoids) and use concrete tokens from the patch or the PR description.
+
+## Critical: Verifiability from the diff alone
+
+The judge sees ONLY the PR description and the patch diff — not the repository, not the pre-patch source, not test output. Every item must be verifiable by reading the diff text.
+
+**Do NOT write items that:**
+- Assert runtime outcomes or numeric results (e.g., "produces values close to X" or "gives results in range Y") — these cannot be read from a diff.
+- Require executing the code to verify (e.g., "no longer raises", "dask lazy evaluation is preserved") unless there is a structural code pattern in the diff that directly implies it.
+- Reference specific test file names, test method names, or repo-internal paths that a correct patch might legitimately differ from — judge only the logic, not the location.
+- Are so implementation-specific that alternative correct approaches would fail them (e.g., requiring one specific arithmetic expression when multiple equivalent forms exist, or requiring a specific function name, variable name, or encoding strategy when other approaches achieve the same result).
+- Require knowing pre-patch state that is not visible in the diff itself (deletion hunks, PR description, or added lines must make both old and new state inferable).
+- Pin a behavior to a specific call site or function when the PR description does not require it — if a feature could be implemented in config loading, in the open function, or in a helper, do not require it to appear in any one of those places.
+
+**Prefer items that:**
+- Check structural properties visible in the diff: a branch or condition was added, a code path was split, a specific wrong value was removed, a new parameter or import was introduced.
+- Describe added lines using concrete identifiers (class names, function names, import paths, string literals) that will literally appear in the diff.
+- Describe removals via deletion hunks (lines prefixed `-`) anchored to an identifier or file name visible in the diff header.
+- For behavioral items, point to a structural pattern in added code (e.g., "adds a conditional branch that checks dtype kind `'m'`") rather than claiming a runtime outcome.
+- For test additions, describe what the test logically exercises (e.g., "adds a test case exercising `polyval` with a `timedelta64` coordinate"), not the exact file path or parametrize ID, so equivalent placements pass.
+- When describing WHERE logic must appear, allow any reasonable location — use phrasing like "somewhere in the diff" or "in config loading or database opening code" rather than naming a specific function, unless the PR description explicitly requires a particular placement.
+
+## Avoiding over-specification (the main cause of underrating correct patches)
+
+When a PR description describes a behavior, there are often multiple valid implementation strategies. Write items that are satisfied by any equivalent approach. Use language like:
+- "Adds code (anywhere in the diff) that constructs a connection string from the discrete fields…"
+- "Adds a conditional check (in config loading or database setup code) that…"
+- "Adds validation logic that returns an error containing a `db.`-prefixed field name when…"
+
+Reserve location-specific items for cases where the PR description explicitly mandates a particular placement.
+
+**Behavioral items to prefer over implementation-specific items:**
+- Focus on what the fix achieves (the observable structural change and its purpose), not on one specific implementation strategy.
+- "Removes the old X-only handling and replaces it with a mechanism that handles all Y cases" — focuses on behavior, visible from deletion + addition hunks.
+- "Adds code that decodes Z sequences" — checks the goal without mandating one approach.
+
+When multiple implementation strategies are valid, write items that pass any of them. Only anchor to a specific approach when the PR description explicitly mandates it.
+
+## Calibrating weight against implementation likelihood
+
+For items describing behaviors the PR explicitly requires, use weight 3 or 2. Only demote to weight 1 for nice-to-have details (documentation updates, minor phrasing consistency, test additions) that a minimal but correct implementation might omit. Do not make a weight-3 item out of a constraint that reasonable correct patches might implement differently (e.g., a specific error message format) — keep those at weight 1–2 so underrating a correct patch has limited score impact.
+
+## Calibrating strictness for test and changelog items
+
+- For test additions: describe the *coverage* (what scenarios are tested) rather than the test function name or file location.
+- For existing test updates: only write an item if the behavioral change in the production code logically requires test updates; describe the change in terms of observable test logic, not the test file or method name.
+- Give test and changelog items weight 1 since they verify hygiene, not core correctness. A patch that correctly implements the required behavior is a correct solution even if it omits tests or a changelog entry.

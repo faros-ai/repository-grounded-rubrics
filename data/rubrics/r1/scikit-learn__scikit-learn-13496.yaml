@@ -1,0 +1,55 @@
+metadata:
+  task_summary: Expose the warm_start parameter in IsolationForest.__init__() with
+    default False, document it, and pass it to the parent BaseBagging constructor.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Adds warm_start as an explicit parameter in IsolationForest.__init__()
+      with a default value of False in sklearn/ensemble/iforest.py.
+    weight: 3
+  - id: FC2
+    description: Passes warm_start=warm_start as a keyword argument to the super().__init__()
+      call inside IsolationForest.__init__() in sklearn/ensemble/iforest.py.
+    weight: 3
+  - id: FC3
+    description: Adds a warm_start docstring entry to the IsolationForest class Parameters
+      section in sklearn/ensemble/iforest.py that includes the phrase 'reuse the solution
+      of the previous call to fit' and references ':term:`the Glossary <warm_start>`'.
+    weight: 2
+  - id: FC4
+    description: Confines all production-code changes to sklearn/ensemble/iforest.py,
+      avoiding unrelated modifications to other modules such as sklearn/ensemble/bagging.py
+      or sklearn/ensemble/forest.py.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements warm_start with a default value of False in IsolationForest.__init__(),
+      matching the PR description requirement that the parameter default to False.
+    weight: 3
+  - id: SA2
+    description: Adds at least one test exercising warm_start=True on IsolationForest,
+      verifying that fitting with warm_start enabled and an increased n_estimators
+      adds new estimators rather than refitting from scratch.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Preserves all previously existing parameters of IsolationForest.__init__()
+      (n_estimators, max_samples, contamination, max_features, bootstrap, n_jobs,
+      behaviour, random_state, verbose) without removing or renaming any of them.
+    weight: 3
+  - id: I2
+    description: Avoids weakening any existing tests in sklearn/ensemble/tests/test_iforest.py,
+      such as removing assertions, adding skip markers, or reducing coverage of previously
+      tested behaviors.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that an IsolationForest constructed without specifying warm_start
+      behaves identically to before (warm_start defaults to False), so existing call
+      sites are not broken.
+    weight: 3
+  - id: R2
+    description: Ensures that when warm_start=True is passed, the warm_start attribute
+      is stored on the instance (self.warm_start = True via super().__init__), so
+      BaseBagging._fit() reuses existing estimators on subsequent fit calls.
+    weight: 2

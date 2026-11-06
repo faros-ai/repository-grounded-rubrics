@@ -1,0 +1,59 @@
+metadata:
+  task_summary: Fix 404 links in SVG inheritance diagrams for documents not in the
+    root directory by computing correct relative URLs from the SVG file location in
+    _images/ rather than hardcoding '../' as a prefix.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `html_visit_inheritance_diagram` function in `sphinx/ext/inheritance_diagram.py`
+      to fix the SVG URL generation logic.
+    weight: 3
+  - id: FC2
+    description: Removes or replaces the hardcoded `'../' + child.get('refuri')` and
+      `'../' + current_filename + '#' + child.get('refid')` patterns in `html_visit_inheritance_diagram`
+      with logic that computes correct relative paths based on the document's nesting
+      level.
+    weight: 3
+  - id: FC3
+    description: Avoids modifying files unrelated to SVG link generation in `sphinx/ext/inheritance_diagram.py`,
+      such as the LaTeX or Texinfo visitor functions.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause described in the PR: SVG links are embedded
+      in an `<object>` tag so their URLs are resolved relative to the SVG file (stored
+      in `_images/`), not relative to the embedding HTML document, requiring the URLs
+      written into the SVG to be relative to `_images/`.'
+    weight: 3
+  - id: SA2
+    description: Ensures the fix handles the `refuri` case (cross-document links)
+      by computing the correct relative URL from the SVG file's location to the target
+      document.
+    weight: 3
+  - id: SA3
+    description: Ensures the fix handles the `refid` case (same-document anchor links)
+      by constructing a path from the SVG file's location to the current document's
+      output file with the fragment appended.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the PNG/non-SVG code path in `html_visit_inheritance_diagram`
+      so that `graphviz_output_format != 'SVG'` continues to use `child.get('refuri')`
+      directly without modification.
+    weight: 3
+  - id: I2
+    description: Avoids weakening or removing existing tests related to `test_inheritance_diagram_svg_html`
+      or other inheritance diagram tests.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Produces SVG URLs that are relative to the `_images/` directory (where
+      the SVG file resides), so that clicking a link in a diagram embedded in a nested
+      document (e.g., `my_package/index.html`) navigates to the correct target rather
+      than a 404 page.
+    weight: 3
+  - id: R2
+    description: Maintains correct link behavior for diagrams in the root document
+      (depth 0), so that links that previously worked with the `'../'` prefix continue
+      to resolve correctly after the fix.
+    weight: 2

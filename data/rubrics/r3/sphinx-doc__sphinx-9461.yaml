@@ -1,0 +1,83 @@
+metadata:
+  task_summary: Fix sphinx autodoc so that methods decorated with both @classmethod
+    and @property (classmethod-wrapped property) are properly documented.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `isproperty` function in `sphinx/util/inspect.py` to
+      detect a `classmethod` instance whose `__func__` is a `property` instance (i.e.,
+      a classmethod wrapping a property).
+    weight: 3
+  - id: FC2
+    description: Updates `PropertyDocumenter.can_document_member` in `sphinx/ext/autodoc/__init__.py`
+      to return True for classmethod-wrapped properties, either directly or by relying
+      on the updated `isproperty`.
+    weight: 3
+  - id: FC3
+    description: Adds or modifies logic (anywhere in `sphinx/ext/autodoc/__init__.py`
+      or `sphinx/util/inspect.py`) to extract the docstring from a classmethod-wrapped
+      property (e.g., via `obj.__func__.__doc__` or `obj.__func__.fget`).
+    weight: 2
+  - id: FC4
+    description: Adds or modifies `PropertyDocumenter.add_directive_header` (or equivalent
+      logic) to emit a `:classmethod:` directive option when the documented property
+      is a classmethod-wrapped property.
+    weight: 2
+  - id: FC5
+    description: Confines code changes to files directly responsible for autodoc member
+      detection and property documentation (e.g., `sphinx/ext/autodoc/__init__.py`
+      and/or `sphinx/util/inspect.py`) without unrelated file churn.
+    weight: 2
+  - id: FC6
+    description: Adds a test target fixture (e.g., a class with a `@classmethod @property`
+      member) or extends existing test target files to cover the classmethod-wrapped
+      property scenario.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause stated in the PR description: that `type(BaseClass.baseclass_class_property)`
+      returns the type of the returned object (not `property`) because `@classmethod
+      @property` behaves like a class attribute when accessed, so detection must use
+      `__dict__` or the raw descriptor rather than `getattr`.'
+    weight: 3
+  - id: SA2
+    description: Ensures classmethod-wrapped properties (using the `@classmethod @property`
+      decorator combination) are treated as `property` members for documentation purposes,
+      consistent with the PR's expected behavior.
+    weight: 3
+  - id: SA3
+    description: Handles abstract classmethod properties (decorated with `@classmethod
+      @property` combined with abstractmethod) without erroring, consistent with the
+      PR description listing abstract variants as broken cases.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: 'Confirms that plain `@property` (non-classmethod) detection via
+      `isproperty` or `PropertyDocumenter.can_document_member` is preserved: `isinstance(obj,
+      property)` path or equivalent still returns True for regular `property` objects.'
+    weight: 3
+  - id: I2
+    description: Confirms that `@classmethod` (non-property) methods are still documented
+      via `MethodDocumenter` and not incorrectly captured by `PropertyDocumenter`.
+    weight: 2
+  - id: I3
+    description: Avoids weakening or skipping existing tests for property or method
+      documentation.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when `@classmethod @property` members are encountered,
+      the raw descriptor is fetched from `cls.__dict__` rather than via `getattr(cls,
+      name)`, so that the `classmethod` wrapper object (not the computed return value)
+      is inspected.
+    weight: 3
+  - id: R2
+    description: Ensures the docstring of a classmethod-wrapped property is extracted
+      from the underlying `property.fget` or the `classmethod.__func__` chain rather
+      than from the evaluated attribute value, so that `__doc__` is correctly retrieved.
+    weight: 2
+  - id: R3
+    description: Preserves backward compatibility for Python versions below 3.9 where
+      `@classmethod @property` is not supported, by not introducing unconditional
+      access patterns that would fail on older Python.
+    weight: 1

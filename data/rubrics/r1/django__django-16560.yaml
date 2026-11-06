@@ -1,0 +1,86 @@
+metadata:
+  task_summary: Add a violation_error_code parameter to BaseConstraint so callers
+    can customize the error code of ValidationError raised by constraint validation.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Adds violation_error_code as a keyword parameter to BaseConstraint.__init__
+      in django/db/models/constraints.py.
+    weight: 3
+  - id: FC2
+    description: Adds a default_violation_error_code class-level attribute to BaseConstraint
+      in django/db/models/constraints.py (analogous to default_violation_error_message).
+    weight: 2
+  - id: FC3
+    description: Updates BaseConstraint.deconstruct in django/db/models/constraints.py
+      to include violation_error_code in the returned kwargs when it differs from
+      the default.
+    weight: 3
+  - id: FC4
+    description: Updates get_violation_error_message (or introduces a get_violation_error_message-equivalent
+      method) in BaseConstraint so that the ValidationError it produces passes the
+      stored violation_error_code as the code argument.
+    weight: 3
+  - id: FC5
+    description: Updates CheckConstraint.__init__ and UniqueConstraint.__init__ in
+      django/db/models/constraints.py to accept and forward violation_error_code to
+      BaseConstraint.__init__.
+    weight: 2
+  - id: FC6
+    description: Updates ExclusionConstraint.__init__ in django/contrib/postgres/constraints.py
+      to accept and forward violation_error_code to BaseConstraint.__init__.
+    weight: 2
+  - id: FC7
+    description: Confines all changes to constraint-related files (django/db/models/constraints.py
+      and django/contrib/postgres/constraints.py) without modifying unrelated modules.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements violation_error_code as a new constructor parameter on
+      BaseConstraint, mirroring the existing violation_error_message parameter design
+      described in the PR.
+    weight: 3
+  - id: SA2
+    description: Passes violation_error_code to ValidationError as the code keyword
+      argument when raising in constraint validate methods, enabling callers to distinguish
+      errors by code.
+    weight: 3
+  - id: SA3
+    description: Preserves the existing violation_error_message parameter and its
+      behavior unchanged, adding violation_error_code as a separate, independent parameter.
+    weight: 2
+  - id: SA4
+    description: Updates __eq__ methods of BaseConstraint (and/or subclasses CheckConstraint,
+      UniqueConstraint, ExclusionConstraint) to include violation_error_code in equality
+      comparisons.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that BaseConstraint.__init__ remains backward-compatible
+      by making violation_error_code an optional keyword argument with a default of
+      None.
+    weight: 3
+  - id: I2
+    description: Confirms that BaseConstraint.clone preserves violation_error_code
+      by relying on deconstruct, which now includes it in kwargs when non-default.
+    weight: 2
+  - id: I3
+    description: Avoids removing or weakening existing tests for violation_error_message,
+      deconstruct, __eq__, or __repr__ in tests/constraints/tests.py or tests/postgres_tests/test_constraints.py.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when violation_error_code is provided and a constraint
+      is violated, the raised ValidationError carries that code value (accessible
+      via .code on the error), not a default or None.
+    weight: 3
+  - id: R2
+    description: Ensures that when violation_error_code is not provided, the ValidationError
+      raised by constraint validate methods uses the same code behavior as before
+      (None or whatever default is defined), preserving backward compatibility.
+    weight: 3
+  - id: R3
+    description: Ensures that deconstruct output for a constraint with a custom violation_error_code
+      includes the violation_error_code key, allowing the constraint to be reconstructed
+      identically via clone or migration operations.
+    weight: 2

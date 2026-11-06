@@ -1,0 +1,71 @@
+metadata:
+  task_summary: Fix LiveServerTestCase's ThreadedWSGIServer to close database connections
+    after each per-request thread finishes, preventing OperationalError when destroy_test_db()
+    is called.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/core/servers/basehttp.py to add database-connection
+      cleanup logic inside the ThreadedWSGIServer class, keeping changes localized
+      to the server layer rather than unrelated files.
+    weight: 3
+  - id: FC2
+    description: Adds a method override (such as process_request_thread) to ThreadedWSGIServer
+      in django/core/servers/basehttp.py that explicitly closes database connections
+      after each per-request thread completes.
+    weight: 3
+  - id: FC3
+    description: Imports the necessary Django database connection utilities (such
+      as connections from django.db) into django/core/servers/basehttp.py to enable
+      closing connections in per-request threads.
+    weight: 2
+  - id: FC4
+    description: Avoids making unrelated changes outside of the server/test infrastructure
+      files (e.g., does not modify Django ORM internals, authentication code, or unrelated
+      test utilities).
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause identified in the PR description: per-request
+      threads spawned by ThreadedWSGIServer leave database connections open because
+      daemon_threads = True means threads are not joined, so thread-local connections
+      are never cleaned up.'
+    weight: 3
+  - id: SA2
+    description: Ensures database connections are closed (via connections.close_all()
+      or equivalent) in the per-request thread context of ThreadedWSGIServer, mirroring
+      the connections.close_all() call already present in LiveServerThread.run()'s
+      finally block.
+    weight: 3
+  - id: SA3
+    description: Preserves the ThreadedWSGIServer class with daemon_threads = True
+      (i.e., does not remove threading support from LiveServerTestCase) while still
+      fixing the connection leak.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the public API of LiveServerThread, LiveServerTestCase,
+      and ThreadedWSGIServer (class names, server_class attribute, _create_server
+      method signature) so existing subclasses remain compatible.
+    weight: 2
+  - id: I2
+    description: Does not weaken or skip any existing tests in tests/servers/ (e.g.,
+      test_liveserverthread.py, test_basehttp.py) to make the fix appear to work.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that database connections opened in per-request threads of
+      ThreadedWSGIServer are closed after each request thread finishes, preventing
+      the OperationalError 'database is being accessed by other users' race condition
+      during destroy_test_db().
+    weight: 3
+  - id: R2
+    description: Closes database connections deterministically (inside a finally block
+      or equivalent) in the per-request thread, so that even when a request handler
+      raises an exception the connection is still released.
+    weight: 2
+  - id: R3
+    description: Maintains the existing behavior of LiveServerThread.run() closing
+      all connections (connections.close_all()) in its own finally block, so the server's
+      main thread also cleans up properly.
+    weight: 1

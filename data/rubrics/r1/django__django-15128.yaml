@@ -1,0 +1,65 @@
+metadata:
+  task_summary: 'Fix Query.change_aliases raising AssertionError when qs1 | qs2 produces
+    a change_map whose keys intersect its values (e.g., {T4: T5, T5: T6}) during Query.combine.'
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/db/models/sql/query.py (and only that file, or a
+      minimal set of files) to address the AssertionError raised in Query.change_aliases
+      during OR-combination of querysets.
+    weight: 3
+  - id: FC2
+    description: Changes are local to the code path responsible for building change_map
+      or applying it — specifically within Query.combine, Query.change_aliases, or
+      Query.table_alias — and do not introduce unrelated modifications to other SQL
+      query methods.
+    weight: 2
+  - id: FC3
+    description: Adds a regression test (anywhere in the test suite) that exercises
+      the qs1 | qs2 OR operation with sequential rhs aliases like the failing scenario
+      described in the PR (e.g., involving ForeignKey chains that produce sequential
+      T4/T5 aliases).
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Resolves the root cause where change_map keys and values overlap
+      (e.g., {T4: T5, T5: T6}) so that the assert set(change_map).isdisjoint(change_map.values())
+      in Query.change_aliases no longer triggers for the qs1 | qs2 case.'
+    weight: 3
+  - id: SA2
+    description: Ensures the fix applies regardless of operand order — both qs1 |
+      qs2 and qs2 | qs1 complete without AssertionError, as noted in the PR description
+      that only one order raised the error.
+    weight: 2
+  - id: SA3
+    description: Preserves the correctness of the assertion assert set(change_map).isdisjoint(change_map.values())
+      in Query.change_aliases by preventing the invalid state from occurring upstream
+      rather than removing or weakening the assertion.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Does not remove or weaken the assert set(change_map).isdisjoint(change_map.values())
+      guard in Query.change_aliases — the assertion remains intact as a correctness
+      invariant.
+    weight: 3
+  - id: I2
+    description: Preserves the public behavior of Query.combine, Query.change_aliases,
+      and QuerySet.__or__ for all previously-working cases (AND and OR combinations
+      not involving sequential alias collisions).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Guarantees that when self.join() inside Query.combine produces a
+      new alias that already exists in rhs.alias_map, the resulting change_map entries
+      have disjoint keys and values before being passed to change_aliases.
+    weight: 3
+  - id: R2
+    description: Ensures the OR-combined queryset returns the correct set of results
+      (the union of both sides) and does not silently drop or duplicate rows due to
+      incorrect alias remapping.
+    weight: 2
+  - id: R3
+    description: Ensures the fix does not introduce an infinite alias-generation loop
+      when many sequential aliases exist, for example by bounding the new alias number
+      or using the existing alias_map size as a base.
+    weight: 1

@@ -1,0 +1,84 @@
+metadata:
+  task_summary: Fix Sphinx autodoc so that methods decorated with both @classmethod
+    and @property get documented, by detecting classmethod-wrapped properties and
+    extracting their docstrings correctly.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies isproperty() in sphinx/util/inspect.py to also return True
+      when the object is a classmethod whose __func__ attribute is a property instance.
+    weight: 3
+  - id: FC2
+    description: Modifies PropertyDocumenter.can_document_member() in sphinx/ext/autodoc/__init__.py
+      to accept classmethod-wrapped property objects (i.e., classmethod instances
+      where __func__ is a property), not only bare property instances.
+    weight: 3
+  - id: FC3
+    description: Modifies PropertyDocumenter.add_directive_header() in sphinx/ext/autodoc/__init__.py
+      to emit a ':classmethod:' line when the documented property is wrapped with
+      classmethod.
+    weight: 2
+  - id: FC4
+    description: Modifies PropertyDocumenter (in sphinx/ext/autodoc/__init__.py) to
+      unwrap the classmethod layer when accessing the inner property object (e.g.,
+      via __func__) so that fget, __doc__, or other property attributes can be retrieved
+      correctly.
+    weight: 3
+  - id: FC5
+    description: Adds a target fixture file (e.g., under tests/roots/test-ext-autodoc/target/)
+      containing a class with a method decorated with both @classmethod and @property,
+      used to exercise the new behavior in tests.
+    weight: 1
+  - id: FC6
+    description: Confines all changes to sphinx/util/inspect.py and sphinx/ext/autodoc/__init__.py
+      (plus any test fixture files), without modifying unrelated modules or introducing
+      new dependencies.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that methods decorated with @classmethod and @property (as
+      described in the PR, e.g., a class A with @classmethod @property def f(cls))
+      are recognized as documentable properties by autodoc.
+    weight: 3
+  - id: SA2
+    description: Ensures that abstract classmethod-properties (decorated with @abstractmethod
+      in addition to @classmethod and @property) are also detected and documented,
+      matching the PR's list of affected members including baseclass_abstract_class_property.
+    weight: 2
+  - id: SA3
+    description: Ensures the fix does not break existing behavior for regular @property
+      decorated methods (bare property objects still pass isproperty() and are still
+      documented by PropertyDocumenter).
+    weight: 3
+  integrity_rubrics:
+  - id: I1
+    description: 'Confirms that the public API of isproperty() in sphinx/util/inspect.py
+      is preserved (same signature: isproperty(obj: Any) -> bool), and that existing
+      callers of isproperty() require no modification beyond the behavior change.'
+    weight: 2
+  - id: I2
+    description: Confirms that the existing PropertyDocumenter priority (AttributeDocumenter.priority
+      + 1) and objtype ('property') are not changed, preserving the documenter's role
+      in the registry.
+    weight: 1
+  - id: I3
+    description: Confirms no existing tests are weakened, skipped, or removed in the
+      patch (e.g., no addition of @pytest.mark.skip or deletion of existing test assertions
+      for property or classmethod behavior).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when autodoc processes a class with a @classmethod @property
+      member, the PropertyDocumenter is selected (not AttributeDocumenter or MethodDocumenter),
+      producing a '.. py:property::' directive in the output.
+    weight: 3
+  - id: R2
+    description: Ensures that the docstring of a @classmethod @property (stored in
+      the underlying property object's __doc__ or its fget.__doc__) is correctly extracted
+      and appears in the documented output.
+    weight: 3
+  - id: R3
+    description: Ensures that the ':classmethod:' option is emitted in the '.. py:property::'
+      directive header for classmethod-wrapped properties, distinguishing them from
+      regular instance properties.
+    weight: 2

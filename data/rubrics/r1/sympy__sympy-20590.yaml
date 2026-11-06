@@ -1,0 +1,55 @@
+metadata:
+  task_summary: Fix Symbol instances unexpectedly having a __dict__ attribute since
+    1.7 by adding __slots__ = () to the Printable class that was missing it in its
+    definition.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Adds __slots__ = () to the Printable class defined in sympy/core/_print_helpers.py,
+      which is the class missing __slots__ in the MRO chain of Symbol and other Basic
+      subclasses.
+    weight: 3
+  - id: FC2
+    description: Confines the change to the minimal set of files necessary — the fix
+      does not introduce unrelated edits to files outside the __slots__-chain fix
+      (e.g., no spurious changes to sympy/core/symbol.py, sympy/core/basic.py, or
+      sympy/logic/boolalg.py).
+    weight: 2
+  - id: FC3
+    description: Avoids removing or altering any existing __slots__ declarations already
+      present in the class hierarchy (e.g., Symbol.__slots__ = ('name',), Basic.__slots__,
+      Expr.__slots__, Boolean.__slots__, AtomicExpr.__slots__, EvalfMixin.__slots__).
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Restores the behavior described in the PR where Symbol('s').__dict__
+      raises AttributeError, by ensuring every class in the MRO of Symbol that does
+      not already define __slots__ is given __slots__ = ().
+    weight: 3
+  - id: SA2
+    description: Targets the Printable class specifically, which is identified by
+      running type(Symbol('s')).__mro__ as the class in the inheritance chain that
+      was missing __slots__ = ().
+    weight: 3
+  integrity_rubrics:
+  - id: I1
+    description: Preserves all existing public methods and attributes of Printable
+      (__str__, __repr__, _repr_latex_, _repr_png_, _repr_svg_, _repr_disabled) without
+      removal or signature changes.
+    weight: 2
+  - id: I2
+    description: Adds a test or assertion (anywhere in the diff) that verifies Symbol
+      instances no longer have a __dict__ attribute, exercising the specific regression
+      described in the PR.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that after the fix, Symbol instances no longer allocate a
+      __dict__, meaning accessing Symbol('s').__dict__ should raise AttributeError,
+      consistent with the 1.6.2 behavior described in the PR.
+    weight: 3
+  - id: R2
+    description: Confirms that the fix extends to all Basic subclasses in the same
+      MRO chain (e.g., Expr, Dummy, Wild, Integer, Rational, Float) so they also do
+      not unexpectedly acquire a __dict__ through Printable.
+    weight: 2

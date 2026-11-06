@@ -1,0 +1,59 @@
+metadata:
+  task_summary: Fix incorrect rendering of :param with a parameterized type like dict(str,
+    str) by changing the split direction in sphinx/util/docfields.py so the type and
+    argument name are correctly separated.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the split logic in sphinx/util/docfields.py at the line
+      that separates argtype and argname from fieldarg (the line containing `fieldarg.split(None,
+      1)`) to split from the right rather than the left.
+    weight: 3
+  - id: FC2
+    description: Confines changes to sphinx/util/docfields.py without modifying unrelated
+      files such as sphinx/domains/python.py or sphinx/ext/napoleon/docstring.py.
+    weight: 2
+  - id: FC3
+    description: Adds at least one test case exercising a :param directive with a
+      multi-word type containing a comma and parentheses (e.g., dict(str, str) or
+      a similar parameterized form) in the typed field splitting code path.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that for a :param directive like ':param dict(str, str) opc_meta:',
+      the extracted argtype is the full parameterized type string (e.g., 'dict(str,
+      str)') and the extracted argname is the parameter name (e.g., 'opc_meta').
+    weight: 3
+  - id: SA2
+    description: Preserves correct behavior for simple single-word types (e.g., ':param
+      str name:') so that existing passing test cases for :param with plain types
+      remain unaffected.
+    weight: 2
+  - id: SA3
+    description: Handles the case where fieldarg contains no whitespace (a bare param
+      name with no inline type prefix) without raising an exception, maintaining the
+      pre-existing ValueError-catching try/except or equivalent guard.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing test assertions about :param type parsing
+      (such as those in tests/test_domain_py.py verifying str, int, or Tuple types)
+      are weakened, removed, or skipped.
+    weight: 2
+  - id: I2
+    description: Confirms that the public interface of DocFieldTransformer, TypedField,
+      and related classes in sphinx/util/docfields.py is not altered (no renamed methods,
+      no removed parameters, no changed signatures).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a :param directive with a type containing a comma-separated
+      argument list and parentheses (e.g., 'dict(str, str)') produces a rendered parameter
+      entry where the full type appears in parentheses after the parameter name, not
+      a truncated or rearranged form.
+    weight: 3
+  - id: R2
+    description: 'Ensures that the fix does not affect the :type field variant (where
+      type is given separately via '':type name: dict(str, str)''), since that code
+      path does not use the inline argtype/argname splitting logic.'
+    weight: 2

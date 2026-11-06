@@ -1,0 +1,65 @@
+metadata:
+  task_summary: Add an edit_only parameter to modelformset_factory and inlineformset_factory
+    to disallow creation of new objects, preventing users from bypassing extra=0 via
+    JavaScript or crafted POST data.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Adds an edit_only parameter to modelformset_factory's signature in
+      django/forms/models.py.
+    weight: 3
+  - id: FC2
+    description: Adds an edit_only parameter to inlineformset_factory's signature
+      in django/forms/models.py and passes it through to modelformset_factory.
+    weight: 3
+  - id: FC3
+    description: Implements enforcement logic for edit_only in BaseModelFormSet (e.g.,
+      in save_new_objects, full_clean, or an overridden method) so that extra forms
+      with data are rejected or not saved when edit_only is active.
+    weight: 3
+  - id: FC4
+    description: Sets extra=0 (or equivalently forces initial_form_count == total_form_count)
+      in the formset class attributes or factory logic when edit_only=True, preventing
+      extra blank forms from being rendered.
+    weight: 2
+  - id: FC5
+    description: Limits file churn to django/forms/models.py (and optionally django/forms/formsets.py
+      and docs/tests), without modifying unrelated source files.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Provides a mechanism that rejects new object creation even when additional
+      form data is submitted via JavaScript or crafted POST requests (i.e., enforcement
+      is server-side, not just UI-level via extra=0).
+    weight: 3
+  - id: SA2
+    description: Raises a ValidationError (or equivalent error) with a meaningful
+      code or message when edit_only mode detects extra form data containing new object
+      data, making the invalid submission distinguishable.
+    weight: 2
+  - id: SA3
+    description: Documents the new edit_only parameter in the docstring of modelformset_factory
+      or inlineformset_factory, or in the relevant .txt documentation files.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Preserves backward compatibility so that existing callers of modelformset_factory
+      and inlineformset_factory that do not pass edit_only continue to behave identically
+      (default value of edit_only is False or equivalent falsy value).
+    weight: 3
+  - id: I2
+    description: Avoids weakening existing formset tests (e.g., does not remove assertions
+      about extra forms, save_new_objects, or error handling from existing test cases).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: When edit_only=True and a bound formset receives POST data for extra
+      forms (beyond initial_form_count), the formset either raises a ValidationError
+      or silently ignores the new data, ensuring no new model objects are saved to
+      the database.
+    weight: 3
+  - id: R2
+    description: When edit_only=True and no extra form data is submitted, the formset
+      validates and saves existing objects normally, confirming that edit_only does
+      not break editing of existing records.
+    weight: 2

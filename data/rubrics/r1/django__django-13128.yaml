@@ -1,0 +1,76 @@
+metadata:
+  task_summary: Add _resolve_output_field to CombinedExpression to infer the output
+    field for temporal arithmetic (datetime - datetime = DurationField; datetime +/-
+    DurationField = datetime field) without requiring ExpressionWrapper.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/db/models/expressions.py and no other unrelated production
+      files, keeping the diff confined to the expressions module.
+    weight: 2
+  - id: FC2
+    description: Adds a _resolve_output_field method to CombinedExpression (i.e.,
+      adds 'def _resolve_output_field' inside the CombinedExpression class body in
+      expressions.py).
+    weight: 3
+  - id: FC3
+    description: Adds handling for the case where both lhs and rhs output fields are
+      temporal types (DateField, DateTimeField, or TimeField) and the connector is
+      SUB, returning fields.DurationField() as the resolved output field.
+    weight: 3
+  - id: FC4
+    description: Adds handling for the case where one side is a temporal field (DateField,
+      DateTimeField, or TimeField) and the other is DurationField, returning the temporal
+      field instance as the resolved output field.
+    weight: 3
+  - id: FC5
+    description: Falls back to the base class _resolve_output_field (e.g., calls super()._resolve_output_field())
+      for non-temporal combinations so existing numeric type inference is preserved.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Allows F(''end'') - F(''start'') + Value(datetime.timedelta(), output_field=DurationField())
+      to resolve an output field without raising ''Expression contains mixed types:
+      DateTimeField, DurationField. You must set output_field.''.'
+    weight: 3
+  - id: SA2
+    description: Enables the annotate pattern from the PR description (annotate with
+      delta=F('end') - F('start') + Value(..., output_field=DurationField())) without
+      wrapping in ExpressionWrapper.
+    weight: 3
+  - id: SA3
+    description: Adds or updates a test exercising temporal subtraction (date/datetime/time
+      field minus same temporal type) without ExpressionWrapper and verifies the result
+      is a DurationField-typed expression.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Preserves existing ExpressionWrapper-based temporal subtraction tests
+      (e.g., test_datetime_subtraction, test_date_subtraction, test_time_subtraction)
+      without weakening, skipping, or deleting them.
+    weight: 2
+  - id: I2
+    description: Does not alter the public signatures of CombinedExpression.__init__,
+      CombinedExpression.as_sql, TemporalSubtraction, or DurationExpression.
+    weight: 2
+  - id: I3
+    description: Does not introduce mass renames, new dependencies, or changes to
+      files outside of the expressions module and its associated tests.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that CombinedExpression.as_sql routing to TemporalSubtraction
+      (when both sides are the same temporal type and connector is SUB) still fires,
+      so the correct SQL is generated for datetime - datetime subtraction.
+    weight: 3
+  - id: R2
+    description: Ensures that CombinedExpression.as_sql routing to DurationExpression
+      (when one side is DurationField and backends lack has_native_duration_field)
+      still fires, so duration arithmetic produces correct SQL.
+    weight: 2
+  - id: R3
+    description: Ensures the resolved output field for a temporal - temporal expression
+      is DurationField, allowing chained operations like (F('end') - F('start')) +
+      Value(timedelta(), output_field=DurationField()) to select the correct output
+      field (DateTimeField or DurationField) for the outer expression.
+    weight: 3

@@ -1,0 +1,50 @@
+metadata:
+  task_summary: Fix autodoc_type_aliases not being applied when autodoc_typehints
+    is set to 'description', by passing type_aliases to inspect.signature() inside
+    record_typehints().
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the record_typehints function in sphinx/ext/autodoc/typehints.py
+      to pass type_aliases from app.config.autodoc_type_aliases when calling inspect.signature().
+    weight: 3
+  - id: FC2
+    description: Confines changes to sphinx/ext/autodoc/typehints.py (and optionally
+      test files), without introducing unrelated file churn in other source modules.
+    weight: 2
+  - id: FC3
+    description: Avoids removing or weakening the existing autodoc_typehints != 'description'
+      guard in merge_typehints, preserving the existing flow-control logic.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that when autodoc_typehints is 'description' and autodoc_type_aliases
+      maps a type name, the recorded annotation uses the aliased name (e.g. 'JSONObject')
+      rather than the expanded form (e.g. 'Dict[str, Any]').
+    weight: 3
+  - id: SA2
+    description: Applies type alias resolution consistently for both parameter annotations
+      and return annotations in record_typehints, matching the behavior already provided
+      by the non-description code path.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing public behavior of autodoc when autodoc_typehints
+      is not 'description', ensuring no regression for users not using the 'description'
+      mode.
+    weight: 3
+  - id: I2
+    description: Does not alter the signatures of modify_field_list, merge_typehints,
+      or insert_field_list, keeping the internal API stable.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that annotation strings stored in app.env.temp_data['annotations']
+      reflect the aliased type names when autodoc_type_aliases is non-empty, so that
+      merge_typehints inserts aliased type text into the field list.
+    weight: 3
+  - id: R2
+    description: Maintains backward compatibility so that when autodoc_type_aliases
+      is empty (the default), record_typehints produces the same annotation strings
+      as before the fix.
+    weight: 2

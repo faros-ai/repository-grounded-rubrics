@@ -1,0 +1,57 @@
+metadata:
+  task_summary: Fix TruncDate and TruncTime to respect the tzinfo parameter by calling
+    self.get_tzname() instead of timezone.get_current_timezone_name() unconditionally.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies TruncDate.as_sql() in django/db/models/functions/datetime.py
+      to replace the unconditional call to timezone.get_current_timezone_name() with
+      a call to self.get_tzname().
+    weight: 3
+  - id: FC2
+    description: Modifies TruncTime.as_sql() in django/db/models/functions/datetime.py
+      to replace the unconditional call to timezone.get_current_timezone_name() with
+      a call to self.get_tzname().
+    weight: 3
+  - id: FC3
+    description: Confines changes to django/db/models/functions/datetime.py and related
+      test files without unrelated file churn.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that when a tzinfo object is passed to TruncDate, it is respected
+      by using the TimezoneMixin.get_tzname() logic rather than always falling back
+      to get_current_timezone_name().
+    weight: 3
+  - id: SA2
+    description: Ensures that when a tzinfo object is passed to TruncTime, it is respected
+      by using the TimezoneMixin.get_tzname() logic rather than always falling back
+      to get_current_timezone_name().
+    weight: 3
+  - id: SA3
+    description: Adds or updates tests exercising TruncDate and/or TruncTime with
+      an explicit tzinfo argument to verify correct truncation in a non-default timezone.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that TruncDate and TruncTime still pass tzname=None when
+      settings.USE_TZ is False, preserving backward-compatible behavior for non-timezone-aware
+      projects.
+    weight: 2
+  - id: I2
+    description: Confirms that the public constructor signatures of TruncDate and
+      TruncTime (accepting tzinfo and is_dst via TruncBase.__init__) are not altered
+      or removed.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: When settings.USE_TZ is True and no tzinfo is passed to TruncDate
+      or TruncTime, get_tzname() falls back to get_current_timezone_name(), maintaining
+      existing default-timezone behavior.
+    weight: 3
+  - id: R2
+    description: When a tzinfo object such as pytz.timezone('America/New_York') is
+      supplied to TruncDate or TruncTime, the SQL produced passes the corresponding
+      timezone name to datetime_cast_date_sql or datetime_cast_time_sql rather than
+      the global default timezone name.
+    weight: 3

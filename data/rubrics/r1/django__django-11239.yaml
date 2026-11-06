@@ -1,0 +1,62 @@
+metadata:
+  task_summary: Add support for sslmode, sslrootcert, sslcert, and sslkey OPTIONS
+    to the PostgreSQL dbshell command so mutual-TLS connections work via psql.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/db/backends/postgresql/client.py to extract SSL-related
+      connection parameters (sslmode, sslrootcert, sslcert, sslkey) from conn_params
+      inside runshell_db.
+    weight: 3
+  - id: FC2
+    description: Confines production-code changes to django/db/backends/postgresql/client.py
+      only, without modifying unrelated backend files or introducing new dependencies.
+    weight: 2
+  - id: FC3
+    description: Adds or updates tests in the PostgreSQL dbshell test file (tests/dbshell/test_postgresql.py)
+      to cover the SSL parameter handling added to runshell_db.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Propagates the sslrootcert conn_param (corresponding to the OPTIONS
+      key sslrootcert mentioned in the PR description) to psql, either as a PGSSLROOTCERT
+      environment variable or as a CLI argument.
+    weight: 3
+  - id: SA2
+    description: Propagates the sslcert conn_param (corresponding to the OPTIONS key
+      sslcert mentioned in the PR description) to psql, either as a PGSSLCERT environment
+      variable or as a CLI argument.
+    weight: 3
+  - id: SA3
+    description: Propagates the sslkey conn_param (corresponding to the OPTIONS key
+      sslkey mentioned in the PR description) to psql, either as a PGSSLKEY environment
+      variable or as a CLI argument.
+    weight: 3
+  - id: SA4
+    description: Propagates the sslmode conn_param (corresponding to the OPTIONS key
+      sslmode such as verify-ca mentioned in the PR description) to psql, either as
+      a PGSSLMODE environment variable or as a CLI argument.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing PGPASSWORD environment-variable mechanism
+      and the subprocess_env = os.environ.copy() pattern already present in runshell_db,
+      without removing or weakening them.
+    weight: 3
+  - id: I2
+    description: Applies SSL parameters conditionally (only when the corresponding
+      conn_param key is present and non-empty), mirroring the guard pattern used for
+      host, port, and user in the same function.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when sslcert, sslkey, or sslrootcert are absent from
+      conn_params, the corresponding SSL environment variables or CLI flags are not
+      set, preserving backward compatibility for connections that do not use client
+      certificates.
+    weight: 3
+  - id: R2
+    description: Passes SSL parameters to the psql subprocess in a form psql recognises
+      (environment variables such as PGSSLMODE/PGSSLROOTCERT/PGSSLCERT/PGSSLKEY, or
+      equivalent --ssl* CLI flags), so that mutual-TLS connections actually succeed.
+    weight: 2

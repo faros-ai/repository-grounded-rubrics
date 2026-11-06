@@ -1,0 +1,91 @@
+metadata:
+  task_summary: Fix combinatorics.Permutation so it can be properly subclassed by
+    ensuring all internal object-creation paths respect the concrete class (cls) rather
+    than hardcoding Perm/Permutation.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies `_af_new` in `sympy/combinatorics/permutations.py` so it
+      no longer calls `Basic.__new__(Perm, perm)` with the hardcoded `Perm` reference,
+      replacing it with a mechanism that uses the correct class (e.g., converting
+      to a classmethod that accepts `cls`, or another approach that avoids the hardcoded
+      class).
+    weight: 3
+  - id: FC2
+    description: Updates all or nearly all call sites of `_af_new` inside `sympy/combinatorics/permutations.py`
+      (the ~15 locations such as in `__mul__`, `__pow__`, `__invert__`, `next_lex`,
+      `unrank_lex`, `unrank_nonlex`, etc.) to pass the appropriate class context so
+      subclass instances are created instead of bare `Permutation` instances.
+    weight: 3
+  - id: FC3
+    description: Updates the early-return branches in `Permutation.__new__` (lines
+      that call `_af_new(list(range(size or 0)))`, `_af_new(Cycle(*args).list(size))`,
+      `_af_new(a.list(size))`, and `_af_new(list(range(a + 1)))`) to pass `cls` so
+      objects of the subclass are returned.
+    weight: 3
+  - id: FC4
+    description: Confines all changes to `sympy/combinatorics/permutations.py` without
+      modifying unrelated files, consistent with the minimal fix described in the
+      PR.
+    weight: 2
+  - id: FC5
+    description: Updates the module-level assignment `_af_new = Perm._af_new` at the
+      bottom of `sympy/combinatorics/permutations.py` to remain consistent with however
+      `_af_new` is redefined (e.g., reassigning after any signature change, or removing
+      the alias if no longer needed).
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that constructing an instance of a `Permutation` subclass
+      (e.g., `MyPerm([0, 1, 2])`) returns an instance of the subclass rather than
+      a bare `Permutation`, addressing the core complaint in the PR description.
+    weight: 3
+  - id: SA2
+    description: Ensures that operations on subclass instances (such as multiplication
+      `__mul__`, inversion `__invert__`, or power `__pow__`) return instances of the
+      same subclass rather than always returning `Permutation` instances, as described
+      in the PR.
+    weight: 3
+  - id: SA3
+    description: Converts `_af_new` from a `@staticmethod` to a `@classmethod` (or
+      equivalent class-aware mechanism), consistent with the PR description's recommendation
+      to use classmethods where appropriate and use the mandatory class reference
+      for instance creation.
+    weight: 2
+  - id: SA4
+    description: Changes `type(n) == Perm` (line 1340 in `__pow__`) to `isinstance(n,
+      Perm)` or equivalent, so that a subclass instance passed as exponent is correctly
+      identified as a Permutation-like object.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the public API of `Permutation.__new__`, `Permutation._af_new`,
+      and all public methods (signatures unchanged or backward-compatible) so that
+      existing code calling `Permutation(...)` continues to work correctly.
+    weight: 3
+  - id: I2
+    description: Does not weaken, skip, or remove existing tests in `sympy/combinatorics/tests/test_permutations.py`.
+    weight: 2
+  - id: I3
+    description: Avoids mass renaming of variables or methods unrelated to the subclassing
+      fix (e.g., does not rename `Perm`, `_af_new`, or `_array_form` without a clear
+      connection to the fix).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: 'Maintains correct behavior of `Permutation` when used directly (not
+      subclassed): `Permutation([1, 0, 2])` still returns a `Permutation` instance
+      with the correct `array_form`, confirming no regression in the base class path
+      through `Basic.__new__(cls, aform)` in `__new__`.'
+    weight: 3
+  - id: R2
+    description: Ensures classmethod-based `unrank_lex`, `unrank_nonlex`, `unrank_trotterjohnson`,
+      `josephus`, `from_inversion_vector`, and `random` (all of which call `_af_new`
+      internally) return instances of the class they are invoked on when called on
+      a subclass, not always bare `Permutation` instances.
+    weight: 2
+  - id: R3
+    description: Adds a test (or doctest) demonstrating that a subclass of `Permutation`
+      can be instantiated and that instances are of the subclass type, covering the
+      exact scenario described in the PR description.
+    weight: 1

@@ -1,0 +1,58 @@
+metadata:
+  task_summary: Fix sphinx-quickstart so that pressing Enter at the 'Please enter
+    a new root path (or just Enter to exit)' prompt exits cleanly instead of producing
+    a 'Please enter a valid path name' validation error.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sphinx/cmd/quickstart.py and only sphinx/cmd/quickstart.py
+      (or a closely related locale/template file) — no unrelated file churn.
+    weight: 2
+  - id: FC2
+    description: Changes the validator argument passed to the do_prompt call for 'Please
+      enter a new root path (or just Enter to exit)' away from using is_path alone,
+      replacing or wrapping it with logic that allows an empty string to pass validation.
+    weight: 3
+  - id: FC3
+    description: Does not alter the do_prompt call for the initial root path prompt
+      ('Root path for the documentation'), preserving its existing is_path validator
+      and '.' default unchanged.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the stated bug: an empty input (Enter press) at the ''Please
+      enter a new root path (or just Enter to exit)'' prompt no longer triggers the
+      ''Please enter a valid path name'' validation error.'
+    weight: 3
+  - id: SA2
+    description: 'Preserves the exit behavior: when the user presses Enter (empty
+      input), the code path still reaches sys.exit(1) or equivalent termination, consistent
+      with the ''just Enter to exit'' wording in the prompt.'
+    weight: 3
+  - id: SA3
+    description: 'Preserves the path-validation behavior for non-empty input: when
+      a user types a non-empty string that is not a valid directory path at the same
+      prompt, a validation error is still raised (is_path or equivalent logic still
+      applied for non-empty values).'
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms no existing validator functions (is_path, allow_empty, nonempty,
+      ok, boolean, suffix, choice) are removed or have their signatures changed.
+    weight: 2
+  - id: I2
+    description: Confirms no test cases in tests/test_quickstart.py are deleted, weakened
+      (e.g., by adding skip markers), or have their assertions removed.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when the user presses Enter at the 'Please enter a new
+      root path (or just Enter to exit)' prompt, the resulting empty string bypasses
+      the is_path directory-existence check and allows the 'if not d["path"]' branch
+      to execute sys.exit(1).
+    weight: 3
+  - id: R2
+    description: Ensures the fix does not affect the normal quickstart flow when no
+      conf.py exists in the selected path, i.e., the while-loop for conf.py detection
+      is never entered and the rest of ask_user proceeds normally.
+    weight: 2

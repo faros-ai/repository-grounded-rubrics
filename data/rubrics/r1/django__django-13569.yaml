@@ -1,0 +1,55 @@
+metadata:
+  task_summary: Fix order_by('?') unexpectedly adding RANDOM() to GROUP BY clause,
+    which breaks queryset aggregation results.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `get_group_by` method in `django/db/models/sql/compiler.py`
+      to exclude order_by expressions that should not contribute to GROUP BY.
+    weight: 3
+  - id: FC2
+    description: Confines the fix to `django/db/models/sql/compiler.py` (or `django/db/models/expressions.py`
+      for a `get_group_by_cols` approach), without modifying unrelated files.
+    weight: 2
+  - id: FC3
+    description: Adds a test covering `annotate` with `Count` combined with `order_by('?')`
+      to verify the GROUP BY clause is not polluted by RANDOM().
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Adds logic in `get_group_by` (or an equivalent location) that prevents
+      expressions lacking column references (such as `Random`) from being appended
+      to the GROUP BY expressions list when iterating over `order_by`.
+    weight: 3
+  - id: SA2
+    description: Ensures the fix applies generally to any order_by expression that
+      does not reference database columns (not just the `Random` class specifically),
+      so that other non-column-referencing expressions are also excluded from GROUP
+      BY.
+    weight: 2
+  - id: SA3
+    description: Preserves the existing behavior where order_by expressions that do
+      reference columns (e.g., ordering by a related field like `'related'`) still
+      correctly expand the GROUP BY clause.
+    weight: 3
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing test assertions about aggregate or GROUP
+      BY behavior are removed or weakened in the diff.
+    weight: 3
+  - id: I2
+    description: Confirms that the `get_order_by` method and its handling of `OrderBy(Random())`
+      remains unchanged, so `ORDER BY RANDOM()` is still emitted in the SQL query.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that `Thing.objects.annotate(rc=Count('related')).order_by('?').values('id',
+      'rc')` produces a GROUP BY clause containing only `thing.id` and not `RANDOM()`,
+      based on the added conditional guard in `get_group_by` that skips non-column-referencing
+      order_by expressions.
+    weight: 3
+  - id: R2
+    description: Ensures that `Thing.objects.annotate(rc=Count('related')).order_by('related').values('id',
+      'rc')` still expands GROUP BY as expected, since `order_by('related')` references
+      an actual column and must not be filtered out by the fix.
+    weight: 2

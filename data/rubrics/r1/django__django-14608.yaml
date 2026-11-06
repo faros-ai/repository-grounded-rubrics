@@ -1,0 +1,59 @@
+metadata:
+  task_summary: Add a 'nonform' CSS class to the ErrorList returned by BaseFormSet.non_form_errors()
+    so custom ErrorList subclasses can distinguish non-form formset errors from field
+    errors and non-field form errors.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/forms/formsets.py to pass error_class='nonform' at
+      every site in full_clean() where self._non_form_errors is assigned via self.error_class(),
+      including both the initial empty assignment and the except-block assignment
+      wrapping e.error_list.
+    weight: 3
+  - id: FC2
+    description: Confines production-code changes to django/forms/formsets.py (or
+      django/forms/utils.py if needed there) without modifying unrelated source files
+      such as django/forms/forms.py or django/forms/widgets.py.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test in the formsets test suite that asserts the
+      'nonform' CSS class appears in the HTML rendered by non_form_errors().
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements the 'nonform' CSS class for non-form errors by passing
+      error_class='nonform' to the error_class constructor, mirroring the 'nonfield'
+      pattern used in django/forms/forms.py for non-field form errors.
+    weight: 3
+  - id: SA2
+    description: Ensures the resulting ErrorList has an error_class attribute that
+      produces an HTML class string containing both 'errorlist' and 'nonform' (e.g.,
+      'errorlist nonform'), enabling custom ErrorList subclasses to distinguish FormSet
+      non-form errors from field errors and non-field form errors.
+    weight: 3
+  - id: SA3
+    description: Updates documentation (e.g., docs/topics/forms/formsets.txt) to mention
+      the 'nonform' CSS class for non-form FormSet errors, paralleling the existing
+      documentation of 'nonfield' in docs/topics/forms/index.txt.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the public signatures of BaseFormSet.non_form_errors()
+      and BaseFormSet.full_clean() without adding, removing, or renaming parameters.
+    weight: 3
+  - id: I2
+    description: Does not remove, skip, or weaken any existing assertions in the formsets
+      test suite that verify error content or error count behavior of non_form_errors().
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that the 'nonform' CSS class is applied consistently regardless
+      of which code path produces the non-form error, whether that is a missing_management_form
+      ValidationError appended in the management form check, or a too_many_forms/too_few_forms/custom
+      clean() ValidationError caught in the except block of full_clean().
+    weight: 3
+  - id: R2
+    description: Maintains backward compatibility so that a custom error_class passed
+      to BaseFormSet (or formset_factory) that already accepts the error_class keyword
+      argument continues to work correctly when called with error_class='nonform'.
+    weight: 2

@@ -1,0 +1,52 @@
+metadata:
+  task_summary: Fix the `add` template filter so that concatenating a plain string
+    with a lazy string (Django's `__proxy__` type) returns the correct concatenated
+    result instead of silently returning an empty string.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies `django/template/defaultfilters.py` and only that file,
+      keeping the change minimal and local to the `add` filter function.
+    weight: 3
+  - id: FC2
+    description: Adds handling inside the `def add(value, arg)` function body that
+      converts string-like or lazy-string operands to plain `str` before attempting
+      concatenation, so that the `value + arg` path no longer raises `TypeError` when
+      one operand is a `__proxy__` lazy string.
+    weight: 3
+  - id: FC3
+    description: Introduces an import of `force_str` (from `django.utils.encoding`)
+      or uses `str()` conversion (or an equivalent coercion utility) somewhere in
+      the diff to resolve lazy string proxies.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the exact failure mode described in the PR: the `add`
+      filter returning an empty string when concatenating a regular string with a
+      lazy string, by preventing the `TypeError: can only concatenate str (not ''__proxy__'')
+      to str` exception from being swallowed.'
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior of the `add` filter for integer addition
+      (the first `try` block returning `int(value) + int(arg)`) and for list/tuple
+      concatenation, without altering those code paths.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the `add` filter's public signature `def add(value,
+      arg)` and its `@register.filter` decorator remain unchanged.
+    weight: 2
+  - id: I2
+    description: Avoids weakening or removing any existing test cases in `tests/template_tests/filter_tests/test_add.py`
+      (e.g., does not delete or skip `test_add01` through `test_add07` or `FunctionTests.test_add`).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when `value` is a plain `str` and `arg` is a Django
+      lazy string (`__proxy__`), the `add` filter returns the correctly concatenated
+      string rather than the empty string `''`.
+    weight: 3
+  - id: R2
+    description: Ensures that when both `value` and `arg` are lazy strings, the `add`
+      filter still returns the concatenated result instead of the empty string `''`.
+    weight: 2

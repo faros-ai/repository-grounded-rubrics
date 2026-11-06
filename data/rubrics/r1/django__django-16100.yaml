@@ -1,0 +1,63 @@
+metadata:
+  task_summary: Wrap the list_editable bulk-save processing in changelist_view with
+    a transaction to prevent partial database updates on error.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/contrib/admin/options.py and no other production
+      source files, keeping the change local to the admin changelist logic.
+    weight: 3
+  - id: FC2
+    description: Adds a transaction.atomic(using=router.db_for_write(self.model))
+      block somewhere in the diff that wraps the list_editable POST processing (save_form,
+      save_model, save_related, log_change calls) inside changelist_view.
+    weight: 3
+  - id: FC3
+    description: Does not remove or alter the existing transaction.atomic(using=router.db_for_write(self.model))
+      wrapping already present in changeform_view and delete_view.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures the transaction wrapping covers the formset.is_valid() save
+      loop (save_form, save_model, save_related, log_change) so that a failure in
+      any one save rolls back all prior saves in the same request.
+    weight: 3
+  - id: SA2
+    description: Applies the transaction only to the POST branch (when request.method
+      == 'POST' and cl.list_editable and '_save' in request.POST), not to the read-only
+      GET branch that builds the display formset.
+    weight: 2
+  - id: SA3
+    description: Uses router.db_for_write(self.model) (consistent with the pattern
+      used in changeform_view and delete_view) to select the correct database for
+      the transaction.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that transaction and router are already imported in django/contrib/admin/options.py
+      and the diff does not add duplicate or conflicting imports.
+    weight: 2
+  - id: I2
+    description: Confirms that the public signature of changelist_view(self, request,
+      extra_context=None) is preserved unchanged in the diff.
+    weight: 2
+  - id: I3
+    description: Avoids weakening or removing any existing tests related to list_editable
+      or changelist_view behaviour.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: 'Guarantees atomicity of the list_editable save loop: if save_model
+      raises an exception for one object, none of the preceding save_model calls in
+      the same POST request are committed to the database.'
+    weight: 3
+  - id: R2
+    description: Preserves existing changelist_view behaviour for valid POST submissions
+      (successful saves still redirect via HttpResponseRedirect(request.get_full_path())
+      and still display the success message_user call).
+    weight: 2
+  - id: R3
+    description: 'Preserves the read-only GET path behaviour: constructing FormSet(queryset=cl.result_list)
+      for display remains outside any write transaction, avoiding unnecessary write
+      locks on read-only requests.'
+    weight: 1

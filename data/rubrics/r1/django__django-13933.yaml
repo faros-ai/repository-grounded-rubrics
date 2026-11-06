@@ -1,0 +1,63 @@
+metadata:
+  task_summary: Update ModelChoiceField to include the invalid value in the ValidationError
+    raised by to_python, matching the behavior of ChoiceField and ModelMultipleChoiceField.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `default_error_messages` dict of `ModelChoiceField`
+      in `django/forms/models.py` to change the `invalid_choice` message from the
+      generic 'That choice is not one of the available choices.' to one containing
+      the `%(value)s` placeholder.
+    weight: 3
+  - id: FC2
+    description: Modifies the `raise ValidationError` call inside `ModelChoiceField.to_python`
+      in `django/forms/models.py` to pass a `params` dict containing the `value` key
+      so the invalid input is interpolated into the error message.
+    weight: 3
+  - id: FC3
+    description: Confines changes to `django/forms/models.py` (and optionally related
+      test files), without modifying unrelated modules such as `django/forms/fields.py`,
+      `ModelMultipleChoiceField`, or any admin/widget code.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Aligns the `ModelChoiceField.invalid_choice` error message format
+      with `ChoiceField` and `ModelMultipleChoiceField`, both of which use 'Select
+      a valid choice. %(value)s is not one of the available choices.' or an equivalent
+      pattern exposing `%(value)s`.
+    weight: 3
+  - id: SA2
+    description: Preserves the `invalid_choice` error code (i.e., keeps `code='invalid_choice'`)
+      in the `raise ValidationError` call inside `ModelChoiceField.to_python`, so
+      existing code that checks `error.code` continues to work.
+    weight: 2
+  - id: SA3
+    description: Does not alter `ModelMultipleChoiceField.default_error_messages`
+      or its `_check_values` method, since those already expose `%(value)s` and are
+      not part of the reported defect.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the existing test in `test_error_messages.py` for `ModelChoiceField`
+      is updated (or new tests are added) to reflect that custom `invalid_choice`
+      messages now receive a `%(value)s` parameter, rather than being left as a static
+      string that would silently miss the interpolation.
+    weight: 1
+  - id: I2
+    description: Confirms that no previously public API of `ModelChoiceField` is removed
+      or renamed, including `default_error_messages`, `to_python`, `validate`, and
+      `has_changed`.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when `ModelChoiceField.to_python` raises a `ValidationError`
+      for an invalid choice, the rendered error message contains the actual submitted
+      value rather than the generic 'That choice is not one of the available choices.'
+      string.
+    weight: 3
+  - id: R2
+    description: Ensures backward compatibility for callers that supply a custom `invalid_choice`
+      error message without a `%(value)s` placeholder, by relying on Django's standard
+      `ValidationError` `params` interpolation (which is a no-op when the placeholder
+      is absent).
+    weight: 1

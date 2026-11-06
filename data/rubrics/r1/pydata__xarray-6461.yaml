@@ -1,0 +1,54 @@
+metadata:
+  task_summary: Fix IndexError in xr.where when keep_attrs=True and x or y is a scalar
+    argument.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies xarray/core/computation.py and no other unrelated files,
+      keeping the diff minimal and scoped to the where() function.
+    weight: 3
+  - id: FC2
+    description: 'Changes the keep_attrs lambda (originally ''lambda attrs, context:
+      attrs[1]'') in the where() function to safely handle fewer-than-two-element
+      attrs lists.'
+    weight: 3
+  - id: FC3
+    description: Adds or updates a test in the test suite (e.g., test_computation.py)
+      that exercises xr.where with a scalar as x or y argument and keep_attrs=True.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures xr.where(xr.DataArray([1, 2, 3]) > 0, 1, 0) no longer raises
+      an IndexError when keep_attrs=True, by fixing the attrs indexing logic.
+    weight: 3
+  - id: SA2
+    description: 'Preserves the existing behavior of keep_attrs=True when x is a DataArray:
+      returns the attributes of x (the second argument to where()).'
+    weight: 3
+  - id: SA3
+    description: Handles the scalar case for x or y by returning an empty dict or
+      otherwise gracefully defaulting when attrs from x are unavailable.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms the public signature of xr.where(cond, x, y, keep_attrs=None)
+      remains unchanged in the diff.
+    weight: 3
+  - id: I2
+    description: Confirms no existing test is weakened, skipped, or removed in the
+      diff (no '@pytest.mark.skip' added, no test deleted).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that calling xr.where with keep_attrs=True and scalar x (e.g.,
+      integer 1) does not raise an IndexError from the attrs lambda.
+    weight: 3
+  - id: R2
+    description: Ensures that calling xr.where with keep_attrs=True and DataArray
+      x still returns a result with x's attributes, preserving backward-compatible
+      behavior.
+    weight: 2
+  - id: R3
+    description: Ensures the fix does not introduce a case where keep_attrs=False
+      or keep_attrs=None behavior is altered.
+    weight: 2

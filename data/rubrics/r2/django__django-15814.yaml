@@ -1,0 +1,61 @@
+metadata:
+  task_summary: Fix a ValueError crash in QuerySet.only() after select_related() when
+    the related field targets a proxy model, by using the concrete model's _meta instead
+    of the proxy model's _meta in deferred_to_data().
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/db/models/sql/query.py and no other production source
+      file, confirming the fix is scoped to the single file identified in the PR description.
+    weight: 2
+  - id: FC2
+    description: Changes the assignment of opts inside the for-loop in deferred_to_data()
+      (the line currently reading 'opts = cur_model._meta') so that opts is derived
+      from the concrete model's _meta rather than directly from cur_model._meta, matching
+      the fix described in the PR description.
+    weight: 3
+  - id: FC3
+    description: Ensures that cur_model itself (used as a key in must_include via
+      add_to_dict) also resolves to the concrete model rather than the proxy model,
+      so that the must_include dictionary keys are consistent with how field.model
+      is keyed in the compiler's only_load check.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause stated in the PR description: when traversing
+      related-field path parts in deferred_to_data(), cur_model may be a proxy model,
+      and the fix resolves this by redirecting to the concrete model''s metadata.'
+    weight: 3
+  - id: SA2
+    description: Prevents the ValueError 'id is not in list' raised in RelatedPopulator.__init__()
+      when self.init_list does not contain the pk attname of the concrete model, by
+      ensuring the pk field is included in the columns selected for the related proxy
+      model's table.
+    weight: 2
+  - id: SA3
+    description: Adds a regression test (in defer_regress or proxy_models or defer
+      test modules) that exercises select_related() combined with only() on a queryset
+      where the ForeignKey targets a proxy model, matching the scenario in the PR
+      description.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Preserves all existing test cases for deferred_to_data(), defer(),
+      and only() with select_related() for non-proxy model scenarios, confirming no
+      regression in the common case.
+    weight: 2
+  - id: I2
+    description: Does not weaken or skip any existing tests in defer/, defer_regress/,
+      or proxy_models/ test directories.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that iterating a queryset of the form Model.objects.select_related('proxy_fk_field').only('proxy_fk_field__some_field')
+      no longer raises ValueError when the FK points to a proxy model, because the
+      pk attname of the concrete model is now included in init_list.
+    weight: 3
+  - id: R2
+    description: Maintains backward-compatible behavior for select_related() combined
+      with only() on non-proxy FK relationships, ensuring the existing test cases
+      for Leaf, Feature, and ProxyRelated models continue to pass without modification.
+    weight: 2

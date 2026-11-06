@@ -1,0 +1,73 @@
+metadata:
+  task_summary: Fix nthroot_mod to return 0 as a root when a % p == 0, since x = 0
+    is always a solution to x**n = a mod p in that case.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sympy/ntheory/residue_ntheory.py and no other unrelated
+      production files to fix the nthroot_mod bug.
+    weight: 3
+  - id: FC2
+    description: Adds a conditional branch inside the nthroot_mod function body (visible
+      in the diff as added lines within def nthroot_mod) that checks whether a % p
+      == 0.
+    weight: 3
+  - id: FC3
+    description: 'Handles both branches of all_roots inside the new a % p == 0 guard:
+      returns 0 (an integer) when all_roots is False and returns [0] (a list) when
+      all_roots is True.'
+    weight: 2
+  - id: FC4
+    description: Does not modify the function signature of nthroot_mod (parameters
+      a, n, p, all_roots remain unchanged).
+    weight: 2
+  - id: FC5
+    description: Adds a test case (anywhere in the test file for ntheory residue or
+      similar) that exercises nthroot_mod with an argument where a % p == 0, such
+      as nthroot_mod(17*17, 5, 17) or equivalent.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the exact case described in the PR: when a % p == 0, x
+      = 0 is a root of x**n = a mod p, and nthroot_mod now returns it.'
+    weight: 3
+  - id: SA2
+    description: Places the a % p == 0 check such that it takes effect before the
+      existing computation path (the gcd-based while loop or calls to _nthroot_mod1)
+      that previously failed for this case.
+    weight: 2
+  - id: SA3
+    description: Ensures that when all_roots=False and a % p == 0, the returned value
+      is 0 (the smallest and only root), consistent with nthroot_mod returning the
+      smallest root in other cases.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing behavior of nthroot_mod for cases where a
+      % p != 0, with no changes to the logic paths that handle non-zero residues.
+    weight: 3
+  - id: I2
+    description: Confirms that the existing test assertions in the ntheory test suite
+      (such as nthroot_mod(1801, 11, 2663) == 44 and nthroot_mod(11, 3, 109) is None)
+      are not removed or weakened.
+    weight: 2
+  - id: I3
+    description: Does not introduce mass renames, unrelated refactoring, or dependency
+      changes in the diff.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Ensures nthroot_mod(17*17, 5, 17) (the exact example from the PR)
+      returns 0 when all_roots=False, as evidenced by the added conditional that triggers
+      when a % p == 0.
+    weight: 3
+  - id: R2
+    description: Ensures nthroot_mod(17*17, 5, 17, True) returns [0] when all_roots=True,
+      reflecting that 0 is the unique nth root modulo a prime p when a is divisible
+      by p.
+    weight: 2
+  - id: R3
+    description: Confirms the fix returns None (not an empty list or 0) for cases
+      where no root exists (a % p != 0 and a is not an nth power residue mod p), preserving
+      existing None-return semantics.
+    weight: 2

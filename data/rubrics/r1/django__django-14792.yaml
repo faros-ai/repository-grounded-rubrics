@@ -1,0 +1,64 @@
+metadata:
+  task_summary: Fix reverse time zone conversion bug in Trunc()/Extract() database
+    functions where Etc/GMT-style timezone names containing +/- signs are incorrectly
+    transformed by _prepare_tzname_delta(), causing the opposite UTC offset to be
+    used.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies `_prepare_tzname_delta` in `django/db/backends/postgresql/operations.py`
+      to avoid incorrect global replacement of `+` with `-` (or vice versa) inside
+      named timezone strings like `Etc/GMT-10`.
+    weight: 3
+  - id: FC2
+    description: Modifies `_prepare_tzname_delta` in `django/db/backends/mysql/operations.py`
+      so that named timezone strings containing `/` (e.g., `Etc/GMT-10`) are not treated
+      as UTC offsets requiring sign inversion.
+    weight: 2
+  - id: FC3
+    description: Modifies `_prepare_tzname_delta` in `django/db/backends/oracle/operations.py`
+      so that named timezone strings containing `/` (e.g., `Etc/GMT-10`) are not treated
+      as UTC offsets requiring sign inversion.
+    weight: 2
+  - id: FC4
+    description: Confines all changes to the backend `operations.py` files (postgresql,
+      mysql, oracle) and/or `django/db/models/functions/datetime.py`, without introducing
+      unrelated file churn.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause described in the PR: that `_prepare_tzname_delta`
+      incorrectly inverts signs inside fully-qualified timezone names like `Etc/GMT-10`,
+      causing a 20-hour directional error relative to Django 3.1 behavior.'
+    weight: 3
+  - id: SA2
+    description: Ensures that pure UTC-offset style timezone names (e.g., `+10`, `-05`)
+      still receive sign inversion in `_prepare_tzname_delta`, preserving the original
+      intent of the function for offset-only strings.
+    weight: 3
+  - id: SA3
+    description: Adds at least one test or test case covering the `Etc/GMT-10` (or
+      equivalent `Etc/GMT+N` / `Etc/GMT-N`) timezone in the context of `Trunc` or
+      `Extract` to guard against regression of this specific scenario.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the public signatures of `_prepare_tzname_delta` and `_convert_field_to_tz`
+      methods (same argument and return types), so callers in `datetime_extract_sql`,
+      `datetime_trunc_sql`, `date_trunc_sql`, etc. require no changes.
+    weight: 2
+  - id: I2
+    description: Does not remove or skip existing test coverage for timezone-aware
+      `Extract`/`Trunc` queries (e.g., does not delete or weaken assertions in `DateFunctionWithTimeZoneTests`).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when `Etc/GMT-10` is passed as `tzinfo` to `Trunc` or
+      `Extract`, the generated SQL uses a timezone expression corresponding to 10
+      hours east of UTC (not west), matching Django 3.1 behavior.
+    weight: 3
+  - id: R2
+    description: Ensures that passing a plain numeric UTC-offset timezone (e.g., `datetime.timezone(timedelta(hours=5))`)
+      to `Trunc` or `Extract` still generates a SQL expression with the correct inverted
+      sign, so the UTC-offset convention used by PostgreSQL/MySQL/Oracle is honored.
+    weight: 2

@@ -1,0 +1,58 @@
+metadata:
+  task_summary: Make `makemigrations --check` exit with a non-zero status without
+    writing migration files, consistent with `migrate --check` and `optimizemigration
+    --check`.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies `django/core/management/commands/makemigrations.py` as the
+      sole production-code change, with no unrelated files altered.
+    weight: 3
+  - id: FC2
+    description: Moves or adds a `sys.exit(1)` call in the `handle` method to execute
+      before `write_migration_files` or `write_to_last_migration_files` is called
+      when `check_changes` is True, rather than after those calls.
+    weight: 3
+  - id: FC3
+    description: 'Removes (or repositions) the `if check_changes: sys.exit(1)` block
+      that previously appeared after the `write_migration_files`/`write_to_last_migration_files`
+      calls in the `else` branch of `if not changes`.'
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that when `--check` is supplied and changes are detected,
+      the command exits with a non-zero status code (via `sys.exit(1)`) without writing
+      any migration files to disk.
+    weight: 3
+  - id: SA2
+    description: Preserves the behavior that when `--check` is supplied and no changes
+      are detected, the command exits with status 0 (no `sys.exit` call).
+    weight: 2
+  - id: SA3
+    description: Updates the `--check` argument help text in `add_arguments` to reflect
+      that it exits without writing migrations, making it consistent with the `migrate
+      --check` and `optimizemigration --check` semantics described in the PR.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: 'Confirms that the `--dry-run` flag semantics are not changed: `write_migration_files`
+      still respects `self.dry_run` for its disk-write guard independently of `--check`.'
+    weight: 2
+  - id: I2
+    description: Confirms that the existing `test_makemigrations_check` test is not
+      weakened, removed, or skipped, and that the assertion of `SystemExit` when changes
+      exist is preserved.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that running `makemigrations --check` when model changes
+      requiring migrations exist exits with code 1 before any file I/O in `write_migration_files`
+      occurs, evidenced by the `sys.exit(1)` call being placed before the `write_migration_files`
+      or `write_to_last_migration_files` invocation in the diff.
+    weight: 3
+  - id: R2
+    description: Ensures that running `makemigrations` without `--check` when changes
+      are detected still calls `write_migration_files` or `write_to_last_migration_files`
+      normally, evidenced by those calls remaining in the code path where `check_changes`
+      is False.
+    weight: 2

@@ -1,0 +1,56 @@
+metadata:
+  task_summary: Fix SQLite crashing with 'Cannot add a UNIQUE column' when adding
+    a nullable OneToOneField via migrations by making add_field use _remake_table
+    for unique fields.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `add_field` method in `django/db/backends/sqlite3/schema.py`
+      to address the UNIQUE column constraint.
+    weight: 3
+  - id: FC2
+    description: Confines the production code change to `django/db/backends/sqlite3/schema.py`
+      without modifying unrelated files such as base schema editor or other database
+      backends.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test (anywhere in the diff) that exercises `add_field`
+      with a nullable unique field (e.g., a field with `null=True` and `unique=True`,
+      or a `OneToOneField` with `null=True`) on SQLite.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Extends the condition in `add_field` to trigger `_remake_table` when
+      `field.unique` is True, so that nullable unique fields (including `OneToOneField(null=True)`)
+      do not fall through to `super().add_field()` which issues a failing `ALTER TABLE
+      ... ADD COLUMN ... UNIQUE` statement on SQLite.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior of `add_field` for non-unique nullable
+      fields with no default (i.e., the `super().add_field()` path remains reachable
+      for fields where `field.null` is True, `field.unique` is False, and `effective_default`
+      returns None).
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Avoids weakening existing tests (no test assertions are removed,
+      relaxed, or skipped in the diff).
+    weight: 2
+  - id: I2
+    description: Preserves the public signature of `add_field(self, model, field)`
+      in `django/db/backends/sqlite3/schema.py` without adding, removing, or renaming
+      parameters.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that calling `add_field` with a nullable field that has `unique=True`
+      (or is a `OneToOneField`) routes to `_remake_table` rather than issuing a raw
+      `ALTER TABLE ... ADD COLUMN` SQL statement, which SQLite rejects with 'Cannot
+      add a UNIQUE column'.
+    weight: 3
+  - id: R2
+    description: Ensures that calling `add_field` with a non-unique nullable field
+      that has no effective default still routes to `super().add_field()` (the fast
+      path), so existing behavior for plain nullable FK or non-unique fields is not
+      regressed.
+    weight: 2

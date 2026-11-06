@@ -1,0 +1,53 @@
+metadata:
+  task_summary: Refactor AutocompleteJsonView.get() to extract a serialize_result()
+    method as an override point for adding extra fields to autocomplete JSON responses.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Confirms that changes are confined to django/contrib/admin/views/autocomplete.py
+      (and optionally test files), with no unrelated file churn introduced.
+    weight: 2
+  - id: FC2
+    description: Adds a def serialize_result( method to AutocompleteJsonView in django/contrib/admin/views/autocomplete.py.
+    weight: 3
+  - id: FC3
+    description: 'Replaces the inline dict literal {''id'': str(getattr(obj, to_field_name)),
+      ''text'': str(obj)} inside the get() list comprehension with a call to self.serialize_result(obj,
+      to_field_name).'
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements serialize_result with the signature def serialize_result(self,
+      obj, to_field_name) as specified in the PR description.
+    weight: 3
+  - id: SA2
+    description: Implements serialize_result to return a dict containing 'id' mapped
+      to str(getattr(obj, to_field_name)) and 'text' mapped to str(obj), preserving
+      the original behavior.
+    weight: 3
+  - id: SA3
+    description: Preserves the overall structure of AutocompleteJsonView.get() unchanged
+      except for replacing the inline dict with the serialize_result call, including
+      the 'results' and 'pagination' keys in the JsonResponse.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public API of AutocompleteJsonView (get, get_queryset,
+      process_request, has_perm, get_paginator) is preserved without renaming or removing
+      any existing method.
+    weight: 2
+  - id: I2
+    description: Confirms that no existing tests are weakened, skipped, or deleted
+      in any test file that appears in the diff.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: 'Ensures backward compatibility: a subclass that does not override
+      serialize_result still receives the same JSON response shape {''id'': ..., ''text'':
+      ...} as before the refactor.'
+    weight: 3
+  - id: R2
+    description: 'Ensures extensibility: a subclass overriding serialize_result(self,
+      obj, to_field_name) can call super().serialize_result(obj, to_field_name) and
+      merge extra fields, matching the pattern shown in the PR description.'
+    weight: 2

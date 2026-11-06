@@ -1,0 +1,56 @@
+metadata:
+  task_summary: Fix the weighted mean bug where boolean weight arrays produce incorrect
+    results due to boolean dot-product arithmetic in `_sum_of_weights`.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies `xarray/core/weighted.py` as the primary (and ideally only)
+      changed production file, keeping edits local to the weighted computation logic.
+    weight: 3
+  - id: FC2
+    description: Introduces a type-conversion step (e.g., casting or multiplying weights
+      by 1, or using `.astype(int)` / `.astype(float)`) somewhere in `xarray/core/weighted.py`
+      to prevent boolean dot-product arithmetic from producing a boolean result.
+    weight: 3
+  - id: FC3
+    description: Adds at least one test case in the weighted test file exercising
+      boolean-dtype weights (e.g., `np.array([1, 1, 0], dtype=np.bool)` or `dtype=bool`)
+      for `sum_of_weights`, `sum`, or `mean`.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Ensures the fix targets the root cause identified in the PR description:
+      the dot product of two boolean arrays (from `da.notnull()` and boolean `self.weights`)
+      returning a boolean rather than a numeric value.'
+    weight: 3
+  - id: SA2
+    description: Applies the type conversion to `self.weights` (or to the mask used
+      in `_sum_of_weights`) rather than only to the data array `da`, so that boolean
+      weights are correctly summed as integers.
+    weight: 2
+  - id: SA3
+    description: Preserves the existing behavior for non-boolean numeric weight dtypes
+      (int, float), leaving their computation path unchanged.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Avoids weakening existing tests in `xarray/tests/test_weighted.py`
+      (no removal of parametrize cases, no addition of `xfail` or `skip` markers to
+      previously passing tests).
+    weight: 2
+  - id: I2
+    description: Confirms the public API of `Weighted`, `DataArrayWeighted`, and `DatasetWeighted`
+      (method signatures for `sum_of_weights`, `sum`, and `mean`) remains unchanged.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when boolean weights like `np.array([1, 1, 0], dtype=np.bool)`
+      are passed, `_sum_of_weights` produces a numeric (int or float) value equal
+      to the count of True weights coinciding with non-NaN data, rather than a boolean
+      `True`.
+    weight: 3
+  - id: R2
+    description: Ensures that `_weighted_mean` with boolean weights returns the correct
+      arithmetic mean (e.g., 1.0 for `DataArray([1., 1., 1.])` with weights `[True,
+      True, False]`) instead of an inflated value caused by boolean division.
+    weight: 3

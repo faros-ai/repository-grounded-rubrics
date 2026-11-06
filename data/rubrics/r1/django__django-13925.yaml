@@ -1,0 +1,62 @@
+metadata:
+  task_summary: Fix models.W042 being incorrectly raised on models that inherit a
+    manually specified primary key from a parent model via multi-table inheritance.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `_check_default_pk` method in `django/db/models/base.py`
+      to suppress the W042 warning when the primary key is inherited from a parent
+      model with a manually defined PK.
+    weight: 3
+  - id: FC2
+    description: Confines the fix to the `_check_default_pk` method (or closely related
+      model-check code) without making unrelated changes to other Django subsystems.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test case in the model checks test file (e.g.,
+      `tests/check_framework/test_model_checks.py`) that exercises a model inheriting
+      a manually specified PK and asserts that W042 is not emitted.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Adds a condition inside `_check_default_pk` that detects when `cls._meta.pk`
+      is a `parent_link` field (i.e., a OneToOneField with `remote_field.parent_link`
+      True, or equivalently when the pk comes from `cls._meta.parents`) and skips
+      the W042 warning in that case.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing W042 warning for models that truly have an
+      auto-created primary key (no pk defined anywhere in the inheritance chain),
+      so the fix does not suppress W042 for genuinely auto-generated PKs.
+    weight: 3
+  - id: SA3
+    description: Keeps the three existing guard conditions in `_check_default_pk`
+      (`cls._meta.pk.auto_created`, `not settings.is_overridden('DEFAULT_AUTO_FIELD')`,
+      and `not cls._meta.app_config._is_default_auto_field_overridden`) intact, only
+      adding the inherited-pk condition alongside them.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing test for W042 is weakened, skipped, or
+      deleted by the patch.
+    weight: 2
+  - id: I2
+    description: Confirms that the public signature and return type of `_check_default_pk`
+      (returns a list of `checks.Warning` objects or an empty list) is unchanged.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a model using multi-table inheritance where the parent
+      class defines an explicit primary key field (e.g., `id = models.AutoField(primary_key=True)`)
+      no longer triggers a W042 warning during system checks.
+    weight: 3
+  - id: R2
+    description: Ensures that a model with no primary key defined anywhere in its
+      class hierarchy (so Django auto-creates one) still triggers the W042 warning
+      when `DEFAULT_AUTO_FIELD` is not overridden.
+    weight: 3
+  - id: R3
+    description: Ensures the fix handles abstract model inheritance correctly, so
+      W042 is still suppressed (not double-reported) when both a child and an abstract
+      parent lack a manually defined pk.
+    weight: 1

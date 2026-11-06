@@ -1,0 +1,58 @@
+metadata:
+  task_summary: Add a --skip-checks option to the runserver management command so
+    that system checks can be bypassed during development.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/core/management/commands/runserver.py to expose the
+      --skip-checks option, either by adding an explicit '--skip-checks' argument
+      in add_arguments or by changing requires_system_checks to a non-empty value
+      so that BaseCommand.create_parser adds the argument automatically.
+    weight: 3
+  - id: FC2
+    description: Modifies inner_run in django/core/management/commands/runserver.py
+      so that self.check() is guarded by a conditional that respects the skip_checks
+      option (e.g., only calling self.check when options['skip_checks'] is falsy).
+    weight: 3
+  - id: FC3
+    description: Confines all changes related to --skip-checks in runserver to django/core/management/commands/runserver.py
+      without introducing unrelated file churn or edits to unrelated commands.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements --skip-checks as an option that, when supplied, causes
+      the runserver command to skip the 'Performing system checks...' step that normally
+      occurs in inner_run, consistent with the PR description's rationale of skipping
+      checks during development.
+    weight: 3
+  - id: SA2
+    description: Ensures the --skip-checks option for runserver is consistent with
+      how other management commands handle it (i.e., relies on the same skip_checks
+      key in options dict used by BaseCommand.execute), as described in the PR's consistency
+      rationale.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that when --skip-checks is not supplied, runserver still
+      performs system checks by default (i.e., the existing call to self.check(display_num_errors=True)
+      in inner_run is retained and executed in the default code path).
+    weight: 3
+  - id: I2
+    description: Confirms that check_migrations() handling in inner_run is preserved
+      and not removed or accidentally skipped as a side effect of the --skip-checks
+      change.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that passing --skip-checks to runserver causes the 'Performing
+      system checks...' output and self.check() invocation to be bypassed at runtime,
+      visible as a conditional branch in inner_run gating both the stdout.write('Performing
+      system checks...') message and the self.check() call on the skip_checks option
+      value.
+    weight: 3
+  - id: R2
+    description: Ensures the --skip-checks option is surfaced in the runserver argument
+      parser so that running 'manage.py runserver --skip-checks' does not raise an
+      'unrecognized arguments' error, evidenced by the argument being registered in
+      create_parser or add_arguments for the runserver command.
+    weight: 3

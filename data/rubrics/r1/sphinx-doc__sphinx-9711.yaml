@@ -1,0 +1,64 @@
+metadata:
+  task_summary: Fix needs_extensions version check in verify_needs_extensions to use
+    proper version comparison instead of string comparison, so that extension versions
+    like 0.10.0 are correctly accepted when the minimum required is 0.6.0.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the version comparison logic inside verify_needs_extensions
+      in sphinx/extension.py to replace the raw string comparison (reqversion > extension.version)
+      with a proper semantic version comparison.
+    weight: 3
+  - id: FC2
+    description: Introduces an import of a version-parsing utility (such as packaging.version.Version,
+      distutils.version.LooseVersion, or equivalent) in sphinx/extension.py to support
+      semantic version comparison.
+    weight: 3
+  - id: FC3
+    description: Confines all changes to sphinx/extension.py (and possibly an associated
+      test file), without modifying unrelated files or introducing unnecessary dependency
+      changes.
+    weight: 2
+  - id: FC4
+    description: Adds a test case exercising verify_needs_extensions with a version
+      pair where the installed version has a minor component greater than 9 (e.g.,
+      installed 0.10.0 against required 0.6.0) to cover the previously broken case.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures the comparison in verify_needs_extensions treats version
+      strings as structured version objects rather than plain strings, so that '0.10.0'
+      is recognised as greater than '0.6.0'.
+    weight: 3
+  - id: SA2
+    description: Preserves the special-case handling for extension.version == 'unknown
+      version', still raising VersionRequirementError when the extension version is
+      unknown.
+    weight: 2
+  - id: SA3
+    description: Preserves the VersionRequirementError raised by verify_needs_extensions
+      when the installed extension version is genuinely below the required version
+      (e.g., installed 0.5.0 against required 0.6.0).
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Avoids weakening or removing any existing test assertions for needs_extensions
+      or verify_needs_extensions that check the error path (extension too old or unknown
+      version).
+    weight: 2
+  - id: I2
+    description: Does not alter the public signature or return type of verify_needs_extensions,
+      preserving the existing config-inited event hook registration in setup().
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that an extension with a version string whose minor component
+      exceeds 9 (e.g., '0.10.0') is accepted without raising VersionRequirementError
+      when the required minimum is a lower version (e.g., '0.6.0'), eliminating the
+      false rejection described in the PR.
+    weight: 3
+  - id: R2
+    description: Ensures that VersionRequirementError is still raised with a message
+      referencing both the required and loaded versions when the installed extension
+      version is genuinely older than the required minimum.
+    weight: 2

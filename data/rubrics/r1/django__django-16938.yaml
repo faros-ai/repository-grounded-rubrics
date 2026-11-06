@@ -1,0 +1,59 @@
+metadata:
+  task_summary: 'Fix FieldError raised during M2M serialization when the target model''s
+    custom manager uses select_related, caused by the conflict between select_related
+    and only(''pk'') introduced in optimization #33937.'
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/core/serializers/python.py to fix the queryset_iterator
+      that calls only('pk') on M2M fields, which conflicts with custom managers using
+      select_related.
+    weight: 3
+  - id: FC2
+    description: Confines the fix to the M2M serialization code path (the queryset_iterator
+      or equivalent callable inside handle_m2m_field) without modifying unrelated
+      serializer code.
+    weight: 2
+  - id: FC3
+    description: Adds or modifies test models (e.g., in tests/serializers/models/)
+      or test cases (e.g., in tests/serializers/tests.py) to cover serialization of
+      M2M fields whose target model has a custom manager with select_related.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the root cause by ensuring that select_related from a custom
+      manager's get_queryset does not conflict with the only('pk') call used to optimize
+      M2M serialization in handle_m2m_field.
+    weight: 3
+  - id: SA2
+    description: Applies the fix in the non-natural-key branch of handle_m2m_field
+      (the branch that calls only('pk').iterator()), which is the branch that triggers
+      the FieldError when select_related is present.
+    weight: 3
+  - id: SA3
+    description: Preserves the existing only('pk') optimization for the non-natural-key
+      M2M serialization path, rather than removing it entirely, so performance is
+      not regressed.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the natural-key branch of handle_m2m_field unchanged, since
+      that branch calls iterator() without only('pk') and is not affected by the bug.
+    weight: 2
+  - id: I2
+    description: Does not weaken or skip existing serializer tests; any test changes
+      only add coverage for the new scenario.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that calling serializers.serialize on an object whose M2M
+      field's target model has a custom manager using select_related no longer raises
+      FieldError containing 'cannot be both deferred and traversed using select_related
+      at the same time'.
+    weight: 3
+  - id: R2
+    description: Ensures that the M2M queryset used during serialization does not
+      carry over select_related state from the custom manager, by clearing select_related
+      (e.g., via select_related(None)) or by an equivalent structural change that
+      prevents the conflict with only('pk').
+    weight: 3

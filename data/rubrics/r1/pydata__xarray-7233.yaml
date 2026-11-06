@@ -1,0 +1,50 @@
+metadata:
+  task_summary: Fix ds.Coarsen.construct so that non-dimensional coordinates (e.g.,
+    'day') are preserved as coordinates and not demoted to data variables after the
+    reshape.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the 'should_be_coords' logic in the 'Coarsen.construct'
+      method in xarray/core/rolling.py so that it captures original coordinates beyond
+      just the intersection of window_dim keys with self.obj.coords.
+    weight: 3
+  - id: FC2
+    description: Confines changes to xarray/core/rolling.py (and optionally test files),
+      without modifying unrelated modules such as dataset.py, dataarray.py, or variable.py.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test case in xarray/tests/test_coarsen.py that
+      exercises Coarsen.construct with a non-dimensional coordinate (a coordinate
+      whose name differs from its dimension, such as 'day' assigned to a 'time' dimension).
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that all variables that were coordinates in the original
+      object (self.obj.coords) are marked as coordinates in the result of Coarsen.construct,
+      not only those whose names match the window_dim keys.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior that dimension coordinates renamed
+      via window_dim (e.g., 'time' expanded to 'year'/'month') are still marked as
+      coordinates when they were coordinates before.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing tests in test_coarsen.py (such as test_coarsen_construct)
+      are not weakened, removed, or skipped in the patch.
+    weight: 3
+  - id: I2
+    description: 'Confirms that the public signature of Coarsen.construct (parameters:
+      window_dim, keep_attrs, **window_dim_kwargs) is unchanged.'
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that after calling ds.coarsen(time=12).construct(time=('year',
+      'month')) on a dataset with a non-dimensional coordinate like 'day', the result's
+      coords contains 'day' (i.e., 'day' appears in result.coords, not only in result.data_vars).
+    weight: 3
+  - id: R2
+    description: Ensures that data variables (non-coordinate variables) in the original
+      dataset are not erroneously promoted to coordinates in the result of Coarsen.construct.
+    weight: 2

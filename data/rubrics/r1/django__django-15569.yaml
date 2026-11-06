@@ -1,0 +1,53 @@
+metadata:
+  task_summary: Add a call to _clear_cached_lookups() inside _unregister_lookup()
+    in RegisterLookupMixin so that the lru_cache on get_lookups() is invalidated when
+    a lookup is unregistered, mirroring the behavior of register_lookup().
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Adds a call to cls._clear_cached_lookups() inside the _unregister_lookup()
+      classmethod in django/db/models/query_utils.py, after the del cls.class_lookups[lookup_name]
+      line.
+    weight: 3
+  - id: FC2
+    description: Limits production-code changes to django/db/models/query_utils.py,
+      with no unrelated files modified in the diff.
+    weight: 2
+  - id: FC3
+    description: Updates the schema tests (tests/schema/tests.py) related to test_func_unique_constraint_lookups
+      to use the register_lookup context manager from django.test.utils rather than
+      manual register/unregister or addCleanup patterns, consistent with the PR description's
+      note about minor test changes.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Mirrors the cache-clearing logic of register_lookup() by calling
+      _clear_cached_lookups() in _unregister_lookup(), so both methods leave the lookup
+      cache in a consistent state.
+    weight: 3
+  - id: SA2
+    description: Ensures _unregister_lookup() still deletes the lookup from cls.class_lookups
+      before clearing the cache, preserving the original deletion behavior.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public signature of _unregister_lookup(cls, lookup,
+      lookup_name=None) is preserved unchanged in the diff.
+    weight: 2
+  - id: I2
+    description: Confirms that no existing tests are removed or weakened (e.g., no
+      assertions deleted, no skip decorators added) for the test_func_unique_constraint_lookups
+      test.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Guarantees that after _unregister_lookup() is called, subsequent
+      calls to get_lookups() on the class and its subclasses return a fresh result
+      that does not include the removed lookup, because the lru_cache is cleared via
+      _clear_cached_lookups().
+    weight: 3
+  - id: R2
+    description: Preserves the existing behavior that register_lookup() continues
+      to call _clear_cached_lookups() so that registering a lookup also invalidates
+      the cache for the class hierarchy.
+    weight: 2

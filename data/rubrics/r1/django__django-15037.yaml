@@ -1,0 +1,62 @@
+metadata:
+  task_summary: Fix inspectdb to emit to_field= on ForeignKey/OneToOneField when the
+    FK references a non-primary-key column in the related table.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/core/management/commands/inspectdb.py and no unrelated
+      production files, keeping the diff minimal and confined to the FK-generation
+      logic.
+    weight: 2
+  - id: FC2
+    description: Adds logic inside the is_relation branch in handle_inspection (in
+      django/core/management/commands/inspectdb.py) that compares the referenced column
+      from relations[column_name][0] against the primary key of the other table to
+      decide whether to_field is needed.
+    weight: 3
+  - id: FC3
+    description: Adds a call to get_primary_key_column (or an equivalent constraint-based
+      lookup) for the referenced table somewhere in the diff, so the referenced column
+      can be compared to the PK column.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Generates a to_field='<referenced_column>' keyword argument in the
+      ForeignKey or OneToOneField output when the FK targets a column that is not
+      the primary key of the other table, matching the scenario described in the PR
+      (bar.other_id referencing foo(other_id) where other_id is UNIQUE but not the
+      PK).
+    weight: 3
+  - id: SA2
+    description: Omits to_field from the generated field definition when the FK references
+      the primary key column of the other table, preserving the existing behavior
+      for standard FK relationships.
+    weight: 2
+  - id: SA3
+    description: Adds test coverage (in tests/inspectdb/ or a related test file) for
+      a ForeignKey targeting a non-primary-key column, verifying that the inspected
+      output contains to_field=.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing public API and output format of inspectdb
+      for ordinary ForeignKey and OneToOneField fields (those pointing to the PK),
+      so no regression is introduced for existing usage.
+    weight: 3
+  - id: I2
+    description: Does not weaken, skip, or remove any existing tests related to foreign
+      key introspection (such as test_attribute_name_not_python_keyword or tests decorated
+      with skipUnlessDBFeature('can_introspect_foreign_keys')).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Produces generated model code containing to_field='<col>' only when
+      the introspected FK's referenced column differs from the primary key column
+      of the related table, ensuring distinguishable output for the non-PK FK case
+      vs. the PK FK case.
+    weight: 3
+  - id: R2
+    description: Handles the self-referential FK case (where relations[column_name][1]
+      == table_name) without errors, applying the same to_field logic when the self-referencing
+      column is not the primary key.
+    weight: 1

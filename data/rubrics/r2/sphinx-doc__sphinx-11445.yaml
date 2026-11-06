@@ -1,0 +1,57 @@
+metadata:
+  task_summary: Fix rst_prolog incorrectly treating domain directive headings (e.g.,
+    :mod:`mypackage2`) as docinfo fields, which inserts a blank line between the heading
+    text and its underline, breaking the section structure.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `docinfo_re` pattern in `sphinx/util/rst.py` so it no
+      longer matches lines starting with a domain role such as `:mod:` followed by
+      a backtick.
+    weight: 3
+  - id: FC2
+    description: Confines changes to `sphinx/util/rst.py` (and optionally test files)
+      without introducing unrelated file churn in other source modules.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test fixture file (e.g., under `tests/roots/test-prolog/`)
+      or a test case that exercises a document whose first heading is a domain directive
+      role such as `:mod:` when `rst_prolog` is set.
+    weight: 1
+  - id: FC4
+    description: Adds a test assertion (in `test_util_rst.py`, `test_markup.py`, or
+      `test_parser.py`) covering the case where `prepend_prolog` is called on content
+      whose first line is a domain role like `:mod:`mypackage2``.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that `prepend_prolog` skips domain directive lines (e.g.,
+      `:mod:`mypackage2``) when counting docinfo lines to skip, so the prolog is prepended
+      before the first heading rather than after it.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior of `prepend_prolog` for genuine RST
+      docinfo fields (lines matching `:\w+:\s` or equivalent) so that prolog is still
+      inserted after any real docinfo block.
+    weight: 3
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing tests for `prepend_prolog` (covering real
+      docinfo fields such as `:title:` and `:author:`) are weakened, deleted, or have
+      their assertions loosened.
+    weight: 3
+  - id: I2
+    description: Confirms that the public signatures of `prepend_prolog`, `append_epilog`,
+      and `RSTParser.decorate` remain unchanged.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a document whose first line is `:mod:`mypackage2`` followed
+      by an underline is parsed with the heading intact (no blank line injected between
+      the title text and the underline) when `rst_prolog` is non-empty.
+    weight: 3
+  - id: R2
+    description: 'Ensures that a document beginning with genuine RST docinfo fields
+      (e.g., `:author: Name`) still has the prolog inserted after those fields, not
+      before them, preserving correct docinfo handling.'
+    weight: 2

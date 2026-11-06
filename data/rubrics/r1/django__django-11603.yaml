@@ -1,0 +1,55 @@
+metadata:
+  task_summary: Add DISTINCT support to Avg and Sum aggregate classes by setting allow_distinct
+    = True, mirroring what Count already does.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Sets allow_distinct = True on the Avg class in django/db/models/aggregates.py,
+      which previously inherited the False default from the Aggregate base class.
+    weight: 3
+  - id: FC2
+    description: Sets allow_distinct = True on the Sum class in django/db/models/aggregates.py,
+      which previously inherited the False default from the Aggregate base class.
+    weight: 3
+  - id: FC3
+    description: Confines changes to django/db/models/aggregates.py and related test
+      or documentation files only, without modifying unrelated modules or introducing
+      dependency churn.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements the fix described in the PR by marking Avg and Sum as
+      allowing DISTINCT, so that passing distinct=True to these aggregates no longer
+      raises TypeError.
+    weight: 3
+  - id: SA2
+    description: Adds test coverage (anywhere in the test suite) that exercises Avg
+      or Sum with distinct=True to confirm the feature is wired correctly.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the Aggregate base class attribute allow_distinct = False
+      so that custom aggregates still raise TypeError on distinct=True unless they
+      explicitly opt in.
+    weight: 3
+  - id: I2
+    description: Does not weaken or remove the existing test_allow_distinct test in
+      aggregation_regress/tests.py that asserts TypeError for aggregates without allow_distinct
+      = True.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that Avg(expression, distinct=True) no longer raises TypeError
+      at instantiation time, because allow_distinct = True bypasses the guard in Aggregate.__init__
+      that checks self.allow_distinct.
+    weight: 3
+  - id: R2
+    description: Ensures that Sum(expression, distinct=True) no longer raises TypeError
+      at instantiation time, because allow_distinct = True bypasses the guard in Aggregate.__init__
+      that checks self.allow_distinct.
+    weight: 3
+  - id: R3
+    description: Confirms that the generated SQL for Avg or Sum with distinct=True
+      includes the DISTINCT keyword, relying on the existing as_sql logic in Aggregate
+      that interpolates 'DISTINCT ' when self.distinct is True.
+    weight: 2

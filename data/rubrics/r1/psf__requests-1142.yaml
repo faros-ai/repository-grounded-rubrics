@@ -1,0 +1,57 @@
+metadata:
+  task_summary: Prevent requests from always sending a Content-Length header on GET
+    (and other body-less) requests, which causes servers like amazon.com to return
+    503.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `prepare_content_length` method in `requests/models.py`
+      to remove the unconditional initial assignment `self.headers['Content-Length']
+      = '0'` that fires even when body is None.
+    weight: 3
+  - id: FC2
+    description: Confines changes to `requests/models.py` (specifically the `prepare_content_length`
+      or `prepare_body` method) without introducing unrelated edits to other source
+      files.
+    weight: 2
+  - id: FC3
+    description: Ensures the `prepare_content_length` method (or equivalent logic
+      in `prepare_body`) only writes a `Content-Length` header when body is not None
+      (i.e., adds a guard such as `if body is not None` or `elif body is not None`
+      before setting the header).
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the stated bug where `Content-Length` was always added
+      to requests, ensuring that GET (or other body-less) requests do not have `Content-Length`
+      added to their headers when no body is present.
+    weight: 3
+  - id: SA2
+    description: Preserves the behavior of setting an accurate `Content-Length` header
+      when a body (data or files) is present in the request, so POST/PUT requests
+      with a body are unaffected.
+    weight: 3
+  integrity_rubrics:
+  - id: I1
+    description: 'Confirms that the fix in `prepare_content_length` (or equivalent
+      guard) also covers the re-computation call inside `prepare_auth`, so authentication
+      flows do not re-introduce a spurious `Content-Length: 0` header after auth processing.'
+    weight: 2
+  - id: I2
+    description: Confirms that the `chunked` logic in `requests/adapters.py` (which
+      checks `request.body is None or 'Content-Length' in request.headers`) is not
+      changed in a way that breaks chunked-encoding detection for streaming requests.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when `requests.get` (or any request with no data/files)
+      is prepared, the resulting `PreparedRequest.headers` dict does not contain a
+      `Content-Length` key, preventing 503 responses from servers that reject that
+      header on GET.
+    weight: 3
+  - id: R2
+    description: Ensures that requests with a file-like or seekable body still receive
+      a correctly computed `Content-Length` header (using the `seek`/`tell` path in
+      `prepare_content_length`), preserving backward-compatible behavior for file
+      uploads.
+    weight: 2

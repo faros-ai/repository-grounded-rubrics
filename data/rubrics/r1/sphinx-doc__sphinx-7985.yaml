@@ -1,0 +1,59 @@
+metadata:
+  task_summary: Extend the linkcheck builder in sphinx/builders/linkcheck.py to actually
+    validate local (non-http/https) URIs by checking whether the referenced file or
+    path exists on disk, rather than silently marking them as 'local' without any
+    file-existence check.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sphinx/builders/linkcheck.py and confines all changes to
+      that file, avoiding unrelated file churn elsewhere in the codebase.
+    weight: 2
+  - id: FC2
+    description: Removes or replaces the early-return branch in the check() inner
+      function that unconditionally returns ('local', '', 0) for URIs not starting
+      with 'http:' or 'https:', replacing it with logic that examines the local path.
+    weight: 3
+  - id: FC3
+    description: Adds a new config value (via app.add_config_value) in the setup()
+      function of sphinx/builders/linkcheck.py that enables or disables local link
+      checking, such as 'linkcheck_check_anchors_in_local' or similar, OR uses the
+      existing builder infrastructure to handle local paths without a new config knob.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Implements file-existence checking for local (non-HTTP) URIs so
+      that a reference like ''.. _local-link: doesntexist'' causes a ''broken'' status
+      to be reported rather than a silent ''-local-'' message.'
+    weight: 3
+  - id: SA2
+    description: Resolves local URI paths relative to the source document's directory
+      (e.g., using self.env.srcdir or the docname's directory) so that relative paths
+      are correctly located on disk.
+    weight: 3
+  - id: SA3
+    description: Reports a broken local link (missing file or path) using the 'broken'
+      status so that self.app.statuscode is set to 1 and the build exits with an error,
+      matching the behavior described for broken external links.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing behavior for URIs starting with 'http:' or
+      'https:', leaving the check_uri() network-checking path and all HTTP-related
+      logic unchanged.
+    weight: 3
+  - id: I2
+    description: Preserves the 'unchecked' early-return for URIs that are empty or
+      start with '#', 'mailto:', or 'ftp:', so those link types remain unaffected.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Produces a 'broken' status (not 'local') for a local URI that points
+      to a nonexistent file, causing the corresponding entry to appear in output.txt
+      with a 'broken' label and setting app.statuscode to 1.
+    weight: 3
+  - id: R2
+    description: Does not issue a network request for local URIs; the local-path check
+      uses only filesystem operations (e.g., os.path.exists or path.isfile), keeping
+      the linkcheck worker threads free of unnecessary I/O for local links.
+    weight: 2

@@ -1,0 +1,55 @@
+metadata:
+  task_summary: Fix Field.__hash__() so it returns a value based solely on creation_counter
+    (immutable at construction time) rather than also incorporating model._meta.app_label
+    and model._meta.model_name, which change when the field is assigned to a model
+    class.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the def __hash__( method inside django/db/models/fields/__init__.py
+      to remove the model-dependent components (model._meta.app_label and model._meta.model_name)
+      from the hash computation.
+    weight: 3
+  - id: FC2
+    description: Confines changes to at most the Field class in django/db/models/fields/__init__.py
+      and any accompanying test files, without modifying unrelated files or modules.
+    weight: 2
+  - id: FC3
+    description: Leaves the def __eq__( method in django/db/models/fields/__init__.py
+      unchanged (still comparing both creation_counter and model), since only __hash__
+      needs fixing.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures the revised __hash__ implementation returns a value derived
+      solely from creation_counter, which is set at field construction time and is
+      never mutated, making the hash immutable for the lifetime of the Field object.
+    weight: 3
+  - id: SA2
+    description: 'Does not remove or alter the model-aware __eq__ method, preserving
+      the equality-checking fix from ticket #31750 (two fields with equal creation_counter
+      must also share the same model to be equal).'
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Avoids weakening or skipping any existing tests related to Field
+      equality or hashing (e.g., does not add skip decorators or remove assertions
+      in tests covering __eq__ or __hash__).
+    weight: 2
+  - id: I2
+    description: Preserves the public Field API (creation_counter attribute, __eq__,
+      __lt__, __hash__ method signatures) so that code using Field instances as dict
+      keys or in sets continues to work after the change.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a Field instance placed in a dict before being assigned
+      to a model class (via contribute_to_class) can still be found in that dict after
+      assignment, because hash(field) returns the same value before and after the
+      model attribute is set.
+    weight: 3
+  - id: R2
+    description: Ensures two distinct Field instances (with different creation_counter
+      values) continue to produce different hash values, preserving correct dict and
+      set behavior when multiple fields are used as keys.
+    weight: 2

@@ -1,0 +1,103 @@
+metadata:
+  task_summary: Extend autodoc_docstring_signature to support multiple consecutive
+    overloaded signatures at the start of a docstring, not just the first one.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `_find_signature` method inside `DocstringSignatureMixin`
+      in `sphinx/ext/autodoc/__init__.py` to collect multiple signature matches instead
+      of stopping at the first one (removes or replaces the `break` that exits after
+      the first match).
+    weight: 3
+  - id: FC2
+    description: Modifies `DocstringSignatureMixin.format_signature` in `sphinx/ext/autodoc/__init__.py`
+      to handle a list of signatures returned by `_find_signature`, joining them with
+      newlines so that multiple overloaded signatures appear in the output.
+    weight: 3
+  - id: FC3
+    description: Strips each matched signature line from `_new_docstrings` (calls
+      `prepare_docstring` on the remaining lines after each matched signature), ensuring
+      all consumed signature lines are removed from the rendered docstring body.
+    weight: 3
+  - id: FC4
+    description: Confines all changes to `sphinx/ext/autodoc/__init__.py` (and optionally
+      test or fixture files); does not modify unrelated modules, configuration, or
+      extension files.
+    weight: 2
+  - id: FC5
+    description: Updates `DocstringStripSignatureMixin.format_signature` (or confirms
+      it still works correctly) to handle the case where `_find_signature` may now
+      return multiple results, so attribute documenter behaviour is not broken.
+    weight: 2
+  - id: FC6
+    description: Adds or updates a test fixture (e.g., a method on `DocstringSig`
+      in `tests/roots/test-ext-autodoc/target/__init__.py` or a new target file) that
+      contains multiple consecutive signature lines in a docstring to exercise the
+      new multi-signature extraction.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements extraction of all consecutive leading signature lines
+      from a docstring (not only the first), matching the PR description requirement
+      that all overloaded C++ method signatures placed at the start of the docstring
+      are picked up.
+    weight: 3
+  - id: SA2
+    description: Produces a directive header with one line per extracted overloaded
+      signature (newline-separated), matching the convention already used by `FunctionDocumenter`
+      and `MethodDocumenter` for singledispatch functions.
+    weight: 2
+  - id: SA3
+    description: Removes all extracted signature lines from the rendered docstring
+      body, so the docstring content that appears after the signatures is not duplicated
+      in the output.
+    weight: 3
+  - id: SA4
+    description: Stops extracting signatures from consecutive leading lines when the
+      first line no longer matches `py_ext_sig_re` or when the name does not match
+      `valid_names`, preserving the existing single-signature behaviour for ordinary
+      docstrings.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: 'Preserves the existing single-signature extraction behaviour: a
+      docstring with exactly one leading signature line (e.g., `meth(FOO, BAR=1) ->
+      BAZ`) still produces a single correctly formatted signature.'
+    weight: 3
+  - id: I2
+    description: 'Preserves the `autodoc_docstring_signature = False` fallback path:
+      when the config option is disabled, signature lines are left in the docstring
+      body and no signature extraction occurs.'
+    weight: 2
+  - id: I3
+    description: Does not weaken existing tests for `test_autodoc_docstring_signature`,
+      `test_autoclass_content_and_docstring_signature_class`, `test_autoclass_content_and_docstring_signature_init`,
+      or `test_autoclass_content_and_docstring_signature_both` — all existing assertions
+      must remain valid or be updated only to reflect the correct new behaviour.
+    weight: 2
+  - id: I4
+    description: Retains the public method signature of `DocstringSignatureMixin._find_signature`
+      (same name, same `encoding` parameter with deprecation warning), changing only
+      the return type from a single tuple to a list of tuples or an equivalent structure.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Produces multiple `.. py:method::` (or `.. py:function::`) directive
+      header lines when a docstring contains two or more consecutive valid signature
+      lines, by joining them with newlines in the value returned by `format_signature`.
+    weight: 3
+  - id: R2
+    description: Leaves the docstring body (the text after all leading signature lines)
+      intact and renders it as the documented content, without any of the consumed
+      signature lines appearing in the body.
+    weight: 3
+  - id: R3
+    description: Handles a docstring that contains only one signature line identically
+      to the pre-patch behaviour, ensuring no regression for the common single-signature
+      use case.
+    weight: 2
+  - id: R4
+    description: Handles a docstring that has no leading signature line (first line
+      does not match `py_ext_sig_re`) identically to the pre-patch behaviour, returning
+      no extracted signature and leaving the full docstring body untouched.
+    weight: 2

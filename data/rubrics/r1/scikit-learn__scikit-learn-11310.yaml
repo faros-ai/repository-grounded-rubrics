@@ -1,0 +1,58 @@
+metadata:
+  task_summary: Add a `refit_time_` attribute to `BaseSearchCV` that records the elapsed
+    wall-clock time taken to refit the best estimator on the full dataset after cross-validation
+    search.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies `sklearn/model_selection/_search.py` to add timing logic
+      around the refit call (the `self.best_estimator_.fit(...)` block inside `BaseSearchCV.fit`).
+    weight: 3
+  - id: FC2
+    description: Adds `refit_time_` as an instance attribute assignment (e.g., `self.refit_time_
+      = ...`) in `sklearn/model_selection/_search.py`.
+    weight: 3
+  - id: FC3
+    description: Limits changes in `sklearn/model_selection/_search.py` to the refit
+      timing block and associated documentation; avoids unrelated edits to unrelated
+      methods or classes.
+    weight: 2
+  - id: FC4
+    description: Adds `refit_time_` to the Attributes section of the `GridSearchCV`
+      (or `BaseSearchCV`) docstring in `sklearn/model_selection/_search.py`.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements `refit_time_` as the elapsed time specifically for the
+      refit step (fitting the best estimator on the full dataset), not for the overall
+      cross-validation loop.
+    weight: 3
+  - id: SA2
+    description: Records `refit_time_` only when `self.refit` is truthy, mirroring
+      the existing guard (`if self.refit:`) that controls whether refitting occurs.
+    weight: 3
+  - id: SA3
+    description: Uses a standard time-measurement mechanism (such as `time.time()`
+      or `time.monotonic()`) to compute the elapsed refit duration and stores the
+      result in `refit_time_`.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing public attributes (`best_estimator_`, `best_score_`,
+      `best_params_`, `best_index_`, `cv_results_`, `scorer_`, `n_splits_`) are still
+      assigned and not removed or renamed.
+    weight: 3
+  - id: I2
+    description: Confirms that no existing test assertions are removed or weakened
+      in any test files modified by the patch.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures `refit_time_` is a non-negative float representing seconds,
+      consistent with how `mean_fit_time` and `mean_score_time` are reported in `cv_results_`.
+    weight: 2
+  - id: R2
+    description: Ensures `refit_time_` is not set (i.e., not assigned) when `refit=False`,
+      so that accessing it without refitting raises `AttributeError` rather than silently
+      returning a meaningless value.
+    weight: 2

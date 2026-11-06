@@ -1,0 +1,59 @@
+metadata:
+  task_summary: Fix a regression where using a SimpleLazyObject as a filter value
+    with a nested subquery annotation raises TypeError because the lazy wrapper is
+    not unwrapped before being passed to get_prep_value.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/db/models/sql/query.py to introduce unwrapping of
+      lazy objects (SimpleLazyObject or LazyObject) within resolve_lookup_value.
+    weight: 3
+  - id: FC2
+    description: Adds an import of SimpleLazyObject, LazyObject, or a related symbol
+      from django.utils.functional into the file that contains the fix (e.g., django/db/models/sql/query.py
+      or django/db/models/lookups.py), or uses a hasattr-based duck-typing approach
+      that avoids needing such an import.
+    weight: 2
+  - id: FC3
+    description: Confines code changes to only the files directly needed to fix the
+      SimpleLazyObject regression; avoids unrelated file churn (e.g., no changes to
+      unrelated modules such as django/db/models/fields/__init__.py for this purpose).
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Resolves the root cause identified in the PR description: the SimpleLazyObject
+      is not unwrapped before get_prep_value is called, causing TypeError: int() argument
+      must be a string, a bytes-like object or a number, not ''SimpleLazyObject''.'
+    weight: 3
+  - id: SA2
+    description: Handles the unwrapping specifically in the path triggered by a nested
+      subquery annotation used as the filter LHS (the reffed_expression branch in
+      build_filter), ensuring value is resolved/unwrapped before build_lookup is called.
+    weight: 3
+  - id: SA3
+    description: Adds a regression test that exercises annotating a queryset with
+      a nested Subquery and filtering against that annotation using a SimpleLazyObject
+      value.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing resolve_lookup_value signature and its behavior
+      for non-lazy values (expressions with resolve_expression, plain scalars, lists,
+      and tuples) without altering their handling.
+    weight: 3
+  - id: I2
+    description: Does not weaken or skip any existing test assertions related to queryset
+      filtering, subqueries, or lazy-object unwrapping.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when resolve_lookup_value processes a SimpleLazyObject,
+      it returns the underlying wrapped object (the actual User instance or its pk)
+      rather than the SimpleLazyObject wrapper, so that get_prep_value receives a
+      compatible type.
+    weight: 3
+  - id: R2
+    description: 'Maintains backward compatibility for non-lazy filter values: passing
+      a plain integer, string, or model instance as a filter value continues to work
+      without being affected by the new lazy-unwrapping logic.'
+    weight: 2

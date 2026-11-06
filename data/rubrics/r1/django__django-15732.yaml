@@ -1,0 +1,69 @@
+metadata:
+  task_summary: Fix _delete_composed_index in django/db/backends/base/schema.py so
+    that dropping a unique_together constraint on a field that also has a primary
+    key constraint does not raise a ValueError due to finding two unique constraints.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/db/backends/base/schema.py and confines all production-code
+      changes to that single file (or its direct callers), without touching unrelated
+      backend files.
+    weight: 2
+  - id: FC2
+    description: Adds or modifies logic inside _delete_composed_index (or in the call
+      sites in alter_unique_together) to pass primary_key=False when calling _constraint_names,
+      so that primary key constraints are excluded from the unique-constraint search.
+    weight: 3
+  - id: FC3
+    description: 'Does not change the alter_index_together call to _delete_composed_index,
+      which already passes {"index": True, "unique": False} and is unaffected by the
+      bug.'
+    weight: 2
+  - id: FC4
+    description: Adds a test (anywhere in tests/schema/tests.py or tests/migrations/test_operations.py)
+      that exercises dropping a unique_together constraint on a field that is also
+      the primary key.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the scenario where a single-column unique_together constraint
+      coexists with a primary key constraint on the same column, which caused _delete_composed_index
+      to find two constraints and raise ValueError('Found wrong number').
+    weight: 3
+  - id: SA2
+    description: Ensures the fix targets the _constraint_names call inside _delete_composed_index
+      (or the constraint_kwargs dict passed from alter_unique_together), not an unrelated
+      code path such as alter_field's unique constraint removal.
+    weight: 2
+  - id: SA3
+    description: Preserves the existing behavior of _delete_composed_index for multi-column
+      unique_together constraints (i.e., constraints not on a primary key column),
+      so those are still found and dropped correctly.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public signature of alter_unique_together(model,
+      old_unique_together, new_unique_together) is unchanged.
+    weight: 2
+  - id: I2
+    description: Confirms that the fix does not weaken or skip the existing ValueError
+      check in _delete_composed_index for cases where a genuinely wrong number of
+      constraints is found (i.e., the check is still present for non-primary-key scenarios).
+    weight: 3
+  - id: I3
+    description: Confirms no mass renames or unrelated refactors appear in the diff
+      (e.g., renaming _delete_composed_index, _constraint_names, or alter_unique_together).
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when a unique_together constraint is dropped from a
+      column that also carries a primary key constraint, _constraint_names returns
+      exactly one result (the unique_together constraint, not the primary key), so
+      the length check passes and the correct DROP CONSTRAINT SQL is executed.
+    weight: 3
+  - id: R2
+    description: 'Ensures backward compatibility: dropping a unique_together constraint
+      on a non-primary-key column still finds exactly one constraint, so the existing
+      ValueError path triggers only when a genuinely unexpected number of non-pk unique
+      constraints exists.'
+    weight: 2

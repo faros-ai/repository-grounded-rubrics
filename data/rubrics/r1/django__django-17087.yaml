@@ -1,0 +1,48 @@
+metadata:
+  task_summary: Fix FunctionTypeSerializer to use __qualname__ instead of __name__
+    when serializing bound classmethods from nested classes, so that migrations correctly
+    reference e.g. Profile.Capability.default instead of Capability.default.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/db/migrations/serializer.py and only that file (or
+      also a test file) to fix the classmethod serialization bug; does not introduce
+      unrelated file churn.
+    weight: 2
+  - id: FC2
+    description: Replaces the use of klass.__name__ with klass.__qualname__ in the
+      FunctionTypeSerializer.serialize() method inside django/db/migrations/serializer.py.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the case where the default value is a classmethod on a
+      nested class (e.g., Capability.default inside Profile), producing a fully-qualified
+      dotted path such as module.Profile.Capability.default rather than module.Capability.default.
+    weight: 3
+  - id: SA2
+    description: Leaves the handling of non-nested bound classmethods unchanged, so
+      that a classmethod on a top-level class still serializes correctly using module
+      and class name.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Avoids modifying or weakening any existing test that exercises FunctionTypeSerializer
+      or classmethod serialization behavior.
+    weight: 2
+  - id: I2
+    description: Adds or updates a test case that exercises serialization of a classmethod
+      defined on a nested class, verifying that the output path includes all enclosing
+      class names.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when FunctionTypeSerializer serializes a bound classmethod
+      whose __self__ is a nested class, the returned string contains the full qualified
+      class hierarchy (e.g., OuterClass.InnerClass.method_name) rather than just the
+      innermost class name.
+    weight: 3
+  - id: R2
+    description: 'Confirms backward compatibility: serializing a classmethod on a
+      top-level (non-nested) class still produces a path of the form module.ClassName.method_name,
+      unchanged from pre-fix behavior.'
+    weight: 2

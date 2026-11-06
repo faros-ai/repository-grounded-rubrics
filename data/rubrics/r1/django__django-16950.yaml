@@ -1,0 +1,62 @@
+metadata:
+  task_summary: Fix BaseInlineFormSet.add_fields() incorrectly nullifying non-auto-generated
+    fields with defaults (e.g., UUIDField with default=uuid.uuid4) when adding a new
+    parent object alongside inlines.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the add_fields method of BaseInlineFormSet in django/forms/models.py
+      to change the condition that determines when to null out the to_field value
+      on the parent instance.
+    weight: 3
+  - id: FC2
+    description: Confines all substantive changes to django/forms/models.py (and optionally
+      tests/model_formsets/), without touching unrelated files or producing spurious
+      churn in other modules.
+    weight: 2
+  - id: FC3
+    description: Adds or updates test coverage in tests/model_formsets/ that exercises
+      the case where a ForeignKey relates to a non-pk UUIDField with a callable default
+      (i.e., the ParentWithUUIDAlternateKey / ChildRelatedViaAK scenario).
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Tightens the condition around setattr(self.instance, to_field.attname,
+      None) so that it only applies to auto-generated fields (such as AutoField, BigAutoField,
+      SmallAutoField) and not to user-defined default fields like UUIDField(default=uuid.uuid4,
+      editable=False).
+    weight: 3
+  - id: SA2
+    description: 'Preserves the existing nullification behavior for truly auto-generated
+      pk fields (AutoField / BigAutoField / SmallAutoField), so that the original
+      bug fix for #24377 is not regressed.'
+    weight: 2
+  - id: SA3
+    description: Handles the non-pk alternate key case (fk.remote_field.field_name
+      != fk.remote_field.model._meta.pk.name) where to_field is a UUIDField with a
+      user-defined default, which is the exact scenario described in the PR (Thing.id
+      = UUIDField, SubThing FK to_field='id').
+    weight: 3
+  integrity_rubrics:
+  - id: I1
+    description: Avoids weakening any existing tests in tests/model_formsets/test_uuid.py
+      (e.g., test_inlineformset_factory_nulls_default_pks, test_inlineformset_factory_ignores_default_pks_on_submit)
+      by removing assertions or changing expected values.
+    weight: 2
+  - id: I2
+    description: Preserves the public signature of BaseInlineFormSet.add_fields and
+      InlineForeignKeyField.__init__ without adding, removing, or renaming parameters.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when a new parent instance with a UUIDField non-pk alternate
+      key (editable=False, default=uuid.uuid4) is saved alongside an inline child
+      that references that field via to_field, the UUID value on the parent instance
+      is not set to None before saving.
+    weight: 3
+  - id: R2
+    description: 'Ensures that InlineForeignKeyField still receives an initial value
+      of None (not the auto-generated UUID) when the parent is new and the to_field
+      is an auto-generated pk (AutoField / BigAutoField / SmallAutoField), preserving
+      the #24377 behavior.'
+    weight: 2

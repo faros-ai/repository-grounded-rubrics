@@ -1,0 +1,51 @@
+metadata:
+  task_summary: Fix the migration optimizer's AlterField.reduce method to collapse
+    consecutive AlterField operations on the same model field into a single AlterField.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the AlterField.reduce method in django/db/migrations/operations/fields.py
+      to handle the case where the incoming operation is also an AlterField on the
+      same field.
+    weight: 3
+  - id: FC2
+    description: Limits changes to the migrations operations file (django/db/migrations/operations/fields.py)
+      and optionally a test file, without introducing unrelated file modifications.
+    weight: 2
+  - id: FC3
+    description: Adds a test case (anywhere in the diff) that exercises AlterField
+      optimizing into another AlterField when no AddField precedes them, matching
+      the scenario described in the PR description.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements reduction logic that returns [operation] (the later AlterField)
+      when the incoming operation is an AlterField targeting the same model field
+      via is_same_field_operation, as suggested in the PR description.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing AlterField.reduce behavior for RemoveField
+      (returning [operation]) and RenameField (returning [operation, AlterField(...)])
+      — neither branch is removed or altered by the patch.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public signatures of AlterField.__init__, AlterField.reduce,
+      and FieldOperation.is_same_field_operation are unchanged (no parameter removals
+      or additions).
+    weight: 2
+  - id: I2
+    description: Avoids weakening existing optimizer tests — no test is skipped, removed,
+      or has its assertion list expanded to tolerate unoptimized results.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a sequence of multiple AlterField operations on the
+      same model field (without a preceding AddField in scope) is reduced to a single
+      AlterField carrying the field definition from the last operation in the sequence.
+    weight: 3
+  - id: R2
+    description: Ensures that AlterField operations on different model fields or different
+      models are not incorrectly merged — is_same_field_operation must gate the reduction
+      so only matching (model_name, name) pairs are collapsed.
+    weight: 2

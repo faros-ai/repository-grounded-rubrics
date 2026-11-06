@@ -1,0 +1,73 @@
+metadata:
+  task_summary: Add support for the `header_rows` keyword argument in the RST ascii
+    writer so that multi-row headers (e.g. name, unit) can be written to reStructuredText
+    simple-table output.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies `RST.__init__` in `astropy/io/ascii/rst.py` to accept a
+      `header_rows` parameter and pass it to the parent `FixedWidth.__init__`.
+    weight: 3
+  - id: FC2
+    description: Updates `SimpleRSTHeader` in `astropy/io/ascii/rst.py` so that `position_line`
+      is no longer hardcoded to `0` but is derived from the number of header rows
+      (e.g. `len(header_rows)` or equivalent), to correctly place the `===` separator
+      line below all header rows.
+    weight: 3
+  - id: FC3
+    description: Updates `SimpleRSTData` in `astropy/io/ascii/rst.py` so that `start_line`
+      is no longer hardcoded to `3` but adapts to the actual number of header rows
+      plus the separator line (e.g. `len(header_rows) + 2` or equivalent).
+    weight: 3
+  - id: FC4
+    description: Updates `RST.write` in `astropy/io/ascii/rst.py` so that the separator
+      line index used to bookend the output (currently `lines[1]`) is computed dynamically
+      based on the number of header rows rather than being hardcoded to index `1`.
+    weight: 3
+  - id: FC5
+    description: Confines all changes to `astropy/io/ascii/rst.py` (and optionally
+      its test file), without introducing unrelated modifications to other ascii format
+      modules such as `fixedwidth.py`, `ui.py`, or `core.py`.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Implements support for `tbl.write(sys.stdout, format=''ascii.rst'',
+      header_rows=[''name'', ''unit''])` without raising `TypeError: RST.__init__()
+      got an unexpected keyword argument ''header_rows''`, matching the accepted call
+      signature shown in the PR description.'
+    weight: 3
+  - id: SA2
+    description: Preserves the existing default RST output (a single `name` header
+      row surrounded by `===` lines) when `header_rows` is omitted or set to `['name']`,
+      matching the first example in the PR description.
+    weight: 3
+  - id: SA3
+    description: Produces RST output with correctly placed `===` separator lines before
+      the first header row and after the last header row, regardless of how many header
+      rows are specified.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing RST read/write tests (e.g. `test_write_normal`)
+      are not weakened, removed, or skipped.
+    weight: 2
+  - id: I2
+    description: Confirms that the `RST` class public API (e.g. `_format_name = 'rst'`,
+      `data_class`, `header_class`) is preserved unchanged in the diff.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: 'Maintains backward-compatible behavior for the default single-header-row
+      case: calling `ascii.write(dat, out, Writer=ascii.RST)` still produces a 6-line
+      RST table with `===` on the first, third, and last lines.'
+    weight: 3
+  - id: R2
+    description: Produces correct multi-header-row RST output where the `===` separator
+      appears once above and once below all header rows, with data rows following,
+      when `header_rows=['name', 'unit']` is specified.
+    weight: 3
+  - id: R3
+    description: Adds a test exercising the `header_rows` keyword with the RST writer
+      (e.g. verifying that output with `header_rows=['name', 'unit']` contains unit
+      information and correctly placed `===` separators).
+    weight: 1

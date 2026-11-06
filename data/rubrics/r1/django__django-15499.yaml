@@ -1,0 +1,59 @@
+metadata:
+  task_summary: Add optimization support for CreateModel + AlterModelManagers to collapse
+    into a single CreateModel operation in the migration optimizer.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Implements the optimization in the `reduce` method of `CreateModel`
+      in `django/db/migrations/operations/models.py` by adding a conditional branch
+      that checks `isinstance(operation, AlterModelManagers)` and `self.name_lower
+      == operation.name_lower`.
+    weight: 3
+  - id: FC2
+    description: Adds no unrelated file changes outside of `django/db/migrations/operations/models.py`
+      and optionally `tests/migrations/test_optimizer.py`, keeping the diff minimal
+      and confined to the optimization logic.
+    weight: 2
+  - id: FC3
+    description: Adds a test in the optimizer test file (e.g., `tests/migrations/test_optimizer.py`)
+      that verifies `CreateModel` followed by `AlterModelManagers` on the same model
+      optimizes into a single `CreateModel` with the new managers.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures the new `CreateModel.reduce` branch for `AlterModelManagers`
+      returns a list containing a single `CreateModel` instance whose `managers` argument
+      is taken from the `AlterModelManagers` operation's `managers` attribute.
+    weight: 3
+  - id: SA2
+    description: Confirms the optimization only applies when the `AlterModelManagers`
+      operation targets the same model as the `CreateModel`, i.e., the branch is guarded
+      by `self.name_lower == operation.name_lower`.
+    weight: 3
+  - id: SA3
+    description: Preserves all other `CreateModel` constructor arguments (`name`,
+      `fields`, `options`, `bases`) unchanged in the returned merged `CreateModel`
+      within the `AlterModelManagers` branch.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms the existing `AlterModelOptions` branch in `CreateModel.reduce`
+      is not removed or altered, preserving the pre-existing `CreateModel + AlterModelOptions`
+      optimization.
+    weight: 3
+  - id: I2
+    description: Confirms no existing tests in `tests/migrations/test_optimizer.py`
+      are weakened, removed, or skipped as part of this change.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a `CreateModel` followed by an `AlterModelManagers`
+      on a different model name is NOT collapsed, so the optimizer correctly leaves
+      unrelated manager alterations untouched.
+    weight: 2
+  - id: R2
+    description: Ensures that `AlterModelManagers` still reduces correctly against
+      itself or `DeleteModel` via the inherited `ModelOptionOperation.reduce` logic,
+      preserving existing optimization behavior for manager operations not preceded
+      by a `CreateModel`.
+    weight: 2

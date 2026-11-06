@@ -1,0 +1,59 @@
+metadata:
+  task_summary: Fix SI._collect_factor_and_dimension() to correctly detect that the
+    argument of exp() and other functions is dimensionless, returning Dimension(1)
+    instead of raising ValueError.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the Function branch inside _collect_factor_and_dimension
+      in sympy/physics/units/unitsystem.py to address the dimensionless-argument detection
+      bug.
+    weight: 3
+  - id: FC2
+    description: Confines edits to sympy/physics/units/unitsystem.py (and optionally
+      the corresponding test file), without modifying unrelated files.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test case (anywhere in the diff) that exercises
+      SI._collect_factor_and_dimension on an expression containing exp() with a dimensionless
+      argument such as second/(ohm*farad), verifying no ValueError is raised.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Adds a call to get_dimension_system().is_dimensionless() (or equivalent
+      dimensionless check) inside the Function handling branch of _collect_factor_and_dimension,
+      so that a dimensionless argument dimension is normalized before being returned.
+    weight: 3
+  - id: SA2
+    description: Ensures the Function branch of _collect_factor_and_dimension returns
+      Dimension(1) as the function's dimension when the argument dimension is detected
+      as dimensionless, instead of propagating the raw argument dimension.
+    weight: 3
+  - id: SA3
+    description: Preserves the existing behavior of _collect_factor_and_dimension
+      for the scale-factor component (first element of the returned tuple), so function
+      arguments still contribute their numeric factor correctly.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing test assertions in test_quantities.py are
+      deleted or weakened (e.g., no removal of assert statements, no addition of @XFAIL
+      or skip markers to previously passing tests).
+    weight: 2
+  - id: I2
+    description: Confirms that the public signature of _collect_factor_and_dimension
+      (accepting a single expr argument and returning a (factor, dimension) tuple)
+      is preserved without changes.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that evaluating SI._collect_factor_and_dimension(100 + exp(second/(ohm*farad)))
+      no longer reaches the ValueError branch in the Add case, because exp() now returns
+      Dimension(1) matching the dimension of the constant 100.
+    weight: 3
+  - id: R2
+    description: Ensures that when a Function argument dimension is dimensionless
+      but not literally Dimension(1) (e.g., Dimension(time/(capacitance*impedance))
+      that reduces to dimensionless), is_dimensionless() is used to detect this equivalence
+      rather than a direct equality check.
+    weight: 2

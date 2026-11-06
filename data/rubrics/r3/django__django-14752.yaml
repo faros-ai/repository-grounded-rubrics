@@ -1,0 +1,54 @@
+metadata:
+  task_summary: Refactor AutocompleteJsonView.get() to extract per-object result serialization
+    into a separate overridable serialize_result() method.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/contrib/admin/views/autocomplete.py and no other
+      production files — changes are confined to the single file that defines AutocompleteJsonView.
+    weight: 3
+  - id: FC2
+    description: Adds a def serialize_result( method to the AutocompleteJsonView class
+      in django/contrib/admin/views/autocomplete.py.
+    weight: 3
+  - id: FC3
+    description: 'Replaces the inline dict literal {''id'': str(getattr(obj, to_field_name)),
+      ''text'': str(obj)} inside the get() list comprehension with a call to self.serialize_result(obj,
+      to_field_name).'
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Implements serialize_result(self, obj, to_field_name) with a body
+      that returns {''id'': str(getattr(obj, to_field_name)), ''text'': str(obj)},
+      preserving the original conversion logic.'
+    weight: 3
+  - id: SA2
+    description: Keeps the get() method's overall structure — including the process_request
+      call, has_perm check, get_queryset call, get_context_data call, and the pagination
+      key — intact after the refactor.
+    weight: 2
+  - id: SA3
+    description: Accepts a test or example in the diff (or in a test file change)
+      that demonstrates overriding serialize_result to add extra fields, consistent
+      with the CustomAutocompleteJsonView pattern described in the PR.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the public signature of AutocompleteJsonView.get(self,
+      request, *args, **kwargs) unchanged — no parameters are added, removed, or renamed.
+    weight: 2
+  - id: I2
+    description: Does not weaken or remove any existing assertions or test cases in
+      tests/admin_views/test_autocomplete_view.py.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Maintains backward-compatible JSON response shape — the 'results'
+      list still contains objects with 'id' and 'text' keys and the 'pagination' dict
+      with 'more' key, so existing callers are unaffected.
+    weight: 3
+  - id: R2
+    description: Ensures serialize_result is callable as a standalone override point
+      — subclasses can override def serialize_result(self, obj, to_field_name) without
+      also needing to override get().
+    weight: 2

@@ -1,0 +1,61 @@
+metadata:
+  task_summary: Replace deprecated 'db' and 'passwd' mysqlclient kwargs with 'database'
+    and 'password' respectively in the MySQL backend.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Replaces 'kwargs["db"]' with 'kwargs["database"]' in django/db/backends/mysql/base.py
+      inside get_connection_params to eliminate the deprecated kwarg.
+    weight: 3
+  - id: FC2
+    description: Replaces 'kwargs["passwd"]' with 'kwargs["password"]' in django/db/backends/mysql/base.py
+      inside get_connection_params to eliminate the deprecated kwarg.
+    weight: 3
+  - id: FC3
+    description: Updates the OPTIONS fallback lookup key from 'db' to 'database' in
+      django/db/backends/mysql/client.py inside settings_to_cmd_args_env so that user-supplied
+      OPTIONS using the new key are respected.
+    weight: 2
+  - id: FC4
+    description: Updates the OPTIONS fallback lookup for password in django/db/backends/mysql/client.py
+      to prefer 'password' over 'passwd', removing or deprioritising the deprecated
+      'passwd' fallback.
+    weight: 2
+  - id: FC5
+    description: Confines all changes to django/db/backends/mysql/base.py and/or django/db/backends/mysql/client.py
+      without modifying unrelated files.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the exact two deprecated kwargs named in the PR description
+      — 'db' and 'passwd' — and replaces them with 'database' and 'password' as specified.
+    weight: 3
+  - id: SA2
+    description: Ensures the fix applies to the get_connection_params method in django/db/backends/mysql/base.py,
+      which is the location identified in the PR description.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves all other keyword arguments passed to Database.connect
+      (e.g., 'conv', 'charset', 'user', 'host', 'port', 'client_flag') without modification.
+    weight: 3
+  - id: I2
+    description: Does not remove or weaken any existing tests related to MySQL connection
+      parameter handling.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that database name from settings_dict['NAME'] is passed under
+      the key 'database' to Database.connect, so mysqlclient receives a non-deprecated
+      argument and does not emit a deprecation warning.
+    weight: 3
+  - id: R2
+    description: Ensures that the database password from settings_dict['PASSWORD']
+      is passed under the key 'password' to Database.connect, so mysqlclient receives
+      a non-deprecated argument and does not emit a deprecation warning.
+    weight: 3
+  - id: R3
+    description: Preserves backward-compatible OPTIONS key handling in client.py so
+      that existing user configurations supplying 'database' or 'password' in OPTIONS
+      continue to work correctly.
+    weight: 2

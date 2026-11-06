@@ -1,0 +1,79 @@
+metadata:
+  task_summary: Fix `tensor_product_simp` and `_eval_expand_tensorproduct` to correctly
+    handle `Pow` nodes whose base is a `TensorProduct`, so that expressions like `TensorProduct(1,1)**2`
+    simplify to `TensorProduct(1*1, 1*1)`.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies `sympy/physics/quantum/tensorproduct.py` and no unrelated
+      files, keeping the patch minimal and local to the quantum tensor product module.
+    weight: 2
+  - id: FC2
+    description: Modifies or extends the `Pow` branch inside `tensor_product_simp`
+      (the `elif isinstance(e, Pow):` block) to handle the case where the base of
+      the power is a `TensorProduct`, rather than only recursing into the base.
+    weight: 3
+  - id: FC3
+    description: Modifies `_eval_expand_tensorproduct` (or adds a helper) to handle
+      `Pow` nodes with a `TensorProduct` base appearing among the arguments of a `TensorProduct`,
+      so that `expand(tensorproduct=True)` propagates correctly through powers.
+    weight: 3
+  - id: FC4
+    description: Adds or updates test cases in the quantum tensor product test file
+      (e.g., `test_tensor_product_simp` or a new test function) that exercise `tensor_product_simp`
+      and `expand(tensorproduct=True)` on squared `TensorProduct` expressions.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that `tensor_product_simp` applied to `TensorProduct(1, 1)*TensorProduct(1,
+      1)` (which becomes a `Pow` node) produces a simplified `TensorProduct` result
+      rather than leaving it as `TensorProduct(1, 1)**2`.
+    weight: 3
+  - id: SA2
+    description: Ensures that `TensorProduct(1, Pauli(3))*TensorProduct(1, Pauli(3))`
+      (or equivalent `Pow`) is simplified by `tensor_product_simp` to `TensorProduct(1,
+      Pauli(3)**2)` or its evaluated form, matching the expected result shown in the
+      PR description.
+    weight: 3
+  - id: SA3
+    description: Ensures that `.expand(tensorproduct=True)` on `TensorProduct(1, 1)**2`
+      or `TensorProduct(1, sigma3)**2` produces a simplified result equivalent to
+      what `tps(tp(1,1)*tp(1,a)).subs(a, 1)` yields, as demonstrated in the PR description.
+    weight: 2
+  - id: SA4
+    description: Handles the `Pow` case by converting a `TensorProduct` base raised
+      to an integer exponent into a product of `n` copies (using `Mul` or equivalent
+      expansion) before calling `tensor_product_simp_Mul`, so that the component-wise
+      multiplication is performed.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing behavior of `tensor_product_simp` for `Add`,
+      `Mul`, `Commutator`, and `AntiCommutator` cases — no existing branches are removed
+      or weakened.
+    weight: 3
+  - id: I2
+    description: Preserves the public API of `tensor_product_simp` and `TensorProduct`
+      (function signature, return type contract, `__all__` exports) without introducing
+      breaking changes.
+    weight: 2
+  - id: I3
+    description: Does not weaken or skip existing tests in the tensor product test
+      suite (no `@XFAIL`, `@skip`, or assertion removals in existing test functions).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Confirms that the `Pow` branch in `tensor_product_simp` recurses
+      into or expands the base when it is a `TensorProduct`, so that repeated application
+      does not loop infinitely or return the unchanged `Pow` node.
+    weight: 3
+  - id: R2
+    description: Confirms that `_eval_expand_tensorproduct` handles a `Pow` with a
+      `TensorProduct` base by expanding it into equivalent `Mul` or nested `TensorProduct`
+      calls, rather than silently returning the unexpanded form.
+    weight: 2
+  - id: R3
+    description: Confirms that the fix preserves correct behavior for non-`TensorProduct`
+      `Pow` bases inside `tensor_product_simp` (the general `Pow` case still recurses
+      into its base without crashing or altering semantics).
+    weight: 2

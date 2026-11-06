@@ -1,0 +1,57 @@
+metadata:
+  task_summary: Fix get_admin_url in django.contrib.admin.helpers.AdminReadonlyField
+    to use current_app=self.model_admin.admin_site.name so ForeignKey readonly field
+    links resolve to the correct custom Admin Site URL instead of always using /admin/.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the get_admin_url method in django/contrib/admin/helpers.py
+      and no other unrelated production files, keeping the change minimal and local
+      to the identified bug site.
+    weight: 3
+  - id: FC2
+    description: Adds the current_app keyword argument to the reverse() call inside
+      get_admin_url in django/contrib/admin/helpers.py, setting it to a value derived
+      from self.model_admin.admin_site.name.
+    weight: 3
+  - id: FC3
+    description: Avoids modifying the url_name construction (the 'admin:%s_%s_change'
+      format string) or the args=[quote(remote_obj.pk)] portion of the reverse() call
+      in get_admin_url, leaving those parts intact.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Aligns the fix with the PR description's proposed correction by passing
+      current_app=self.model_admin.admin_site.name to the reverse() call in get_admin_url,
+      matching the pattern used in other parts of the admin (e.g., response_add in
+      django/contrib/admin/options.py).
+    weight: 3
+  - id: SA2
+    description: Preserves the NoReverseMatch except branch in get_admin_url so that
+      when the URL cannot be resolved the method still returns str(remote_obj) rather
+      than raising an exception.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public signature of AdminReadonlyField.get_admin_url(self,
+      remote_field, remote_obj) is unchanged, so any callers passing the same arguments
+      continue to work without modification.
+    weight: 2
+  - id: I2
+    description: Confirms that no existing tests in the patch are removed, skipped,
+      or weakened (e.g., no new @skip decorators or assertRaises widenings) as a result
+      of the change.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when model_admin refers to a ModelAdmin registered on
+      a custom AdminSite (with a name other than 'admin'), the reverse() call in get_admin_url
+      resolves a URL under that custom site's namespace rather than the default /admin/
+      prefix, because current_app is now supplied.
+    weight: 3
+  - id: R2
+    description: Ensures that when model_admin refers to a ModelAdmin registered on
+      the default AdminSite (name='admin'), the generated URL remains identical to
+      the previous behavior, so the fix introduces no regression for the standard
+      /admin/ case.
+    weight: 2

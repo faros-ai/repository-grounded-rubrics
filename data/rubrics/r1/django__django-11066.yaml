@@ -1,0 +1,49 @@
+metadata:
+  task_summary: Fix RenameContentType._rename() to pass using=db to content_type.save()
+    so the content type is saved on the correct database rather than the default database.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/contrib/contenttypes/management/__init__.py and no
+      other production files, keeping the change minimal and confined to the relevant
+      location.
+    weight: 2
+  - id: FC2
+    description: Changes the content_type.save() call inside the _rename() method
+      of RenameContentType to include the using=db keyword argument.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Aligns the save call with the database alias derived from schema_editor.connection.alias
+      (stored in the variable db) so that content_type is persisted on the correct
+      non-default database.
+    weight: 3
+  - id: SA2
+    description: Preserves the update_fields={'model'} keyword argument in the content_type.save()
+      call alongside the newly added using=db argument.
+    weight: 2
+  - id: SA3
+    description: Keeps the content_type.save() call inside the with transaction.atomic(using=db)
+      context manager, consistent with the surrounding transaction scope.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Avoids weakening or removing any existing tests in tests/contenttypes_tests/test_operations.py
+      or related test files.
+    weight: 2
+  - id: I2
+    description: Preserves the public API and method signatures of RenameContentType,
+      rename_forward, rename_backward, and _rename() unchanged.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when _rename() is called with a non-default database
+      alias, the content type model update is written to that alias rather than falling
+      back to the default database, preventing OperationalError when the default database
+      does not have the django_content_types table.
+    weight: 3
+  - id: R2
+    description: Preserves backward compatibility so that _rename() continues to work
+      correctly when schema_editor.connection.alias is 'default', with no change in
+      behavior for the common single-database case.
+    weight: 2

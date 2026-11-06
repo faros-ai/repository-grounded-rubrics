@@ -1,0 +1,84 @@
+metadata:
+  task_summary: Add support for C++ User Defined Literals (UDLs) such as '6.62607015e-34q_J'
+    and '1q_s' in the Sphinx C++ domain parser.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Adds a new AST class (e.g., ASTUserDefinedLiteral) in sphinx/domains/cpp.py
+      that extends ASTLiteral and stores both the literal value and the UDL suffix
+      identifier.
+    weight: 3
+  - id: FC2
+    description: Modifies the `_parse_literal` method in sphinx/domains/cpp.py to
+      attempt to match a UDL identifier suffix after successfully parsing a numeric
+      literal (float, integer, octal, hex, or binary).
+    weight: 3
+  - id: FC3
+    description: 'Removes or replaces the ''# TODO: user-defined lit'' comment in
+      sphinx/domains/cpp.py with working UDL parsing logic.'
+    weight: 2
+  - id: FC4
+    description: Adds a UDL suffix regex (or reuses identifier_re from cfamily.py)
+      somewhere in the diff to match identifiers following a numeric literal token,
+      covering patterns like 'q_J' and 'q_s'.
+    weight: 2
+  - id: FC5
+    description: Confines changes primarily to sphinx/domains/cpp.py and optionally
+      sphinx/util/cfamily.py, without modifying unrelated files (such as HTML builder,
+      autodoc, or other domains).
+    weight: 2
+  - id: FC6
+    description: Implements `_stringify`, `get_id`, and `describe_signature` methods
+      on the new UDL AST node class so the node is fully usable as an ASTLiteral.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Handles UDL suffixes on floating-point literals such as '6.62607015e-34q_J'
+      so that the parser no longer raises 'Expected end of definition' for such expressions.
+    weight: 3
+  - id: SA2
+    description: Handles UDL suffixes on integer literals such as '1q_s' so that the
+      parser correctly parses and represents the full literal including suffix.
+    weight: 3
+  - id: SA3
+    description: Allows UDL suffix identifiers to begin with a letter (not only with
+      underscore), matching compiler-extension suffixes like 'q_J' and 'q_s' used
+      in the reported example.
+    weight: 2
+  - id: SA4
+    description: Preserves support for existing operator-literal declarations (e.g.,
+      'operator""_udl') which already worked before this change.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing numeric literal parsing (including standard
+      suffixes like 'u', 'U', 'l', 'L', 'f', 'F') still produces ASTNumberLiteral
+      nodes when no UDL suffix follows.
+    weight: 3
+  - id: I2
+    description: Confirms that the new UDL AST node implements get_id() returning
+      a well-formed mangled identifier consistent with the Itanium ABI encoding (e.g.,
+      using 'li' prefix or wrapping in 'L...E').
+    weight: 2
+  - id: I3
+    description: Avoids weakening existing test cases for literal parsing or operator-literal
+      parsing (no test removals or @pytest.mark.skip additions on literal-related
+      tests).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: 'Enables parsing of a full C++ member declaration containing a UDL
+      value (e.g., ''constexpr auto planck_constant = 6.62607015e-34q_J * 1q_s'')
+      without triggering a ''WARNING: Invalid definition: Expected end of definition''
+      error.'
+    weight: 3
+  - id: R2
+    description: Preserves correct stringify round-trip behavior for UDL nodes so
+      that `str(ast_node)` reproduces the original literal text including the UDL
+      suffix.
+    weight: 2
+  - id: R3
+    description: Ensures UDL suffix parsing is non-greedy and does not consume subsequent
+      tokens (e.g., operators like '*') as part of the suffix identifier, so chained
+      UDL expressions parse correctly.
+    weight: 2

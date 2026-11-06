@@ -1,0 +1,89 @@
+metadata:
+  task_summary: Add support for C++ User Defined Literals (UDLs) such as `6.62607015e-34q_J`
+    and `1q_s` in the Sphinx C++ domain parser.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Adds a new AST class (e.g., `ASTUserDefinedLiteral`) in `sphinx/domains/cpp.py`
+      that wraps an existing literal node together with a UDL suffix identifier.
+    weight: 3
+  - id: FC2
+    description: Modifies `_parse_literal` in `sphinx/domains/cpp.py` to attempt consuming
+      an identifier-based UDL suffix after a successfully parsed numeric, string,
+      or character literal.
+    weight: 3
+  - id: FC3
+    description: 'Removes or replaces the `# TODO: user-defined lit` comment in `_parse_literal`
+      in `sphinx/domains/cpp.py` with real parsing logic.'
+    weight: 2
+  - id: FC4
+    description: Restricts changes primarily to `sphinx/domains/cpp.py` (and optionally
+      `sphinx/util/cfamily.py`) without modifying unrelated domain files or infrastructure.
+    weight: 2
+  - id: FC5
+    description: Adds a UDL suffix regex (either inline in `cpp.py` or exported from
+      `sphinx/util/cfamily.py`) that matches UDL suffixes starting with an underscore
+      or letter followed by alphanumerics/underscores.
+    weight: 2
+  - id: FC6
+    description: 'Removes or replaces the `# TODO: user-defined lit` comment in `tests/test_domain_cpp.py`
+      with actual test cases exercising UDL expressions such as `1q_J` or `6.62607015e-34q_J`.'
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Implements parsing so that a numeric literal immediately followed
+      by an identifier suffix (e.g., `1q_s`, `6.62607015e-34q_J`) is successfully
+      parsed without raising `DefinitionError` or emitting the `Invalid definition:
+      Expected end of definition` warning.'
+    weight: 3
+  - id: SA2
+    description: Implements parsing of UDL suffixes applied to all three literal kinds
+      (integer, floating-point, and character literals) where the suffix may follow
+      a letter-or-underscore-led identifier token.
+    weight: 2
+  - id: SA3
+    description: Preserves existing plain integer and floating-point suffix parsing
+      (e.g., `uUlLfF`) so that expressions like `5ULL` or `3.14f` still parse correctly
+      alongside the new UDL support.
+    weight: 3
+  - id: SA4
+    description: Ensures the new UDL AST node's `_stringify` method round-trips the
+      original literal text including its UDL suffix (e.g., produces `1q_s` from input
+      `1q_s`).
+    weight: 2
+  - id: SA5
+    description: Implements a `get_id` method on the new UDL AST class that returns
+      a mangled representation consistent with the pattern used by other `ASTLiteral`
+      subclasses (e.g., `L...E` wrapping).
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing test cases for numeric, string, character,
+      boolean, or pointer literals in `test_domain_cpp.py` are removed, commented
+      out, or weakened.
+    weight: 3
+  - id: I2
+    description: Confirms that no existing public AST classes (`ASTNumberLiteral`,
+      `ASTStringLiteral`, `ASTCharLiteral`, `ASTBooleanLiteral`, `ASTPointerLiteral`)
+      are removed or have their signatures changed.
+    weight: 2
+  - id: I3
+    description: Confirms that the existing `ASTOperatorLiteral` class and `operator""`
+      parsing in `_parse_operator` are not altered by the UDL changes.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that the C++ declaration `constexpr auto units::si::planck_constant
+      = 6.62607015e-34q_J * 1q_s` parses without triggering the `Expected end of definition`
+      error that previously occurred at the UDL suffix position.
+    weight: 3
+  - id: R2
+    description: Ensures that UDL suffixes beginning with an underscore (e.g., `_J`,
+      `_s`, `q_J`) are matched by the new suffix-detection logic, consistent with
+      the C++ standard requirement that user-defined suffixes start with an underscore.
+    weight: 2
+  - id: R3
+    description: Ensures that non-UDL identifiers immediately after whitespace following
+      a literal are not accidentally consumed as UDL suffixes, preserving correct
+      disambiguation between a literal and the next token.
+    weight: 2

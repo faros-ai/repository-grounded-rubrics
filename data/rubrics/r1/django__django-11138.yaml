@@ -1,0 +1,95 @@
+metadata:
+  task_summary: Fix TIME_ZONE in DATABASES settings being ignored when generating
+    date lookup SQL for MySQL, SQLite, and Oracle backends, causing incorrect CONVERT_TZ/FROM_TZ
+    source timezone.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the MySQL backend's `_convert_field_to_tz` method in `django/db/backends/mysql/operations.py`
+      to replace the hardcoded `'UTC'` source timezone string with a reference to
+      `self.connection.timezone_name`.
+    weight: 3
+  - id: FC2
+    description: Modifies the Oracle backend's `_convert_field_to_tz` method in `django/db/backends/oracle/operations.py`
+      to replace the hardcoded `'0:00'` source timezone literal with a reference to
+      `self.connection.timezone_name`.
+    weight: 3
+  - id: FC3
+    description: Modifies the SQLite backend (in `django/db/backends/sqlite3/operations.py`
+      or `django/db/backends/sqlite3/base.py`) so that datetime helper functions (`django_datetime_cast_date`,
+      `django_datetime_cast_time`, `django_datetime_extract`, `django_datetime_trunc`)
+      receive the database connection's timezone in addition to the target timezone,
+      enabling correct conversion from the database's stored timezone to the target
+      timezone.
+    weight: 3
+  - id: FC4
+    description: Adds an optimization in the MySQL or Oracle backend's `_convert_field_to_tz`
+      (or equivalent caller) that skips the timezone conversion function call entirely
+      when the database connection timezone equals the target timezone, producing
+      simpler SQL without `CONVERT_TZ` or `FROM_TZ`.
+    weight: 2
+  - id: FC5
+    description: Confines all changes to the MySQL, Oracle, and SQLite backend files
+      and their related test files, without modifying unrelated backends (e.g., PostgreSQL)
+      or unrelated application code.
+    weight: 2
+  - id: FC6
+    description: Adds or updates tests that exercise the `TIME_ZONE` database configuration
+      parameter for date/datetime lookups (such as `__date`, `__time`, or Extract/Trunc
+      operations) on at least one of the affected backends.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures the SQL generated for `__date` (and similar datetime lookups)
+      on MySQL uses the database connection's `TIME_ZONE` as the source timezone in
+      `CONVERT_TZ`, not the hardcoded string `'UTC'`.
+    weight: 3
+  - id: SA2
+    description: Ensures the SQL generated for datetime lookups on Oracle uses `connection.timezone_name`
+      as the source offset in `FROM_TZ`, replacing the hardcoded `'0:00'` literal.
+    weight: 3
+  - id: SA3
+    description: Ensures SQLite datetime functions convert stored values from the
+      database connection timezone (when `TIME_ZONE` is set in `DATABASES`) rather
+      than unconditionally treating stored values as UTC.
+    weight: 3
+  - id: SA4
+    description: Ensures that when the database connection timezone equals the Django
+      app-level timezone (tz1 == tz2), the generated SQL omits any timezone conversion
+      function (`CONVERT_TZ` for MySQL or `FROM_TZ` for Oracle), so queries work even
+      without timezone tables populated.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that `connection.timezone` and `connection.timezone_name`
+      cached properties in `django/db/backends/base/base.py` are not altered or removed,
+      preserving the existing public API for other callers.
+    weight: 2
+  - id: I2
+    description: Confirms that existing tests for the MySQL, Oracle, and SQLite backends
+      that do not involve `TIME_ZONE` database configuration are not weakened, skipped,
+      or deleted by the patch.
+    weight: 2
+  - id: I3
+    description: Confirms that `TruncDate.as_sql` and `TruncTime.as_sql` in `django/db/models/functions/datetime.py`
+      still pass `tzname` (the app-level timezone name) as the target timezone to
+      the backend ops methods, with any database-source-timezone awareness handled
+      inside the backend ops layer.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when `USE_TZ=True` and a database-level `TIME_ZONE`
+      is set to a non-UTC value (e.g., `'Europe/Paris'`), the MySQL backend generates
+      `CONVERT_TZ(field, 'Europe/Paris', '<target_tz>')` rather than `CONVERT_TZ(field,
+      'UTC', '<target_tz>')` for date/datetime lookups.
+    weight: 3
+  - id: R2
+    description: Ensures that when `USE_TZ=True` and no database-level `TIME_ZONE`
+      is set (defaults to `None`), the MySQL backend continues to use `'UTC'` as the
+      source timezone in `CONVERT_TZ`, preserving backward-compatible behavior.
+    weight: 3
+  - id: R3
+    description: Ensures that when `USE_TZ=False`, the MySQL, Oracle, and SQLite backends
+      skip timezone conversion logic entirely (as before), so the patch does not regress
+      the `USE_TZ=False` code path.
+    weight: 2

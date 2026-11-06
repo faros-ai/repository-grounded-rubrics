@@ -1,0 +1,55 @@
+metadata:
+  task_summary: Modify CharField.__init__ to only append MaxLengthValidator when max_length
+    is not None, mirroring BinaryField.__init__ and avoiding a broken validator when
+    CharField is instantiated without max_length (as in Value._resolve_output_field).
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies CharField.__init__ in django/db/models/fields/__init__.py
+      to guard the MaxLengthValidator append with an 'if self.max_length is not None'
+      condition, matching the pattern used in BinaryField.__init__.
+    weight: 3
+  - id: FC2
+    description: Confines the change exclusively to the CharField.__init__ method
+      in django/db/models/fields/__init__.py without modifying unrelated files or
+      symbols.
+    weight: 2
+  - id: FC3
+    description: Preserves the super().__init__ call and the db_collation assignment
+      within CharField.__init__, altering only the unconditional validators.append
+      line.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Replaces the unconditional ''self.validators.append(validators.MaxLengthValidator(self.max_length))''
+      with a conditional form ''if self.max_length is not None: self.validators.append(validators.MaxLengthValidator(self.max_length))''
+      in CharField.__init__, exactly as specified in the PR description.'
+    weight: 3
+  - id: SA2
+    description: Ensures that a CharField instantiated with a non-None max_length
+      (e.g., CharField(max_length=100)) still appends a MaxLengthValidator, preserving
+      the existing validation behavior for normal model field usage.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Avoids weakening or removing any existing test that exercises CharField
+      validators or CharField.__init__ behavior.
+    weight: 2
+  - id: I2
+    description: Preserves the public signature of CharField.__init__ (i.e., no added
+      or removed parameters beyond what the PR description requires) so existing code
+      constructing CharField instances remains unaffected.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: 'Ensures that calling CharField() without a max_length argument (as
+      done in Value._resolve_output_field when resolving a str value) produces an
+      instance whose validators list does not contain a MaxLengthValidator, preventing
+      the ''TypeError: > not supported between instances of int and NoneType'' described
+      in the PR.'
+    weight: 3
+  - id: R2
+    description: Confirms that CharField instances created with an explicit max_length
+      (the normal model-field usage path) still receive a MaxLengthValidator in their
+      validators list, so field-level string-length validation continues to work correctly.
+    weight: 2

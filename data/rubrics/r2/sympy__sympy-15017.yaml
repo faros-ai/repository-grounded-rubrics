@@ -1,0 +1,54 @@
+metadata:
+  task_summary: Fix `NDimArray.__len__` to return 1 instead of 0 for rank-0 (scalar)
+    arrays, matching the number of elements yielded by the iterator.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `_loop_size` computation or `__len__` logic (in `dense_ndim_array.py`,
+      `sparse_ndim_array.py`, or `ndim_array.py`) so that an empty shape `()` produces
+      a loop size of 1 rather than 0, instead of leaving the `if shape else 0` pattern
+      unchanged.
+    weight: 3
+  - id: FC2
+    description: Confines the rank-0 fix to the array module files (e.g., files under
+      `sympy/tensor/array/`) without introducing unrelated changes to other modules.
+    weight: 2
+  - id: FC3
+    description: Updates the existing test assertion `assert len(rank_zero_array)
+      == 0` (in the immutable or mutable ndim array test files) to assert the corrected
+      value of 1, reflecting the new expected behavior.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that `len()` called on a rank-0 `NDimArray` (e.g., `Array(3)`
+      or `ImmutableDenseNDimArray(x)`) returns 1, matching the number of elements
+      yielded by iteration as stated in the PR description.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing `shape == ()` and `rank() == 0` properties
+      for rank-0 arrays, as these are correct behaviors that the PR description does
+      not request changing.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that `len()` for non-rank-0 arrays (e.g., a 3x3 array returning
+      9, or a length-3 vector returning 3) is not altered by the fix, preserving existing
+      behavior.
+    weight: 3
+  - id: I2
+    description: Avoids weakening or deleting existing test assertions for rank-zero
+      arrays other than correcting `len(rank_zero_array) == 0` to `len(rank_zero_array)
+      == 1` (e.g., does not remove checks for `rank_zero_array.shape == ()`, `rank_zero_array.rank()
+      == 0`, or `rank_zero_array[()] == x`).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that iterating over a rank-0 `NDimArray` yields exactly one
+      element, consistent with `len()` returning 1 (the loop size used in `__iter__`
+      should align with the corrected `_loop_size`).
+    weight: 3
+  - id: R2
+    description: Ensures the fix applies consistently to both dense and sparse rank-0
+      arrays (i.e., both `ImmutableDenseNDimArray` and `ImmutableSparseNDimArray`
+      with an empty shape return `_loop_size` of 1).
+    weight: 2

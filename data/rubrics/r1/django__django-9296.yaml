@@ -1,0 +1,53 @@
+metadata:
+  task_summary: Add a __iter__ method to the Paginator class that yields Page objects
+    by iterating over self.page_range.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Implements the __iter__ method inside the Paginator class in django/core/paginator.py.
+    weight: 3
+  - id: FC2
+    description: Avoids modifying files unrelated to the Paginator class (e.g., no
+      changes to unrelated views, middleware, or model files).
+    weight: 2
+  - id: FC3
+    description: Confines all changes to django/core/paginator.py and optionally its
+      test file or documentation, without introducing extraneous diff churn.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements __iter__ using self.page_range as the source of page numbers,
+      matching the pattern described in the PR description.
+    weight: 3
+  - id: SA2
+    description: Yields self.page(page_num) for each page_num in self.page_range inside
+      __iter__, returning Page objects rather than page numbers.
+    weight: 3
+  - id: SA3
+    description: Uses a generator (yield) or equivalent lazy iteration inside __iter__
+      rather than building and returning a list.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing public API of the Paginator class (page_range,
+      page, get_page, count, num_pages, etc.) without removing or renaming any existing
+      method.
+    weight: 3
+  - id: I2
+    description: Avoids weakening or skipping existing tests related to Paginator
+      or Page in tests/pagination/tests.py.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures iterating over a Paginator instance (e.g., for page in paginator:)
+      produces one Page object per page number in page_range, so the number of yielded
+      items equals num_pages.
+    weight: 3
+  - id: R2
+    description: Ensures each yielded object from __iter__ is a Page instance (as
+      returned by self.page()), preserving the same type as direct calls to Paginator.page().
+    weight: 2
+  - id: R3
+    description: Ensures __iter__ on a Paginator with zero pages (empty list with
+      allow_empty_first_page=False) produces no iterations without raising an exception.
+    weight: 1

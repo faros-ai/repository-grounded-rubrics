@@ -1,0 +1,53 @@
+metadata:
+  task_summary: Fix catch_all_view() in django/contrib/admin/sites.py to use request.path
+    (which includes SCRIPT_NAME/FORCE_SCRIPT_NAME) instead of request.path_info when
+    building the redirect URL.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/contrib/admin/sites.py and no other production source
+      files, confirming the fix is minimal and local to catch_all_view.
+    weight: 2
+  - id: FC2
+    description: Changes the redirect URL construction in catch_all_view from using
+      request.path_info to using request.path (or an equivalent expression that includes
+      the script-name prefix such as request.get_full_path), so the redirect target
+      preserves FORCE_SCRIPT_NAME.
+    weight: 3
+  - id: FC3
+    description: Keeps request.path_info (or its equivalent) as the argument passed
+      to resolve() inside catch_all_view, since resolve() operates on path-info-only
+      strings and must not receive the script-name prefix.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the mismatch described in the PR where catch_all_view redirected
+      to '%s/' % request.path_info (script name stripped) instead of a URL that retains
+      the FORCE_SCRIPT_NAME prefix.
+    weight: 3
+  - id: SA2
+    description: Ensures the HttpResponsePermanentRedirect inside catch_all_view receives
+      a path that includes the SCRIPT_NAME or FORCE_SCRIPT_NAME value, matching request.path
+      semantics rather than request.path_info semantics.
+    weight: 3
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that APPEND_SLASH and url.endswith('/') guard conditions
+      in catch_all_view remain unchanged, preserving existing redirect-only-when-needed
+      behaviour.
+    weight: 2
+  - id: I2
+    description: Confirms that existing tests for catch_all_view (e.g., test_missing_slash_append_slash_true)
+      are not weakened, skipped, or removed in the patch.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: When FORCE_SCRIPT_NAME is set to a non-empty prefix, catch_all_view
+      produces an HttpResponsePermanentRedirect whose Location header starts with
+      that prefix followed by the path, rather than omitting the prefix.
+    weight: 3
+  - id: R2
+    description: 'When FORCE_SCRIPT_NAME is not set (standard deployment), catch_all_view
+      behaviour is unchanged: the redirect URL still ends with the path plus a trailing
+      slash, preserving backward compatibility.'
+    weight: 2

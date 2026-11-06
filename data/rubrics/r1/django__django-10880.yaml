@@ -1,0 +1,62 @@
+metadata:
+  task_summary: Fix missing space in generated SQL when a Count annotation uses both
+    distinct=True and a filter on backends that do not support aggregate filter clauses,
+    producing COUNT(DISTINCTCASE WHEN ...).
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/db/models/aggregates.py and only that file (or files
+      directly related to aggregate SQL generation), avoiding unrelated file churn.
+    weight: 2
+  - id: FC2
+    description: Confines the fix to the Aggregate.as_sql method (or the fallback
+      branch inside it that handles backends where supports_aggregate_filter_clause
+      is False), rather than making broad structural changes.
+    weight: 3
+  - id: FC3
+    description: Ensures the change that produces the DISTINCT keyword includes a
+      trailing space so that %(distinct)s in the template '%(function)s(%(distinct)s%(expressions)s)'
+      is separated from %(expressions)s, for example by changing 'DISTINCT' to 'DISTINCT
+      ' in the as_sql method.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the scenario described in the PR: a Count annotation with
+      both a Case condition (via a filter argument on backends lacking supports_aggregate_filter_clause)
+      and distinct=True generates syntactically valid SQL without COUNT(DISTINCTCASE
+      WHEN ...).'
+    weight: 3
+  - id: SA2
+    description: Preserves correct SQL generation for Count with distinct=True but
+      no filter, so that the existing COUNT(DISTINCT ...) output is unaffected by
+      the fix.
+    weight: 2
+  - id: SA3
+    description: Preserves correct SQL generation for Count with a filter but distinct=False,
+      ensuring the Case/When fallback path still produces valid SQL when DISTINCT
+      is absent.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Avoids weakening or removing existing tests related to aggregate
+      distinct, filter, or Count behavior in tests/aggregation/ or tests/expressions/.
+    weight: 2
+  - id: I2
+    description: Preserves the public interface of Aggregate, Count, and their as_sql
+      methods, making no changes to method signatures, class-level attributes (template,
+      allow_distinct, filter_template), or public constructor parameters beyond fixing
+      the space issue.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures the generated SQL for Count with distinct=True and a filter
+      on non-filter-clause-supporting backends contains 'DISTINCT ' (with a trailing
+      space) immediately before the CASE expression, preventing the syntax error COUNT(DISTINCTCASE
+      WHEN ...).
+    weight: 3
+  - id: R2
+    description: Confirms that Count with distinct=True and a filter on backends that
+      support the aggregate filter clause (supports_aggregate_filter_clause=True,
+      e.g., PostgreSQL) is unaffected, since that code path does not use the Case/When
+      fallback.
+    weight: 2

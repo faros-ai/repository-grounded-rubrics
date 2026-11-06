@@ -1,0 +1,52 @@
+metadata:
+  task_summary: Fix Function._eval_evalf in sympy/core/function.py so that the result
+    of calling _imp_ is recursively evaluated via evalf, enabling composed implemented
+    functions like f(g(2)).evalf() to produce a numeric result.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the _eval_evalf method inside sympy/core/function.py and
+      no other unrelated files.
+    weight: 3
+  - id: FC2
+    description: Replaces the bare 'return Float(self._imp_(*self.args), prec)' line
+      with a form that calls evalf on the result of self._imp_(*self.args) before
+      converting to Float, so that nested symbolic expressions are reduced to numbers.
+    weight: 3
+  - id: FC3
+    description: Adds or updates a test in the test suite (e.g., in sympy/core/tests/test_evalf.py)
+      that covers nested implemented-function evaluation such as f(g(2)).evalf() returning
+      a numeric Float.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the exact scenario from the PR description: when _imp_
+      returns a SymPy expression that itself needs numeric evaluation (e.g., a composition
+      of implemented functions), the method now recursively evaluates that expression.'
+    weight: 3
+  - id: SA2
+    description: Preserves the behavior for single-level implemented functions (e.g.,
+      f(2).evalf() still returns the correct Float value) so that non-composed cases
+      are not broken.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Keeps the existing exception handling (AttributeError, TypeError,
+      ValueError) around the _imp_ call intact, so that functions without _imp_ or
+      _imp_ calls that raise still return None gracefully.
+    weight: 2
+  - id: I2
+    description: Does not remove or weaken the existing test_implemented_function_evalf
+      test cases (assertions for f(2).evalf() == 3 and f(x).evalf() == f(x)).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that f(g(2)).evalf() evaluates to a numeric Float rather
+      than returning the unevaluated expression f(g(2)), by applying evalf recursively
+      to the result of _imp_.
+    weight: 3
+  - id: R2
+    description: Ensures that when _imp_ returns a plain Python numeric type (int,
+      float) rather than a SymPy expression, the conversion to Float still succeeds
+      without error.
+    weight: 2

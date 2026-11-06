@@ -1,0 +1,80 @@
+metadata:
+  task_summary: Fix pylint's --recursive=y mode to respect --ignore, --ignore-patterns,
+    and --ignore-paths settings when walking directory trees.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `_discover_files` method (or an equivalent recursive-walk
+      helper) in `pylint/lint/pylinter.py` to accept ignore-list parameters (such
+      as `ignore_list`, `ignore_list_re`, or `ignore_list_paths_re`) rather than operating
+      as a parameter-free static method.
+    weight: 3
+  - id: FC2
+    description: Adds filtering logic inside the `os.walk` loop in `_discover_files`
+      (or equivalent) that skips directories or files matching the basename ignore
+      list (`config.ignore`) before yielding them.
+    weight: 3
+  - id: FC3
+    description: Adds filtering logic inside the `os.walk` loop in `_discover_files`
+      (or equivalent) that skips directories or files whose basenames match any pattern
+      in the regex ignore-patterns list (`config.ignore_patterns` / `black_list_re`).
+    weight: 3
+  - id: FC4
+    description: Adds filtering logic inside the `os.walk` loop in `_discover_files`
+      (or equivalent) that skips directories or files whose full paths match any pattern
+      in the path-based ignore list (`_ignore_paths` / `config.ignore_paths`).
+    weight: 3
+  - id: FC5
+    description: Updates the call site of `_discover_files` in the `check` method
+      of `pylint/lint/pylinter.py` to pass the relevant ignore configuration values
+      (`self.config.ignore`, `self.config.ignore_patterns`, `self._ignore_paths`)
+      to match the expanded method signature.
+    weight: 2
+  - id: FC6
+    description: Confines file changes to the recursive-file-discovery code path (e.g.,
+      `_discover_files` and its call site in `pylint/lint/pylinter.py`) without spurious
+      modifications to unrelated modules or options.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures directories whose basenames appear in the `--ignore` list
+      are excluded from the recursive walk, matching the documented behavior that
+      `--ignore` values are 'base names, not paths'.
+    weight: 3
+  - id: SA2
+    description: Ensures directories and files whose basenames match `--ignore-patterns`
+      regex are excluded from the recursive walk, matching the documented behavior
+      that the regex 'matches against base names'.
+    weight: 3
+  - id: SA3
+    description: Ensures directories and files whose full paths match `--ignore-paths`
+      regex are excluded from the recursive walk, matching the documented behavior
+      that the regex 'matches against paths'.
+    weight: 3
+  - id: SA4
+    description: Adds test coverage (in `tests/test_self.py` or `tests/lint/`) that
+      exercises `--recursive=y` combined with at least one of `--ignore`, `--ignore-patterns`,
+      or `--ignore-paths` to verify ignored paths are excluded from linting.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing discovery behavior for non-ignored paths so
+      that modules and packages not matching any ignore rule continue to be yielded
+      by `_discover_files` and processed by `expand_modules` as before.
+    weight: 3
+  - id: I2
+    description: Does not weaken or remove existing tests for `_discover_files`, `expand_modules`,
+      or the `--recursive` flag (no `pytest.mark.skip`, no deleted test functions,
+      no loosened assertions in the diff).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that `--recursive=y` without any explicit ignore settings
+      still applies the default `ignore-patterns` value during directory traversal,
+      preserving backward-compatible behavior for users who rely on defaults.
+    weight: 2
+  - id: R2
+    description: Ensures that ignored directory subtrees are pruned during `os.walk`
+      traversal (by skipping `root` entries or modifying `dirs` in-place), preventing
+      unnecessary descent into and processing of large ignored subtrees.
+    weight: 2

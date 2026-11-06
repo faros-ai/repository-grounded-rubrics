@@ -1,0 +1,67 @@
+metadata:
+  task_summary: Fix FileResponse incorrectly using the underlying MIME type (e.g.
+    text/html) as Content-Type for files with .Z (compress) or .br (brotli) extensions
+    instead of a proper compressed-file MIME type.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the encoding-to-MIME-type dict inside FileResponse.set_headers
+      in django/http/response.py to add an entry for the 'compress' encoding key (corresponding
+      to .Z files).
+    weight: 3
+  - id: FC2
+    description: Modifies the encoding-to-MIME-type dict inside FileResponse.set_headers
+      in django/http/response.py to add an entry for the 'br' encoding key (corresponding
+      to .br brotli files).
+    weight: 3
+  - id: FC3
+    description: Confines all production-code changes to django/http/response.py without
+      modifying unrelated files or adding unnecessary dependencies.
+    weight: 2
+  - id: FC4
+    description: Extends the test_compressed_response test (or adds a new test) in
+      the FileResponse test file to cover .Z and .br extensions with their expected
+      MIME types.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that when mimetypes.guess_type returns encoding 'compress'
+      for a filename like 'test.html.Z', the resulting Content-Type header is set
+      to a compressed-file MIME type (not 'text/html').
+    weight: 3
+  - id: SA2
+    description: Ensures that when mimetypes.guess_type returns encoding 'br' for
+      a filename like 'test.html.br', the resulting Content-Type header is set to
+      a compressed-file MIME type (not 'text/html').
+    weight: 3
+  - id: SA3
+    description: 'Preserves existing correct behavior: the ''gzip'', ''bzip2'', and
+      ''xz'' encoding keys continue to map to ''application/gzip'', ''application/x-bzip'',
+      and ''application/x-xz'' respectively in the encoding lookup dict.'
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the fix does not weaken or remove any existing assertions
+      in test_compressed_response (i.e., existing .tar.gz, .tar.bz2, .tar.xz test
+      cases are not deleted or skipped).
+    weight: 2
+  - id: I2
+    description: Confirms that the public FileResponse API (constructor signature,
+      set_headers method, block_size attribute) remains unchanged by the patch.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a FileResponse with a filename ending in '.Z' produces
+      a Content-Type header that is a compressed-data MIME type rather than the MIME
+      type of the underlying uncompressed file (e.g., avoids 'text/html' for 'test.html.Z').
+    weight: 3
+  - id: R2
+    description: Ensures that a FileResponse with a filename ending in '.br' produces
+      a Content-Type header that is a compressed-data MIME type rather than the MIME
+      type of the underlying uncompressed file (e.g., avoids 'text/html' for 'test.html.br').
+    weight: 3
+  - id: R3
+    description: Ensures that the Content-Encoding header is not set for .Z and .br
+      FileResponse objects, consistent with the comment in set_headers that encoding
+      is not set to prevent browsers from automatically uncompressing files.
+    weight: 2

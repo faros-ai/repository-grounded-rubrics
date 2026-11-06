@@ -1,0 +1,56 @@
+metadata:
+  task_summary: Fix ax.bar raising StopIteration when passed all-NaN x positions (e.g.,
+    ax.bar([np.nan], [np.nan])) instead of returning a BarContainer with NaN-positioned
+    rectangles.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies either cbook/__init__.py (in _safe_first_finite) or axes/_axes.py
+      (in _convert_dx) to handle the case where all x values are NaN without propagating
+      StopIteration.
+    weight: 3
+  - id: FC2
+    description: Confines changes to the minimal set of files needed — avoids unrelated
+      file churn outside of cbook/__init__.py and/or lib/matplotlib/axes/_axes.py.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test (anywhere in the diff) that exercises ax.bar
+      with an all-NaN x-position input such as ax.bar([np.nan], [np.nan]) to prevent
+      regression.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause from the traceback: _safe_first_finite
+      with skip_nonfinite=True producing StopIteration via the generator expression
+      ''next(val for val in obj if safe_isfinite(val))'' when no finite value exists
+      in the sequence.'
+    weight: 3
+  - id: SA2
+    description: Ensures ax.bar([np.nan], [np.nan]) and ax.bar([np.nan], [0]) no longer
+      raise an exception, consistent with the 3.6.0 behavior where these returned
+      a BarContainer with NaN-positioned rectangles.
+    weight: 3
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the fix structurally preserves the behavior of returning
+      the first finite element when at least one finite value exists — does not unconditionally
+      bypass the finite-filtering logic in _safe_first_finite.
+    weight: 2
+  - id: I2
+    description: Confirms that _safe_first_finite's skip_nonfinite keyword argument
+      interface is preserved and that the skip_nonfinite=False code path is not altered,
+      so callers in dates.py, units.py, and other _axes.py sites remain unaffected.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that _safe_first_finite returns a value (e.g., the first
+      element regardless of finiteness) rather than raising StopIteration when every
+      element in obj fails the safe_isfinite check, preventing the exception from
+      propagating through _convert_dx.
+    weight: 3
+  - id: R2
+    description: Maintains that the existing mixed NaN/finite scenario (e.g., barx
+      with a leading NaN among finite values as in test_bar_leading_nan) continues
+      to produce finite widths for non-NaN bars, confirming no regression in the normal
+      all-finite or leading-NaN cases.
+    weight: 2

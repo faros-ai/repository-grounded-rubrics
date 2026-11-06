@@ -1,0 +1,53 @@
+metadata:
+  task_summary: Fix model_to_dict() to return an empty dict when called with fields=[],
+    by changing 'if fields' to 'if fields is not None' in django/forms/models.py.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the condition on line 86 of django/forms/models.py inside
+      model_to_dict, replacing 'if fields and f.name not in fields' with 'if fields
+      is not None and f.name not in fields'.
+    weight: 3
+  - id: FC2
+    description: Confines changes to the model_to_dict function in django/forms/models.py
+      without altering unrelated functions such as fields_for_model or construct_instance.
+    weight: 2
+  - id: FC3
+    description: Avoids introducing modifications to files outside django/forms/models.py
+      in the core production source (e.g., no changes to admin, ORM, or unrelated
+      form utilities).
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Implements the exact fix described in the PR description: the guard
+      on the fields filter uses ''is not None'' rather than truthiness evaluation,
+      so an empty list is treated as a valid restricting filter.'
+    weight: 3
+  - id: SA2
+    description: 'Preserves the existing behavior of model_to_dict when fields=None
+      (the default): all editable fields are still included in the returned dict.'
+    weight: 3
+  - id: SA3
+    description: Adds or updates a test that exercises model_to_dict with fields=[]
+      and asserts the result is an empty dict.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms the public signature of model_to_dict(instance, fields=None,
+      exclude=None) is unchanged, preserving backward compatibility with all callers.
+    weight: 2
+  - id: I2
+    description: Avoids weakening or removing existing tests for model_to_dict in
+      tests/model_forms/tests.py.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that calling model_to_dict(instance, fields=[]) returns an
+      empty dict ({}) by treating the empty list as an explicit instruction to include
+      no fields, rather than as a falsy value meaning 'no filter'.
+    weight: 3
+  - id: R2
+    description: 'Ensures the exclude parameter continues to function correctly: fields
+      listed in exclude are still skipped even when fields is None (default), so the
+      fix to the fields guard does not affect the exclude logic.'
+    weight: 2

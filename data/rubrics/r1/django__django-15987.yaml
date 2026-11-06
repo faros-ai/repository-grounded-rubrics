@@ -1,0 +1,62 @@
+metadata:
+  task_summary: Fix the duplicate-detection logic in loaddata's fixture_dirs property
+    so that Path instances in settings.FIXTURE_DIRS are treated the same as str instances
+    when checking for duplicates.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies only django/core/management/commands/loaddata.py (and optionally
+      test files) without touching unrelated files.
+    weight: 2
+  - id: FC2
+    description: Changes the duplicate-detection line in the fixture_dirs cached property
+      (the line performing 'len(fixture_dirs) != len(set(fixture_dirs))') to normalize
+      Path entries to a comparable type such as str before building the set.
+    weight: 3
+  - id: FC3
+    description: Changes the 'app_dir in fixture_dirs' membership check inside fixture_dirs
+      to normalize Path entries to the same type as app_dir (a str produced by os.path.join)
+      so the comparison is type-consistent.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the case described in the PR where FIXTURE_DIRS contains
+      Path instances and duplicate detection silently fails, ensuring an ImproperlyConfigured
+      error is raised for duplicate Path entries.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior where duplicate str entries in FIXTURE_DIRS
+      still raise ImproperlyConfigured with the message 'settings.FIXTURE_DIRS contains
+      duplicates.'.
+    weight: 2
+  - id: SA3
+    description: Adds or updates a test that exercises the duplicate-detection path
+      when FIXTURE_DIRS contains duplicate Path instances (e.g., [Path(some_dir),
+      Path(some_dir)]) and expects ImproperlyConfigured.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Avoids weakening or removing any existing test for fixture_dirs duplicate
+      detection or app_dir collision detection.
+    weight: 2
+  - id: I2
+    description: 'Preserves the public behavior and signature of the fixture_dirs
+      cached property: it still returns a list of str paths resolved via os.path.realpath.'
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when FIXTURE_DIRS contains a Path instance pointing
+      to an app's default fixtures directory (e.g., Path(app_config.path) / 'fixtures'),
+      the check raises ImproperlyConfigured with the message containing 'is a default
+      fixture directory for the'.
+    weight: 3
+  - id: R2
+    description: Ensures that mixing str and Path entries pointing to the same directory
+      in FIXTURE_DIRS (e.g., ['/some/dir', Path('/some/dir')]) is treated as a duplicate
+      and raises ImproperlyConfigured.
+    weight: 2
+  - id: R3
+    description: Confirms that valid, non-duplicate Path entries in FIXTURE_DIRS (e.g.,
+      [Path(dir1), Path(dir2)] with distinct resolved paths) do not raise ImproperlyConfigured
+      and continue to work for fixture loading.
+    weight: 2

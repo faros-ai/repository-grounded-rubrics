@@ -1,0 +1,58 @@
+metadata:
+  task_summary: 'Deduplicate identical location entries in Message.locations so that
+    .pot files do not contain repeated ''#: file:line'' comment lines.'
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies 'sphinx/builders/gettext.py' and no other unrelated files,
+      keeping the diff minimal and scoped to the deduplication fix.
+    weight: 2
+  - id: FC2
+    description: Adds deduplication logic (anywhere in the diff) targeting the 'positions'
+      list or 'Message.locations' attribute in 'sphinx/builders/gettext.py', such
+      that duplicate '(source, line)' tuples are removed before 'Message' is yielded
+      or constructed.
+    weight: 3
+  - id: FC3
+    description: Preserves the 'uuids' list in 'Catalog.__iter__' or 'Message.__init__'
+      so that uuid data remains aligned or is independently preserved after deduplication
+      of locations.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause described in the PR: identical ''(source,
+      line)'' pairs accumulating in ''Catalog.metadata'' being passed through to ''Message.locations''
+      without deduplication.'
+    weight: 3
+  - id: SA2
+    description: Ensures the deduplication retains at least one instance of each unique
+      '(source, line)' pair, consistent with the PR's requirement that each location
+      appears exactly once in the output.
+    weight: 3
+  - id: SA3
+    description: Does not alter the 'Message' public interface (constructor signature
+      'def __init__(self, text, locations, uuids)') or 'Catalog.add' signature in
+      a way that would break callers.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Avoids weakening or removing existing tests in 'tests/test_build_gettext.py'
+      or other test files that cover gettext builder behavior.
+    weight: 2
+  - id: I2
+    description: Confirms that no unrelated dependencies, imports, or configuration
+      values are added or removed beyond what is strictly needed for the deduplication
+      fix.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Guarantees that when 'Catalog.__iter__' yields 'Message' objects,
+      'Message.locations' contains no repeated '(source, line)' tuples, so the Jinja2
+      template loop 'for source, line in message.locations' emits each location comment
+      at most once.
+    weight: 3
+  - id: R2
+    description: Preserves backward-compatible behavior for the common case where
+      all locations are already unique, ensuring no data loss or reordering disrupts
+      valid existing .pot output.
+    weight: 2

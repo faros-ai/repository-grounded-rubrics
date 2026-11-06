@@ -1,0 +1,66 @@
+metadata:
+  task_summary: Fix wspace and hspace parameters in Figure.subfigures having no effect
+    on subfigure spacing.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `_redo_transform_rel_fig` method in `lib/matplotlib/figure.py`
+      to account for wspace and hspace when computing subfigure bounding boxes.
+    weight: 3
+  - id: FC2
+    description: Replaces the ratio-only position computation (using raw `wr` and
+      `hr` arrays divided by their sums) in `_redo_transform_rel_fig` with a call
+      to a GridSpec method (such as `get_grid_positions`) that incorporates wspace
+      and hspace.
+    weight: 3
+  - id: FC3
+    description: Confines all changes to `lib/matplotlib/figure.py` and/or `lib/matplotlib/gridspec.py`
+      without modifying unrelated files.
+    weight: 2
+  - id: FC4
+    description: Adds or updates a test in the test suite (e.g., in `lib/matplotlib/tests/test_figure.py`)
+      that exercises non-zero wspace or hspace with `Figure.subfigures` to verify
+      the spacing is applied.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that passing `wspace=0` and `hspace=0` to `Figure.subfigures`
+      produces different layout positions than passing `wspace=0.5` and `hspace=0.5`,
+      i.e., spacing arguments actually affect the computed bounding boxes of subfigures.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior when `wspace=None` and `hspace=None`
+      (the default) by falling back to figure subplot params or rcParams, matching
+      prior behavior for calls without explicit spacing arguments.
+    weight: 2
+  - id: SA3
+    description: Applies the fix within `_redo_transform_rel_fig` so that both the
+      initial layout (at construction time) and any subsequent relayout correctly
+      incorporate the gridspec's wspace and hspace values.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the public signature of `Figure.subfigures` (parameters
+      `nrows`, `ncols`, `squeeze`, `wspace`, `hspace`, `width_ratios`, `height_ratios`,
+      `**kwargs`) without removing or renaming any parameters.
+    weight: 3
+  - id: I2
+    description: Does not weaken existing subfigure tests by removing assertions,
+      adding skip markers, or reducing comparison tolerances in tests such as `test_subfigure_spanning`.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that the bounding box coordinates of subfigures created with
+      `subfigures(2, 2, wspace=w, hspace=h)` change as `w` and `h` change, producing
+      visible gaps between subfigures proportional to the given spacing values.
+    weight: 3
+  - id: R2
+    description: Ensures that existing multi-subfigure layouts using `width_ratios`
+      and `height_ratios` (without explicit wspace/hspace) continue to compute correct
+      relative positions, preserving backward compatibility for ratio-only use cases.
+    weight: 2
+  - id: R3
+    description: Ensures that nested subfigures (subfigures within subfigures) correctly
+      propagate wspace and hspace at each level of nesting, so that spacing arguments
+      applied to an inner `subfigures()` call affect only the inner grid.
+    weight: 2

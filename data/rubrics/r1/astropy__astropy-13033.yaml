@@ -1,0 +1,62 @@
+metadata:
+  task_summary: Fix misleading ValueError message in TimeSeries._check_required_columns
+    when required columns (beyond 'time') are missing from the table.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the _check_required_columns method in astropy/timeseries/core.py
+      to produce a distinct, accurate error message when required columns are absent
+      from the TimeSeries.
+    weight: 3
+  - id: FC2
+    description: Confines all code changes to astropy/timeseries/core.py (and optionally
+      test files), without modifying unrelated modules such as sampled.py, binned.py,
+      or table.py.
+    weight: 2
+  - id: FC3
+    description: Adds a new conditional branch (or augments the existing elif branch
+      on line 77) that detects when the table has fewer columns than required, and
+      routes that case to a separate error message distinct from the wrong-first-column
+      case.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the scenario described in the PR where ts._required_columns
+      is set to ['time', 'flux'] and 'flux' is removed, ensuring the raised ValueError
+      no longer contains the self-contradictory phrase "expected 'time' as the first
+      column but found 'time'".
+    weight: 3
+  - id: SA2
+    description: Produces an error message that informs the user which required columns
+      are missing (e.g., references the missing column name or lists required columns),
+      matching the PR's expected behavior of an exception that informs users required
+      columns are missing.
+    weight: 2
+  - id: SA3
+    description: Preserves the existing error message path for the truly wrong-first-column
+      case (where self.colnames[0] differs from required_columns[0]), so that unrelated
+      scenarios still produce the original 'expected ... but found ...' message.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing tests in astropy/timeseries/tests/ are
+      removed, skipped, or weakened (e.g., no addition of @pytest.mark.skip or deletion
+      of assert statements) as part of the fix.
+    weight: 2
+  - id: I2
+    description: Confirms that the public API of BaseTimeSeries, including _check_required_columns,
+      _required_columns, _required_columns_relax, and _delay_required_column_checks,
+      is not renamed or removed.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when a required non-time column is removed from a TimeSeries
+      (as in the PR reproduction script), the resulting ValueError message references
+      the missing required column(s) rather than repeating 'time' in both the expected
+      and found positions.
+    weight: 3
+  - id: R2
+    description: Ensures that when an empty TimeSeries (zero columns) is validated,
+      the existing zero-column error path ('time series has no columns') remains intact
+      and is not accidentally removed or bypassed by the new logic.
+    weight: 2

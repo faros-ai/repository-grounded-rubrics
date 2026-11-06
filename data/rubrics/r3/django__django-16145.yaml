@@ -1,0 +1,58 @@
+metadata:
+  task_summary: Fix runserver 0:8000 so the Starting development server at message
+    displays http://0.0.0.0:8000/ instead of http://0:8000/.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/core/management/commands/runserver.py as the primary
+      (and ideally only) changed production file, keeping the fix local to the runserver
+      command.
+    weight: 3
+  - id: FC2
+    description: Introduces a normalization or expansion of the parsed address value
+      (e.g., mapping '0' to '0.0.0.0') somewhere in django/core/management/commands/runserver.py,
+      visible as an added or modified line in the diff.
+    weight: 3
+  - id: FC3
+    description: Avoids modifying naiveip_re in a way that would break existing valid
+      address-parsing behavior (e.g., FQDN, IPv4, IPv6 patterns remain intact in the
+      regex definition).
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures the displayed URL in the Starting development server at message
+      uses the expanded address 0.0.0.0 rather than the shorthand 0 when addrport='0:8000'
+      is supplied, matching the documented equivalence in the PR description.
+    weight: 3
+  - id: SA2
+    description: Applies the normalization such that self.addr (or the value displayed
+      in inner_run) is expanded to '0.0.0.0' whenever the user provides '0' as the
+      host part of the address.
+    weight: 2
+  - id: SA3
+    description: Preserves the existing behavior when a full IPv4 address like '0.0.0.0'
+      is given directly, so there is no double-expansion or regression for the explicit
+      form.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing ManageRunserver test cases (e.g., test_runserver_addrport,
+      test_runner_hostname, test_runner_addrport_ipv6) are not weakened, removed,
+      or skipped in the diff.
+    weight: 2
+  - id: I2
+    description: Confirms the public Command class API in runserver.py (attributes
+      default_addr, default_addr_ipv6, default_port, protocol, server_cls) remains
+      unchanged in the diff.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Guarantees that the address passed to run(self.addr, ...) in inner_run
+      remains network-bindable (i.e., normalized to '0.0.0.0' rather than a bare '0'),
+      so the server actually listens on all interfaces as documented.
+    weight: 2
+  - id: R2
+    description: Ensures that other FQDN-style or hostname addresses (e.g., 'localhost',
+      'beef', 'test.domain.local') are not inadvertently expanded or altered by the
+      normalization logic added for '0'.
+    weight: 2

@@ -1,0 +1,54 @@
+metadata:
+  task_summary: Fix AuthenticationForm's username field not rendering the maxlength
+    HTML attribute by ensuring the widget's attrs are updated when max_length is set
+    post-field-construction in AuthenticationForm.__init__.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/contrib/auth/forms.py and no other unrelated production
+      files, keeping the diff minimal and scoped to the authentication forms module.
+    weight: 2
+  - id: FC2
+    description: Updates the section of AuthenticationForm.__init__ that sets self.fields['username'].max_length
+      so that the corresponding widget attribute is also updated (e.g., by also updating
+      self.fields['username'].widget.attrs['maxlength'] or by an equivalent mechanism
+      in that same __init__ method).
+    weight: 3
+  - id: FC3
+    description: Does not remove or replace the existing logic that sets self.fields['username'].max_length
+      to self.username_field.max_length or 254, preserving the fallback value.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the regression described in the PR where AuthenticationForm's
+      username field no longer renders with the maxlength HTML attribute, by ensuring
+      the widget receives the maxlength attribute reflecting the model field's max_length.
+    weight: 3
+  - id: SA2
+    description: Ensures the maxlength attribute on the rendered username widget matches
+      the value derived from UserModel._meta.get_field(UserModel.USERNAME_FIELD).max_length
+      (or defaults to 254 when that is None), consistent with what max_length is set
+      to in AuthenticationForm.__init__.
+    weight: 3
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the public API of AuthenticationForm, UsernameField, and
+      UserCreationForm without removing or renaming existing methods or fields.
+    weight: 2
+  - id: I2
+    description: Avoids weakening existing tests (e.g., does not change assertions
+      in test_username_field_max_length_matches_user_model or test_username_field_max_length_defaults_to_254
+      to accept incorrect values).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that after AuthenticationForm instantiation, self.fields['username'].widget.attrs
+      contains the key 'maxlength' with a value matching the effective max_length
+      (either from the model or the 254 default), so the rendered HTML input includes
+      the maxlength attribute.
+    weight: 3
+  - id: R2
+    description: Maintains backward compatibility so that a subclass overriding AuthenticationForm.username
+      with a custom UsernameField or CharField that specifies its own max_length at
+      class-definition time still renders correctly.
+    weight: 1

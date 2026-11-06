@@ -1,0 +1,51 @@
+metadata:
+  task_summary: Fix UnboundLocalError in HashedFilesMixin.post_process when max_post_process_passes
+    is set to 0 by ensuring 'substitutions' is initialized before the loop.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/contrib/staticfiles/storage.py and no other unrelated
+      production files.
+    weight: 3
+  - id: FC2
+    description: Initializes 'substitutions' to False before the 'for i in range(self.max_post_process_passes)'
+      loop inside the 'post_process' method of 'HashedFilesMixin', so it is always
+      defined regardless of loop execution.
+    weight: 3
+  - id: FC3
+    description: Confines the diff to a minimal, targeted change near the 'for i in
+      range(self.max_post_process_passes)' loop rather than restructuring or rewriting
+      the surrounding logic.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Resolves the ''UnboundLocalError: local variable substitutions referenced
+      before assignment'' that occurs when ''max_post_process_passes'' is 0 and the
+      loop body never executes.'
+    weight: 3
+  - id: SA2
+    description: Ensures that when 'max_post_process_passes' equals 0, the 'if substitutions:'
+      guard after the loop does not raise 'UnboundLocalError' and does not incorrectly
+      yield a 'RuntimeError' about exceeded passes.
+    weight: 3
+  integrity_rubrics:
+  - id: I1
+    description: 'Preserves the existing behavior for ''max_post_process_passes''
+      values greater than 0, keeping the early-exit ''if not substitutions: break''
+      logic intact.'
+    weight: 3
+  - id: I2
+    description: Avoids weakening or removing any existing test assertions related
+      to post-processing or 'substitutions' in the test suite.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that calling 'post_process' with 'max_post_process_passes
+      = 0' completes without raising any exception and yields only the adjustable
+      files from 'processed_adjustable_paths.values()' without a 'RuntimeError' sentinel.
+    weight: 3
+  - id: R2
+    description: Maintains that when 'max_post_process_passes' is greater than 0 and
+      all substitutions are resolved within the allowed passes, no 'RuntimeError'
+      is yielded (backward-compatible behavior).
+    weight: 2

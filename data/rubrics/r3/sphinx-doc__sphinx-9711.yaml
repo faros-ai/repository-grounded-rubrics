@@ -1,0 +1,64 @@
+metadata:
+  task_summary: Fix needs_extensions version comparison in verify_needs_extensions
+    to use semantic versioning instead of lexicographic string comparison, so versions
+    like 0.10.0 are correctly accepted when the minimum required is 0.6.0.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sphinx/extension.py and only sphinx/extension.py (or its
+      immediate test counterpart) to fix the version comparison logic in verify_needs_extensions,
+      with no unrelated file churn.
+    weight: 2
+  - id: FC2
+    description: Replaces or wraps the raw string comparison `reqversion > extension.version`
+      in verify_needs_extensions with a semantic version comparison mechanism (e.g.,
+      using packaging.version.Version, distutils.version.LooseVersion, or tuple-based
+      conversion) visible in the added lines of the diff.
+    weight: 3
+  - id: FC3
+    description: Adds an import (in sphinx/extension.py or a utility it uses) for
+      a version-parsing library or function needed for semantic comparison, such as
+      `from packaging.version import Version` or `from distutils.version import LooseVersion`.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the scenario described in the PR where an installed extension
+      version of 0.10.0 is incorrectly rejected when the required minimum is 0.6.0,
+      by ensuring version parts are compared numerically rather than lexicographically.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing guard that raises VersionRequirementError
+      when extension.version is 'unknown version', keeping that branch intact in the
+      diff.
+    weight: 2
+  - id: SA3
+    description: Preserves the existing error message text (containing 'This project
+      needs the extension' and 'and therefore cannot be built with') in the VersionRequirementError
+      raise statement.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Avoids weakening any existing tests related to verify_needs_extensions
+      or VersionRequirementError (no removal of assertions, no added skip markers,
+      no loosening of expected conditions).
+    weight: 2
+  - id: I2
+    description: Confirms that the public signature of verify_needs_extensions and
+      the setup function in sphinx/extension.py remain unchanged (same parameters
+      and return structure).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a loaded extension version of '0.10.0' is accepted when
+      the required version is '0.6' or '0.6.0', by virtue of the semantic comparison
+      treating 10 > 6 in the minor component rather than '1' < '6' lexicographically.
+    weight: 3
+  - id: R2
+    description: Ensures that a loaded extension version genuinely older than the
+      required version (e.g., loaded '0.5.0' vs required '0.6.0') still raises VersionRequirementError,
+      preserving the enforcement behavior.
+    weight: 3
+  - id: R3
+    description: Ensures that the 'unknown version' case continues to raise VersionRequirementError
+      regardless of the required version, as it did before the fix.
+    weight: 2

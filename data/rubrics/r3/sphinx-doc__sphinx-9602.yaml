@@ -1,0 +1,64 @@
+metadata:
+  task_summary: Fix nitpick mode falsely treating Literal annotation values (e.g.,
+    Literal[True]) as py:class cross-references in the Python domain's _parse_annotation
+    function.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sphinx/domains/python.py and confines all changes relevant
+      to Literal handling to that file (no unrelated file churn).
+    weight: 3
+  - id: FC2
+    description: Adds special-case logic inside the _parse_annotation function (or
+      its inner unparse helper) in sphinx/domains/python.py to detect when the subscript
+      value is Literal (or typing.Literal).
+    weight: 3
+  - id: FC3
+    description: Ensures that for Literal subscript arguments the patch uses repr()
+      or an equivalent string rendering of literal values rather than passing them
+      through type_to_xref, so the resulting nodes are not pending_xref cross-references.
+    weight: 3
+  - id: FC4
+    description: Adds or updates a test case in tests/test_domain_py.py that exercises
+      _parse_annotation with a Literal annotation (such as Literal[True], Literal[0],
+      or a string literal) and asserts that the arguments are plain text nodes rather
+      than pending_xref nodes.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the exact scenario from the PR description: type annotations
+      of the form Literal[True] or Literal[False] must not produce py:class cross-references
+      for the boolean literal values.'
+    weight: 3
+  - id: SA2
+    description: Preserves the cross-reference for the Literal type name itself (e.g.,
+      Literal or typing.Literal still generates a pending_xref), changing only the
+      handling of the arguments inside the brackets.
+    weight: 2
+  - id: SA3
+    description: Handles multi-value Literal annotations (e.g., Literal[True, 1, 'hello'])
+      by treating every argument inside the brackets as a literal value, not a type
+      reference.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that unrelated type annotations such as List[int], Tuple[int,
+      int], Callable[[int], int], and None continue to generate pending_xref nodes
+      with reftype 'class' or 'obj' as before, with no behavioural change to non-Literal
+      paths.
+    weight: 3
+  - id: I2
+    description: Confirms that no existing tests in test_domain_py.py or test_util_typing.py
+      are weakened, removed, or skipped by the patch.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when nitpick mode is enabled, building documentation
+      that contains Literal[True] or Literal[False] type annotations does not emit
+      a 'py:class reference not found' warning for the literal values True or False.
+    weight: 3
+  - id: R2
+    description: Ensures that the fix applies to both bare Literal[...] and qualified
+      typing.Literal[...] forms in annotation strings, since the PR's reproducer uses
+      typing.Literal[True].
+    weight: 2

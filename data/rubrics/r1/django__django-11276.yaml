@@ -1,0 +1,63 @@
+metadata:
+  task_summary: Replace django.utils.html.escape() custom implementation with Python
+    stdlib html.escape() to reduce duplication and improve performance.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/utils/html.py to add an import of the stdlib html
+      module (e.g., 'import html') or uses 'from html import escape as _html_escape'
+      so that html.escape is available for use.
+    weight: 3
+  - id: FC2
+    description: Removes the _html_escapes dictionary (containing ord('&'), ord('<'),
+      ord('>'), ord('"'), ord("'") keys) from django/utils/html.py since it is no
+      longer needed after delegating to stdlib.
+    weight: 2
+  - id: FC3
+    description: Replaces the body of the escape() function in django/utils/html.py
+      so it no longer calls str.translate(_html_escapes), instead delegating to the
+      stdlib html.escape().
+    weight: 3
+  - id: FC4
+    description: Confines all changes to django/utils/html.py (the primary implementation
+      file) without modifying unrelated modules, so the diff does not introduce churn
+      in other production files.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements the escape() function using the stdlib html.escape() call,
+      matching the PR description's stated goal of replacing the partial duplication
+      with the 'wider community developed version'.
+    weight: 3
+  - id: SA2
+    description: Passes quote=True (or relies on the default) to html.escape() so
+      that single quotes are escaped, preserving the existing behavior of escaping
+      the apostrophe character.
+    weight: 2
+  - id: SA3
+    description: Acknowledges the backwards-incompatible encoding change for single
+      quotes (from '&#39;' to '&#x27;') by updating any hardcoded '&#39;' expectations
+      in test code or documentation that now must reflect '&#x27;'.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the public signature and decorator of escape() (keeping
+      @keep_lazy(str, SafeString) and mark_safe() wrapping) so that callers using
+      lazy strings or SafeString types continue to work correctly.
+    weight: 3
+  - id: I2
+    description: Avoids weakening existing tests for escape() — does not delete test
+      cases for '&', '<', '>', or '"' escaping — so the test suite continues to validate
+      all five HTML special characters.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that escape() still converts '&' to '&amp;', '<' to '&lt;',
+      '>' to '&gt;', and '"' to '&quot;', preserving the four non-controversial HTML
+      escaping behaviors that have not changed.
+    weight: 3
+  - id: R2
+    description: Ensures that escape() now encodes the single-quote character "'"
+      as '&#x27;' (the stdlib html.escape output) rather than '&#39;' (the old Django
+      output), reflecting the documented backwards-incompatible change.
+    weight: 2

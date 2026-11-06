@@ -1,0 +1,61 @@
+metadata:
+  task_summary: 'Fix sphinx.ext.napoleon so that numpydoc-style parameters with comma-separated
+    names (e.g., ''x1, x2 : array_like, optional'') render each name as an individual
+    :param: / :type: entry instead of one malformed combined entry.'
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies `_format_docutils_params` in `sphinx/ext/napoleon/docstring.py`
+      to handle comma-separated `_name` values by splitting them and emitting one
+      `:param:` field per individual name.
+    weight: 3
+  - id: FC2
+    description: Modifies `_format_docutils_params` (or an equivalent helper called
+      from it) in `sphinx/ext/napoleon/docstring.py` to emit a `:type:` line for each
+      individual name when `_type` is present, rather than a single `:type x1, x2:`
+      line.
+    weight: 3
+  - id: FC3
+    description: Confines changes to `sphinx/ext/napoleon/docstring.py` and optionally
+      its test file, without touching unrelated modules or introducing extraneous
+      file churn.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Ensures that a numpy-style docstring entry like ''x1, x2 : array_like''
+      (with `napoleon_use_param=True`) produces separate `:param x1:` and `:param
+      x2:` lines rather than a single malformed `:param x1, x2:` line.'
+    weight: 3
+  - id: SA2
+    description: Ensures that the type annotation (e.g., `array_like`) appears in
+      the generated output for each individual name when the docstring uses a comma-separated
+      parameter list with a shared type, matching the expected output described in
+      the PR description.
+    weight: 3
+  - id: SA3
+    description: Ensures that `optional` (or any other type qualifier following the
+      comma-separated names) is rendered in the output for each split name, so the
+      optional status is not silently discarded.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the `_format_docutils_params` signature (parameters
+      `field_role` and `type_role`) is preserved unchanged, maintaining backward compatibility
+      for callers such as `_parse_keyword_arguments_section`.
+    weight: 2
+  - id: I2
+    description: Confirms that single-name parameter entries (no comma in `_name`)
+      continue to produce the same `:param name:` / `:type name:` output as before,
+      avoiding any regression for the common case.
+    weight: 3
+  runtime_rubrics:
+  - id: R1
+    description: Produces stable, individually-named `:param x1:` and `:param x2:`
+      RST field list entries at runtime for comma-separated numpydoc parameter names,
+      which docutils can resolve to hyperlinked parameter descriptions without ambiguity.
+    weight: 3
+  - id: R2
+    description: Preserves the description text (the indented block after the parameter
+      line) by associating it with the first individual name or emitting it consistently,
+      avoiding silent loss of the description for any of the split names.
+    weight: 2

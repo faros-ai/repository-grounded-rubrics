@@ -1,0 +1,51 @@
+metadata:
+  task_summary: Fix bulk_create so that the caller-supplied batch_size is capped by
+    the database-compatible max_batch_size, mirroring the min(batch_size, max_batch_size)
+    logic already used in bulk_update.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the _batched_insert method in django/db/models/query.py
+      to replace the expression that ignores the compatible batch size when batch_size
+      is supplied.
+    weight: 3
+  - id: FC2
+    description: Confines all changes to django/db/models/query.py (and optionally
+      tests/bulk_create/tests.py), without touching unrelated files.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements the fix so that when batch_size is provided, the effective
+      batch size used in _batched_insert is min(batch_size, max_batch_size), mirroring
+      the pattern used in bulk_update at line 523 of query.py.
+    weight: 3
+  - id: SA2
+    description: 'Preserves the fallback behavior where batch_size is None: the effective
+      batch size is still max(ops.bulk_batch_size(fields, objs), 1) (i.e., the database-compatible
+      max).'
+    weight: 3
+  - id: SA3
+    description: Uses ops.bulk_batch_size(fields, objs) (or equivalent) to compute
+      max_batch_size inside _batched_insert before applying the min comparison.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the public signature of bulk_create (parameters objs, batch_size,
+      ignore_conflicts) and _batched_insert (parameters objs, fields, batch_size,
+      ignore_conflicts) without adding, removing, or renaming parameters.
+    weight: 3
+  - id: I2
+    description: Avoids weakening or removing existing test assertions in tests/bulk_create/tests.py
+      (e.g., does not skip or soften test_explicit_batch_size or test_explicit_batch_size_efficiency).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a caller-supplied batch_size larger than the database-compatible
+      limit does not cause the insert to exceed that limit, because min(batch_size,
+      max_batch_size) is now applied in _batched_insert.
+    weight: 3
+  - id: R2
+    description: Ensures that a caller-supplied batch_size smaller than max_batch_size
+      is still respected (the effective batch size equals the caller value, not the
+      larger database maximum).
+    weight: 2

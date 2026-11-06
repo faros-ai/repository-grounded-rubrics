@@ -1,0 +1,60 @@
+metadata:
+  task_summary: Fix ax.cla()/ax.clear() to preserve shared-axis tick label visibility
+    and tick settings that were set via _label_outer_xaxis/_label_outer_yaxis when
+    sharex/sharey axes are in use.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the cla() or clear() method in lib/matplotlib/axes/_base.py
+      to preserve tick-label visibility state across the clear operation.
+    weight: 3
+  - id: FC2
+    description: Saves state related to xaxis and yaxis tick-parameter keyword dicts
+      (such as _major_tick_kw and _minor_tick_kw, or equivalent label-visibility flags
+      like label1On/label2On) before calling xaxis.clear() and yaxis.clear(), and
+      restores them afterwards.
+    weight: 3
+  - id: FC3
+    description: Confines the fix to the axes clearing code path (cla/clear in _base.py
+      or _subplots.py) without adding unrelated changes to other modules.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that after ax.cla() is called on a subplot created with sharex=True
+      or sharey=True, inner tick labels (labelbottom, labelleft, etc.) that were hidden
+      by the shared-axis setup remain hidden.
+    weight: 3
+  - id: SA2
+    description: Ensures that the shared-axis link itself (synchronized limits across
+      siblings) is still functional after ax.cla() is called, i.e., the fix does not
+      remove or break the existing self.sharex(self._sharex) / self.sharey(self._sharey)
+      re-application in cla().
+    weight: 2
+  - id: SA3
+    description: Preserves the existing logic that stashes xaxis_visible and yaxis_visible
+      before clearing and restores them after, so overall axis visibility for shared
+      axes is still restored.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Avoids weakening or skipping any existing test for cla/clear behavior
+      (e.g. test_inverted_cla or test_twinx_cla in test_axes.py) by deleting assertions,
+      marking tests as xfail, or changing expected values.
+    weight: 2
+  - id: I2
+    description: Preserves the public signatures of cla(), clear(), sharex(), and
+      sharey() in _base.py without adding, removing, or renaming parameters.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: After calling ax.cla() on an inner subplot (not last row, not first
+      column) of a sharex=True/sharey=True 2x2 grid, tick label visibility for that
+      subplot matches the state produced by _label_outer_xaxis()/_label_outer_yaxis(),
+      i.e., labelbottom and labelleft remain False as stored in xaxis._major_tick_kw
+      and xaxis._minor_tick_kw.
+    weight: 3
+  - id: R2
+    description: After calling ax.cla() on an axes that is not part of a shared group
+      (self._sharex is None and self._sharey is None), tick labels remain visible
+      by default (label1On defaults to True), so non-shared axes behaviour is unchanged.
+    weight: 2

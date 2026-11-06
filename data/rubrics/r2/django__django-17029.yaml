@@ -1,0 +1,53 @@
+metadata:
+  task_summary: Add self.get_swappable_settings_name.cache_clear() to Apps.clear_cache()
+    so the functools.cache on get_swappable_settings_name is also invalidated when
+    the app registry changes.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/apps/registry.py and no other production source file,
+      keeping the diff minimal and confined to the stated fix.
+    weight: 2
+  - id: FC2
+    description: Adds a call to self.get_swappable_settings_name.cache_clear() inside
+      the def clear_cache( method body in django/apps/registry.py.
+    weight: 3
+  - id: FC3
+    description: 'Adds the cache_clear() call at the same logical level as the existing
+      self.get_models.cache_clear() call (i.e., unconditionally, not nested inside
+      the if self.ready: block).'
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that get_swappable_settings_name, which is decorated with
+      @functools.cache, has its cache invalidated whenever clear_cache() is called,
+      matching the PR description's stated requirement.
+    weight: 3
+  - id: SA2
+    description: Treats the fix as analogous to the already-present self.get_models.cache_clear()
+      call, which addresses the same class of cached method, consistent with the pattern
+      described in the PR.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: 'Preserves the existing self.get_models.cache_clear() call and the
+      if self.ready: block inside clear_cache(), leaving all other cache-clearing
+      logic intact.'
+    weight: 3
+  - id: I2
+    description: Does not alter the signature or decorator of get_swappable_settings_name
+      (keeps @functools.cache intact), so its caching behavior between clear_cache()
+      calls is unchanged.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that after Apps.clear_cache() is called, a subsequent call
+      to get_swappable_settings_name returns a freshly computed value rather than
+      a stale cached result, because cache_clear() resets the lru_cache state.
+    weight: 3
+  - id: R2
+    description: Ensures that callers such as set_available_apps, unset_available_apps,
+      set_installed_apps, and unset_installed_apps (all of which call self.clear_cache())
+      now also clear the get_swappable_settings_name cache, preventing stale swappable-model
+      lookups after app-set changes.
+    weight: 2

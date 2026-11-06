@@ -1,0 +1,63 @@
+metadata:
+  task_summary: Fix user-defined locale/<language>/LC_MESSAGES/sphinx.po translations
+    being ignored in favor of Sphinx built-in translations by correcting the locale
+    directory priority order.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the locale directory ordering in `_init_i18n` in `sphinx/application.py`
+      so that user-supplied locale dirs (from `repo.locale_dirs`) appear before the
+      Sphinx built-in locale dir (`path.join(package_dir, 'locale')`).
+    weight: 3
+  - id: FC2
+    description: Confines changes to the locale/translation priority logic and avoids
+      unrelated file churn (no modifications to unrelated modules outside of locale
+      initialization or testing).
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test in locale-related test files (e.g., `tests/test_locale.py`
+      or similar) that exercises the scenario where a user locale dir overrides a
+      built-in sphinx catalog entry for the same message key.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements a fix that makes user `locale/<language>/LC_MESSAGES/sphinx.po`
+      (or `.mo`) translations take priority over Sphinx's bundled `sphinx/locale/<language>/LC_MESSAGES/sphinx.mo`
+      translations, directly addressing the reported bug where user overrides were
+      silently ignored.
+    weight: 3
+  - id: SA2
+    description: Preserves support for the `locale_dirs` configuration variable (defaulting
+      to `['locales']`) as the mechanism through which users specify custom locale
+      directories, consistent with the PR description referencing the `locale_dirs`
+      confval.
+    weight: 2
+  - id: SA3
+    description: Ensures automatic `.mo` compilation (via `gettext_auto_build`) for
+      user-supplied `.po` files in locale dirs still occurs before locale priority
+      is applied, so that compiled `.mo` files are present when `locale.init` searches
+      for them.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the `locale.init` function signature and its `add_fallback`
+      chaining logic are not altered — the fix changes the call-site order of locale
+      dirs in `_init_i18n`, not the internal mechanics of `sphinx/locale/__init__.py`.
+    weight: 2
+  - id: I2
+    description: Preserves backward compatibility for the built-in Sphinx locale translations,
+      ensuring they remain available as fallbacks when a user locale dir does not
+      provide a translation for a given message.
+    weight: 3
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when a user provides `locale/<language>/LC_MESSAGES/sphinx.mo`
+      in `locale_dirs`, calls to `_()` (the sphinx-core translation function) return
+      the user-provided string rather than the Sphinx built-in string for the same
+      `msgid`.
+    weight: 3
+  - id: R2
+    description: Maintains fallback behavior so that message IDs present only in Sphinx
+      built-in catalogs (not overridden by user locale dirs) continue to return the
+      built-in translation rather than the untranslated `msgid`.
+    weight: 2

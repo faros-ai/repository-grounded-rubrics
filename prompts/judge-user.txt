@@ -1,0 +1,11 @@
+PR_DESCRIPTION:
+{pr_description}
+
+PATCH:
+{patch}
+
+RUBRIC:
+{rubric}
+
+Please evaluate the PATCH using the rubric and return the scores in JSON format.
+SCORES:

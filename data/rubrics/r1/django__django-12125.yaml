@@ -1,0 +1,60 @@
+metadata:
+  task_summary: Fix makemigrations to produce correct dotted paths for inner/nested
+    classes by using __qualname__ instead of __name__ in the migration serializer.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies TypeSerializer.serialize() in django/db/migrations/serializer.py
+      to replace self.value.__name__ with self.value.__qualname__ when building the
+      serialized path for non-builtin types.
+    weight: 3
+  - id: FC2
+    description: Confines the core fix to django/db/migrations/serializer.py without
+      introducing unrelated file changes or mass renames outside the serializer module.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test (anywhere in the test suite) that exercises
+      TypeSerializer or migration writer serialization with an inner/nested class,
+      verifying that the output contains the dotted qualname (e.g., 'Outer.Inner')
+      rather than the bare name.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that when a type passed to TypeSerializer.serialize() is
+      a nested class (i.e., its __qualname__ differs from its __name__), the serialized
+      string uses __qualname__ so the generated migration path becomes 'module.Outer.Inner'
+      instead of 'module.Inner'.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing special-case handling in TypeSerializer.serialize()
+      for models.Model (serialized as 'models.Model') and type(None) (serialized as
+      'type(None)'), leaving those branches unchanged.
+    weight: 2
+  - id: SA3
+    description: Preserves the existing behavior in TypeSerializer.serialize() where
+      builtin-module types are serialized using only their bare name without a module
+      prefix.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Avoids weakening existing test assertions in test_writer.py or other
+      migration test files by removing, loosening, or skipping checks that previously
+      verified correct serialization of types.
+    weight: 2
+  - id: I2
+    description: Avoids changing the public API of TypeSerializer, DeconstructableSerializer,
+      or serializer_factory, preserving existing call signatures and registry entries
+      in django/db/migrations/serializer.py.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Produces a migration path 'module.Outer.Inner' (using the full dotted
+      qualname) instead of 'module.Inner' when a field's deconstruct() returns a path
+      referencing an inner class, so the generated migration file is syntactically
+      valid Python that correctly references the nested class.
+    weight: 3
+  - id: R2
+    description: Continues to produce correct import statements (e.g., 'import module')
+      alongside the qualified name so the generated migration can resolve the inner
+      class at runtime via attribute access (module.Outer.Inner).
+    weight: 2

@@ -1,0 +1,66 @@
+metadata:
+  task_summary: Fix ModelAdmin.lookup_allowed() to stop incorrectly treating a ForeignKey
+    used as a primary_key as a concrete inheritance parent link when building relation_parts.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the lookup_allowed method inside django/contrib/admin/options.py
+      and no other production files, keeping the diff minimal and confined to the
+      source of the bug.
+    weight: 3
+  - id: FC2
+    description: Changes the relation_parts filtering condition inside the for-loop
+      of lookup_allowed so that it no longer unconditionally skips a field that appears
+      in prev_field.path_infos[-1].target_fields without also verifying a parent_link
+      relationship.
+    weight: 3
+  - id: FC3
+    description: Adds a test (anywhere in the test suite) that exercises lookup_allowed
+      with a chain containing a ForeignKey used as primary_key (e.g., restaurant__place__country
+      with OneToOneField(primary_key=True) on Restaurant), matching the scenario from
+      the PR description.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause described in the PR: the admin incorrectly
+      conflates a ForeignKey-as-primary-key with concrete model inheritance (parent_link),
+      causing the wrong relation_parts to be constructed for lookups like restaurant__place__country.'
+    weight: 3
+  - id: SA2
+    description: Ensures that a lookup string matching exactly what is in list_filter
+      (e.g., restaurant__place__country) is allowed when the path involves a OneToOneField
+      with primary_key=True that is NOT a parent_link.
+    weight: 3
+  - id: SA3
+    description: Preserves the original behavior where a field that is a genuine concrete
+      inheritance parent link (remote_field.parent_link is True) is still treated
+      as transparent in relation_parts, so lookups through real concrete parent models
+      continue to be simplified correctly.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the existing test_lookup_allowed_onetoone test (covering
+      reverse OneToOneField and OneToOneField+ForeignKey cases) is not weakened, removed,
+      or had its assertions relaxed.
+    weight: 2
+  - id: I2
+    description: Confirms that the public signature of ModelAdmin.lookup_allowed(self,
+      lookup, value) is preserved without any added, removed, or renamed parameters.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that lookup_allowed returns True (not False or raises DisallowedModelAdminLookup)
+      when given a lookup path that traverses a OneToOneField(primary_key=True) field
+      that is NOT a concrete inheritance parent link, as long as that full path appears
+      in list_filter.
+    weight: 3
+  - id: R2
+    description: Ensures that lookup_allowed continues to return True for lookups
+      that traverse genuine concrete inheritance (parent_link=True) fields, so that
+      the shortcutting behaviour for true MTI parents is not broken.
+    weight: 2
+  - id: R3
+    description: Ensures that the fix does not introduce a regression for the case
+      where a ForeignKey points to a non-primary unique field (to_field usage), which
+      was already covered by the existing test_lookup_allowed_onetoone test scenario.
+    weight: 2

@@ -1,0 +1,62 @@
+metadata:
+  task_summary: Fix ax1.dataLim being incorrectly reset to ±inf when ax2 (twinx) plots
+    data after ax1 uses stackplot (fill_between-based PolyCollection).
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies code in `_fill_between_x_or_y` or `relim` or `add_collection`
+      (in `_axes.py` or `_base.py`) to ensure that PolyCollection data limits are
+      preserved when a shared-axis sibling triggers autoscale.
+    weight: 3
+  - id: FC2
+    description: Confines changes to files related to axes data-limit management (such
+      as `lib/matplotlib/axes/_base.py`, `lib/matplotlib/axes/_axes.py`, or `lib/matplotlib/collections.py`)
+      without modifying unrelated modules.
+    weight: 2
+  - id: FC3
+    description: Adds a regression test that reproduces the twinx + stackplot scenario
+      from the PR description (stackplot on ax1, plot on ax2, then checks ax1.dataLim.intervaly
+      does not contain inf).
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that ax1.dataLim.intervaly retains its original finite bounds
+      (e.g., approximately [-22.717, 26.585] from the PR reproduction case) and is
+      not replaced by ±inf after ax2.plot() is called on a twinx axis.
+    weight: 3
+  - id: SA2
+    description: Preserves correct behavior for the reverse scenario (plot on ax1,
+      stackplot on ax2) which already worked correctly before the fix, so that it
+      continues to produce finite dataLim values.
+    weight: 2
+  - id: SA3
+    description: 'Addresses the root cause: PolyCollection instances (produced by
+      fill_between / stackplot) not being accounted for when `relim()` or `add_collection(autolim=...)`
+      interacts with a shared-x twinx axis, rather than masking the symptom by patching
+      unrelated code.'
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the comment 'Collections are deliberately not supported
+      (yet)' in `relim` is either removed/updated if collections are now supported,
+      or is consistent with whatever approach is taken (no silent contradiction between
+      comments and behavior).
+    weight: 1
+  - id: I2
+    description: Confirms that existing stackplot and fill_between tests are not weakened
+      or removed (no deletion of `@image_comparison` decorators, `assert` statements,
+      or test functions related to stackplot or fill_between).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that after the fix, calling ax2 = ax1.twinx() followed by
+      ax2.plot() does not mutate ax1.dataLim when ax1 contains only a PolyCollection
+      from stackplot (i.e., there is a code path that avoids resetting ax1.dataLim
+      to the null Bbox when Collections are present).
+    weight: 3
+  - id: R2
+    description: Ensures that the fix does not cause double-counting of data limits
+      (i.e., if `add_collection` is changed to use `autolim=True` in `_fill_between_x_or_y`,
+      the separate `update_datalim(pts)` call is removed or guarded, preventing the
+      same points from being counted twice).
+    weight: 2

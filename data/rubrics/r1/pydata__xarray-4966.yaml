@@ -1,0 +1,64 @@
+metadata:
+  task_summary: Handle the OPeNDAP/pydap signed-byte hack where _Unsigned=False on
+    an unsigned-integer variable should reinterpret the data as signed, symmetrically
+    to the existing _Unsigned=True handling in UnsignedIntegerCoder.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `decode` method of `UnsignedIntegerCoder` in `xarray/coding/variables.py`
+      to add a branch that handles `data.dtype.kind == 'u'` with `unsigned == 'false'`.
+    weight: 3
+  - id: FC2
+    description: Modifies the `encode` method of `UnsignedIntegerCoder` in `xarray/coding/variables.py`
+      to handle the symmetric case where `encoding.get('_Unsigned')` equals `'false'`,
+      converting from signed dtype to unsigned dtype.
+    weight: 2
+  - id: FC3
+    description: 'Removes or restricts the `else: warnings.warn(...)` block in the
+      `decode` method of `UnsignedIntegerCoder` so that unsigned-integer variables
+      with `_Unsigned=False` no longer trigger the `SerializationWarning` about not
+      being of integer type.'
+    weight: 3
+  - id: FC4
+    description: Confines changes to `xarray/coding/variables.py` and optionally test
+      files, without modifying unrelated files or introducing new dependencies.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements the `_Unsigned=False` decode path in `UnsignedIntegerCoder.decode`
+      that reinterprets unsigned integer data as a signed dtype of the same itemsize
+      (e.g., constructing `np.dtype('i%s' % data.dtype.itemsize)`).
+    weight: 3
+  - id: SA2
+    description: Handles the `_FillValue` attribute in the `_Unsigned=False` decode
+      branch by reinterpreting its value into the new signed dtype, analogous to how
+      the `_Unsigned=True` branch reinterprets `_FillValue` into the unsigned dtype.
+    weight: 2
+  - id: SA3
+    description: Adds test coverage (anywhere in the diff) that exercises the `_Unsigned=False`
+      path with unsigned-integer data, such as using `create_signed_masked_scaled_data`
+      or an equivalent fixture, verifying that the decoded dtype is signed.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing `_Unsigned=True` decode behavior in `UnsignedIntegerCoder.decode`
+      — the branch that converts signed-integer data (`data.dtype.kind == 'i'`) to
+      an unsigned dtype when `unsigned == 'true'` remains intact and unmodified.
+    weight: 3
+  - id: I2
+    description: Preserves the existing `_Unsigned=True` encode behavior in `UnsignedIntegerCoder.encode`
+      — the branch that checks `encoding.get('_Unsigned', 'false') == 'true'` and
+      converts to a signed dtype remains intact.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when `_Unsigned=False` appears on an unsigned-integer
+      variable, the decoded data uses a signed integer dtype (e.g., `int8` for `uint8`)
+      rather than the original unsigned dtype, matching the behavior described for
+      `engine='netcdf4'` in the PR.
+    weight: 3
+  - id: R2
+    description: Ensures that variables with no `_Unsigned` attribute, or with `_Unsigned=True`
+      on signed-integer data, continue to decode without emitting a spurious `SerializationWarning`,
+      preserving backward compatibility.
+    weight: 2

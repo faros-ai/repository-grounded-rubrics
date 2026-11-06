@@ -1,0 +1,91 @@
+metadata:
+  task_summary: Fix Dataset._coord_names becoming a superset of Dataset._variables
+    after reset_index(drop=True) on a MultiIndex, which caused DataVariables.__len__
+    to return a negative value and broke repr.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the coord_names computation inside the reset_index method
+      of xarray/core/dataset.py so that coord_names no longer contains names absent
+      from the resulting variables dict.
+    weight: 3
+  - id: FC2
+    description: Limits changes to xarray/core/dataset.py (and optionally xarray/tests/test_dataset.py),
+      avoiding unrelated file churn across the codebase.
+    weight: 2
+  - id: FC3
+    description: Adds or modifies test coverage in the test suite (e.g., xarray/tests/test_dataset.py)
+      that exercises the reset_index with drop=True scenario from the MVCE involving
+      set_index followed by reset_index.
+    weight: 1
+  - id: FC4
+    description: Does not modify DataVariables.__len__ to simply clamp negative values
+      (e.g., via max(0, ...)), as that would paper over the root cause rather than
+      fix the coord_names inconsistency in reset_index.
+    weight: 2
+  - id: FC5
+    description: Uses a filtering approach to compute coord_names (such as intersecting
+      with the keys of the resulting variables dict, or subtracting the dropped names)
+      rather than the bare set union present on the buggy line.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause identified in the PR description: reset_index
+      leaves stale entries in _coord_names that are no longer present in _variables,
+      making len(_coord_names) > len(_variables).'
+    weight: 3
+  - id: SA2
+    description: 'Ensures the MVCE sequence xr.Dataset(coords={''a'': (''x'', [1,2,3]),
+      ''b'': (''x'', [''a'',''b'',''c''])}).set_index(z=[''a'',''b'']).reset_index(''z'',
+      drop=True) no longer triggers a ValueError about __len__ returning a negative
+      value.'
+    weight: 3
+  - id: SA3
+    description: Handles the case where reset_index is called with drop=True on a
+      dimension-level MultiIndex coordinate (name is in self.dims), ensuring the dropped
+      dim name is removed from coord_names.
+    weight: 3
+  - id: SA4
+    description: Preserves the correct coord_names for variables that were not dropped
+      (e.g., level variables kept when only some levels are dropped), so that retained
+      coordinates remain recognized as coordinates.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing tests for reset_index (without drop=True)
+      are not weakened, removed, or skipped in the patch.
+    weight: 2
+  - id: I2
+    description: Confirms that the public signatures of reset_index and DataVariables
+      remain unchanged (no new parameters added, no parameters removed).
+    weight: 2
+  - id: I3
+    description: Avoids introducing mass renames or reformatting changes unrelated
+      to the coord_names fix in xarray/core/dataset.py.
+    weight: 1
+  - id: I4
+    description: Confirms the fix is consistent with the pattern already used elsewhere
+      in dataset.py for safe coord_names computation (e.g., the intersection pattern
+      '{k for k in self._coord_names if k in variables}' used in drop_vars).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that after reset_index(drop=True), every name in _coord_names
+      is also a key in _variables, so DataVariables.__len__ always returns a non-negative
+      integer.
+    weight: 3
+  - id: R2
+    description: Ensures that Dataset.data_vars and the Dataset repr (which calls
+      DataVariables.__len__ and DataVariables.__iter__) work without error after the
+      reset_index(drop=True) operation on a MultiIndex.
+    weight: 3
+  - id: R3
+    description: Preserves backward-compatible behavior for reset_index without drop=True
+      (drop=False, the default), where level variables should remain as coordinates
+      after resetting a MultiIndex.
+    weight: 2
+  - id: R4
+    description: Ensures that after reset_index(drop=True) on a MultiIndex where only
+      some levels are dropped, the remaining level coordinates are still accessible
+      as coordinates and not silently removed.
+    weight: 2

@@ -1,0 +1,59 @@
+metadata:
+  task_summary: Fix the DataArrayRolling.__iter__ method to honor the center kwarg
+    so that manually iterating over a rolling object yields centered windows when
+    center=True.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the __iter__ method of DataArrayRolling in xarray/core/rolling.py
+      to add a conditional branch that checks self.center[0] and adjusts window start
+      or stop indices accordingly.
+    weight: 3
+  - id: FC2
+    description: Confines changes to xarray/core/rolling.py (and optionally xarray/tests/test_rolling.py),
+      with no unrelated file churn in other source modules such as rolling_exp.py,
+      dataarray.py, or dataset.py.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test that exercises DataArrayRolling.__iter__ with
+      center=True, verifying that iterated windows match the results produced by the
+      non-iterative centered rolling operation.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements centering logic inside __iter__ so that when center=True,
+      each yielded window is centered around its label rather than trailing behind
+      it, matching the behavior of .rolling(center=True).mean().
+    weight: 3
+  - id: SA2
+    description: Preserves existing trailing-window behavior in __iter__ when center=False
+      (the default), so that non-centered rolling iteration is unchanged.
+    weight: 2
+  - id: SA3
+    description: Adds a branch or offset computation in __iter__ that references self.center[0]
+      (or equivalent) to distinguish centered from non-centered iteration, consistent
+      with how other DataArrayRolling methods check self.center.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public yield signature of DataArrayRolling.__iter__
+      is unchanged (still yields (label, window) two-tuples) so that existing code
+      iterating over rolling objects remains compatible.
+    weight: 3
+  - id: I2
+    description: Confirms that the fix does not weaken or skip existing rolling tests
+      (no @pytest.mark.skip or xfail markers are added to previously passing test
+      functions).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when iterating over a DataArrayRolling with center=True
+      and window size 3, the first yielded window is NaN-masked (because the centered
+      window extends before the array start), producing output equivalent to .rolling(center=True).mean()
+      returning nan for the first element.
+    weight: 3
+  - id: R2
+    description: Ensures that for a non-centered rolling iteration (center=False),
+      the iterated windows still start from index 0 and grow until reaching the full
+      window size, with no regression in trailing-window behavior.
+    weight: 2

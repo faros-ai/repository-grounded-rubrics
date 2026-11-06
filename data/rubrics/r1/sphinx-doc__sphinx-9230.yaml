@@ -1,0 +1,58 @@
+metadata:
+  task_summary: Fix incorrect rendering of :param fields whose type annotation contains
+    spaces (e.g., dict(str, str)) by correcting the whitespace-based splitting logic
+    in sphinx/util/docfields.py.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the splitting logic in sphinx/util/docfields.py where fieldarg
+      is split to extract argtype and argname, specifically replacing the split that
+      breaks type annotations containing spaces.
+    weight: 3
+  - id: FC2
+    description: Confines changes to sphinx/util/docfields.py (the DocFieldTransformer.transform
+      method) without introducing unrelated file churn in other modules.
+    weight: 2
+  - id: FC3
+    description: Adds a test case (anywhere in the test suite) exercising a :param
+      field with a type annotation containing spaces such as dict(str, str) or a similar
+      nested-parentheses type.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause described in the PR: the code that handles
+      the :param type name: syntax in sphinx/util/docfields.py was splitting fieldarg
+      at the first whitespace, causing dict(str, str) to be split into argtype=''dict(str,''
+      and argname=''str) opc_meta''.'
+    weight: 3
+  - id: SA2
+    description: 'Ensures that after the fix, a :param dict(str, str) opc_meta: field
+      yields argtype=''dict(str, str)'' and argname=''opc_meta'', matching the expected
+      rendering described in the PR (opc_meta (dict(str,str))).'
+    weight: 3
+  - id: SA3
+    description: Preserves correct handling of the common case where the type annotation
+      contains no spaces (e.g., :param str name:), so that simple types are still
+      parsed correctly.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing tests are weakened, skipped, or removed
+      in the patch.
+    weight: 2
+  - id: I2
+    description: Confirms that the public API and signature of DocFieldTransformer,
+      TypedField, and related classes in sphinx/util/docfields.py remain unchanged.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures the split of fieldarg now finds the boundary between the
+      type annotation and the parameter name at the last whitespace token (e.g., using
+      rsplit(None, 1) or equivalent logic), so that types with internal spaces like
+      dict(str, str) are preserved intact as argtype.
+    weight: 3
+  - id: R2
+    description: Ensures that when fieldarg contains no whitespace (a bare parameter
+      name with no inline type), the ValueError from the split is still caught and
+      the field is handled as before, preserving backward compatibility.
+    weight: 2

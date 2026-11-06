@@ -1,0 +1,55 @@
+metadata:
+  task_summary: Replace the isinstance/set-conversion logic for real_apps in ProjectState.__init__()
+    with an assert that real_apps is a set when non-None.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/db/migrations/state.py and no other production files
+      (i.e., changes are confined to the ProjectState.__init__() implementation in
+      that single file).
+    weight: 2
+  - id: FC2
+    description: Removes the branch 'self.real_apps = real_apps if isinstance(real_apps,
+      set) else set(real_apps)' from ProjectState.__init__() in django/db/migrations/state.py.
+    weight: 3
+  - id: FC3
+    description: Adds an assert statement (or equivalent guard) in ProjectState.__init__()
+      in django/db/migrations/state.py that validates real_apps is a set when it is
+      non-None.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Assigns self.real_apps directly to the real_apps argument (without
+      calling set() on it) when real_apps is a non-None truthy value, reflecting the
+      PR description's intent that callers already pass a set.
+    weight: 3
+  - id: SA2
+    description: Preserves the behavior of assigning self.real_apps to an empty set()
+      when real_apps is None or falsy, consistent with the existing default behavior.
+    weight: 2
+  - id: SA3
+    description: Uses assert (rather than raising a TypeError or another exception
+      type manually) to check that real_apps is a set, matching the PR description's
+      explicit recommendation of an assertion.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing test cases for ProjectState are weakened,
+      skipped, or deleted in the patch.
+    weight: 2
+  - id: I2
+    description: Confirms that no callers of ProjectState() outside of state.py (e.g.,
+      in graph.py, executor.py, loader.py) are modified to pass a non-set real_apps
+      argument, preserving the invariant that all call sites already pass a set.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that passing a non-set iterable (e.g., a list) as real_apps
+      to ProjectState.__init__() would raise an AssertionError at construction time,
+      providing a clear and early error signal instead of silently converting it.
+    weight: 2
+  - id: R2
+    description: Ensures that passing a set as real_apps (e.g., {'contenttypes'})
+      still results in self.real_apps being that same set, so existing callers in
+      executor.py and graph.py continue to function correctly.
+    weight: 3

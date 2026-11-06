@@ -1,0 +1,55 @@
+metadata:
+  task_summary: Update the admin.E035 error message in _check_readonly_fields_item
+    to include the field name using a 'refers to' pattern consistent with other ModelAdmin
+    field checks.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the error message string inside `_check_readonly_fields_item`
+      in `django/contrib/admin/checks.py` to include the actual field name (the value
+      of `field_name`) alongside the label.
+    weight: 3
+  - id: FC2
+    description: Confines production-code changes to `django/contrib/admin/checks.py`
+      only, without modifying unrelated files or introducing extraneous file churn.
+    weight: 2
+  - id: FC3
+    description: Updates existing test assertions in the admin checks test file that
+      matched the old admin.E035 message (which did not include the field name) to
+      match the new message format.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures the new admin.E035 error message for `readonly_fields` includes
+      both the label (e.g., `readonly_fields[0]`) and the field name (e.g., `i_dont_exist`)
+      so the message identifies which value is at fault by name, consistent with how
+      other checks like `list_editable` report errors.
+    weight: 3
+  - id: SA2
+    description: Adopts the 'refers to' phrasing pattern (as used by other field checks
+      such as `list_display` and `list_editable` error messages) in the new admin.E035
+      message, rather than omitting the field value entirely.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the `admin.E035` error id, the `obj=obj.__class__` attribute,
+      and all three conditions checked in `_check_readonly_fields_item` (callable,
+      hasattr on obj, hasattr on model, and `get_field`).
+    weight: 3
+  - id: I2
+    description: Avoids weakening existing admin check tests by removing assertions
+      or changing expected error ids; any test modification only updates expected
+      message strings to match the new format.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Produces a stable, specific error message for admin.E035 that contains
+      both the positional label (e.g., `readonly_fields[0]`) and the offending field
+      name string (e.g., `i_dont_exist`), giving users actionable information without
+      requiring them to count indices.
+    weight: 3
+  - id: R2
+    description: Leaves the existing valid-field paths in `_check_readonly_fields_item`
+      (callable, hasattr on admin class, hasattr on model, successful `get_field`)
+      unchanged so they continue to return an empty list without errors.
+    weight: 2

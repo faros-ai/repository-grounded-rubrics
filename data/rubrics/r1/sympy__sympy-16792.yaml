@@ -1,0 +1,63 @@
+metadata:
+  task_summary: Fix codegen so that MatrixSymbol arguments not appearing in the wrapped
+    expression are still generated as pointer (array) parameters instead of scalar
+    parameters.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sympy/utilities/codegen.py and no unrelated files, keeping
+      the diff minimal and scoped to the argument-creation logic.
+    weight: 2
+  - id: FC2
+    description: Changes the KeyError branch inside the 'create redundant arguments'
+      block of the base CodeGen.routine method (around line 742) so that a MatrixSymbol
+      found in argument_sequence but absent from the expression is given an InputArgument
+      with a 'dimensions' keyword argument rather than a bare InputArgument(symbol)
+      call.
+    weight: 3
+  - id: FC3
+    description: Adds or updates a test (in sympy/utilities/tests/test_codegen.py
+      or sympy/utilities/tests/test_autowrap.py) that exercises the case where a MatrixSymbol
+      appears in argument_sequence but not in the expression, verifying the generated
+      argument has pointer/array type.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that when a MatrixSymbol argument (such as x = MatrixSymbol('x',
+      2, 1)) does not appear in the wrapped expression (e.g., expr = 1.0), the generated
+      C signature uses a pointer type ('double *x') rather than a scalar type ('double
+      x').
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior for the case where the MatrixSymbol
+      does appear in the expression, so that the generated argument still has array/pointer
+      type with correct dimensions.
+    weight: 2
+  - id: SA3
+    description: Handles the case by inspecting whether the symbol in argument_sequence
+      is a MatrixSymbol and, if so, constructing the InputArgument with dimension
+      information derived from that symbol's shape.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing tests for routines where all MatrixSymbol
+      arguments appear in the expression continue to pass unchanged (no regression
+      in test_ccode_matrix_output or similar tests).
+    weight: 2
+  - id: I2
+    description: Confirms that the public API of make_routine, autowrap, and codegen
+      functions remains unchanged, with no added or removed parameters.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that calling autowrap with a MatrixSymbol argument that does
+      not appear in the expression produces a callable that accepts a numpy array
+      without raising TypeError, because the underlying C function receives a pointer
+      instead of a scalar.
+    weight: 3
+  - id: R2
+    description: Ensures that get_prototype (or equivalent signature-generation logic)
+      emits 'double *x' (pointer declaration) for a MatrixSymbol argument even when
+      that symbol has no atoms in the expression, by relying on the presence of a
+      non-empty 'dimensions' attribute on the InputArgument.
+    weight: 2

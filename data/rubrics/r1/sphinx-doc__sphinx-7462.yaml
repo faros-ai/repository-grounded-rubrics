@@ -1,0 +1,58 @@
+metadata:
+  task_summary: 'Fix IndexError: pop from empty list in sphinx/domains/python.py when
+    parsing the empty tuple type annotation Tuple[()].'
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the ast.Tuple branch of the unparse function in sphinx/domains/python.py
+      to guard against calling result.pop() on an empty list.
+    weight: 3
+  - id: FC2
+    description: Confines code changes to sphinx/domains/python.py (and optionally
+      test files), without unrelated file churn across the repository.
+    weight: 2
+  - id: FC3
+    description: Adds a test case in test_domain_py.py or equivalent test file that
+      exercises _parse_annotation with the empty-tuple annotation string 'Tuple[()]'.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause described in the PR: the unconditional
+      result.pop() call on the empty result list produced when ast.Tuple has no elements
+      (node.elts is empty), as occurs for the Tuple[()] annotation.'
+    weight: 3
+  - id: SA2
+    description: Ensures that the fix returns a sensible (non-crashing) value for
+      the empty ast.Tuple case, such as an empty list, rather than raising an IndexError.
+    weight: 3
+  - id: SA3
+    description: Preserves the existing behavior of the ast.Tuple branch for non-empty
+      tuples (e.g., Tuple[int, int] still produces comma-separated elements with the
+      trailing comma stripped).
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the ast.List branch's result.pop() call is also guarded
+      or left intact without regression, since it has an analogous structure to the
+      ast.Tuple branch.
+    weight: 2
+  - id: I2
+    description: Confirms that no existing tests are deleted, weakened, or marked
+      skip/xfail as part of this fix.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Prevents the IndexError from being raised when _parse_annotation
+      encounters 'Tuple[()]', by ensuring result.pop() is only called when result
+      is non-empty in the ast.Tuple branch.
+    weight: 3
+  - id: R2
+    description: Maintains correct rendering of standard non-empty tuple annotations
+      (e.g., 'Tuple[int, int]') so that the comma-separated xref nodes are produced
+      as before.
+    weight: 2
+  - id: R3
+    description: Ensures that a SyntaxError is still raised (and caught by the outer
+      try/except block to fall back to make_xref) for truly unsupported AST node types,
+      preserving the error-fallback path in _parse_annotation.
+    weight: 1

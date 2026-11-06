@@ -1,0 +1,67 @@
+metadata:
+  task_summary: Fix HashedFilesMixin.post_process() in django/contrib/staticfiles/storage.py
+    to avoid yielding duplicate (name, hashed_name, processed) tuples for the same
+    file across multiple post-processing passes.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the post_process() method in django/contrib/staticfiles/storage.py
+      to suppress duplicate yields across multiple passes of _post_process().
+    weight: 3
+  - id: FC2
+    description: Confines all changes to django/contrib/staticfiles/storage.py (and
+      optionally related tests), without modifying unrelated files or adding unnecessary
+      dependencies.
+    weight: 2
+  - id: FC3
+    description: Preserves the existing multi-pass loop structure (the for-i-in-range(self.max_post_process_passes)
+      loop and the substitutions-based early-break logic) while adding deduplication
+      logic.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that each original file name is yielded at most once from
+      post_process(), so that collectstatic's post_processed_files list does not contain
+      duplicate entries for the same original path.
+    weight: 3
+  - id: SA2
+    description: Ensures that the final hashed name (the result of the last pass)
+      is the one yielded, not an intermediate hashed name from an earlier pass, matching
+      the expected 'Post-processed X as Y' output described in the PR.
+    weight: 2
+  - id: SA3
+    description: Adds a mechanism (such as a set or dict tracking already-yielded
+      names) to deduplicate yields across the initial pass and the subsequent max_post_process_passes
+      passes inside post_process().
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the public signature of post_process(self, paths, dry_run=False,
+      **options), continuing to yield three-tuples of (original_path, processed_path,
+      processed_or_exception).
+    weight: 3
+  - id: I2
+    description: Does not remove or weaken any existing test assertions in test_storage.py
+      or related test files (no deletions of assertEqual, assertIn, or similar assertion
+      calls).
+    weight: 2
+  - id: I3
+    description: Does not alter the _post_process() internal generator's yield signature
+      or the substitutions logic that drives early termination of the pass loop.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that collectstatic's post_processed count (len(collected['post_processed']))
+      reflects the number of unique source files post-processed, not the total number
+      of pass-file combinations across all iterations.
+    weight: 3
+  - id: R2
+    description: Ensures that files whose hashed name does not change between passes
+      (such as admin/css/dashboard.css which yields the same hash every pass) are
+      still reported exactly once rather than once per pass.
+    weight: 2
+  - id: R3
+    description: Preserves the RuntimeError yield ('All', None, RuntimeError('Max
+      post-process passes exceeded.')) when substitutions remain after max_post_process_passes,
+      ensuring error reporting still reaches collectstatic callers.
+    weight: 2

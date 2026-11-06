@@ -1,0 +1,71 @@
+metadata:
+  task_summary: Change pylint's default data directory from ~/.pylint.d to the XDG
+    Base Directory Specification compliant path (~/.local/share/pylint or $XDG_DATA_HOME/pylint).
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the PYLINT_HOME default path computation in pylint/config/__init__.py
+      to use an XDG-compliant directory (such as XDG_DATA_HOME/pylint or ~/.local/share/pylint)
+      instead of ~/.pylint.d.
+    weight: 3
+  - id: FC2
+    description: Checks for the XDG_DATA_HOME environment variable (or an equivalent
+      XDG helper) somewhere in the diff when computing the default PYLINT_HOME, so
+      that user overrides via XDG_DATA_HOME are respected.
+    weight: 3
+  - id: FC3
+    description: Retains the PYLINTHOME environment variable override (the branch
+      checking 'PYLINTHOME' in os.environ) so that users who set PYLINTHOME explicitly
+      are unaffected.
+    weight: 3
+  - id: FC4
+    description: Updates the ENV_HELP string in pylint/config/__init__.py to document
+      the new XDG-compliant default path instead of the old ~/.pylint.d path.
+    weight: 2
+  - id: FC5
+    description: Confines all changes to the config module (pylint/config/__init__.py
+      or equivalent config-related files) without introducing unrelated edits to unrelated
+      checker or runner files.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Replaces the ~/.pylint.d hard-coded fallback with a path that follows
+      the XDG Base Directory Specification for data storage (i.e., under $XDG_DATA_HOME
+      or ~/.local/share).
+    weight: 3
+  - id: SA2
+    description: Ensures the new default path incorporates 'pylint' as the program-specific
+      subdirectory under the XDG data home (e.g., ~/.local/share/pylint rather than
+      ~/.local/share alone).
+    weight: 2
+  - id: SA3
+    description: Updates the test for PYLINT_HOME default value (in tests/lint/unittest_lint.py)
+      to expect the XDG-compliant path instead of the old .pylint.d path.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the public name PYLINT_HOME as an exported constant in
+      pylint/config/__init__.py so that callers importing config.PYLINT_HOME are not
+      broken.
+    weight: 3
+  - id: I2
+    description: Avoids weakening existing tests for PYLINTHOME override behavior
+      (the test that sets os.environ['PYLINTHOME'] must still assert that PYLINT_HOME
+      equals the overridden value).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when neither PYLINTHOME nor XDG_DATA_HOME is set, PYLINT_HOME
+      resolves to a path under the user's home directory (i.e., derived from os.path.expanduser('~')
+      or equivalent), preventing fallback to a bare relative path like .pylint.d.
+    weight: 3
+  - id: R2
+    description: Ensures that when XDG_DATA_HOME is set in the environment, PYLINT_HOME
+      uses that directory as its base rather than ~/.local/share, making the path
+      correctly configurable via the XDG mechanism.
+    weight: 2
+  - id: R3
+    description: Preserves the PYLINTHOME override precedence so that an explicitly
+      set PYLINTHOME environment variable still takes priority over the XDG_DATA_HOME-derived
+      default.
+    weight: 3

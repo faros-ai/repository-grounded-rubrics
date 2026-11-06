@@ -1,0 +1,67 @@
+metadata:
+  task_summary: Allow latex() to accept an arbitrary string as the mul_symbol kwarg,
+    not just the four predefined choices (None, 'ldot', 'dot', 'times').
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the mul_symbol lookup logic in sympy/printing/latex.py so
+      that a value not in the predefined table (None, 'ldot', 'dot', 'times') is used
+      directly as the LaTeX multiplication separator instead of raising a KeyError.
+    weight: 3
+  - id: FC2
+    description: Handles mul_symbol_latex_numbers correctly for arbitrary string values
+      (i.e., when the user-supplied mul_symbol is not one of the four predefined keys,
+      the number separator is derived from the user's string or defaults to the 'dot'
+      entry, rather than causing a KeyError).
+    weight: 2
+  - id: FC3
+    description: Updates the docstring or inline comment for the mul_symbol parameter
+      in sympy/printing/latex.py to reflect that arbitrary string values are now accepted
+      (not limited to None, 'ldot', 'dot', 'times').
+    weight: 1
+  - id: FC4
+    description: Confines all changes to sympy/printing/latex.py and its test file;
+      does not modify unrelated files such as sympy/polys/rings.py or other printers.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements support for passing an arbitrary string (such as r'\,')
+      as mul_symbol to latex(), matching the PR description's requirement that users
+      supply their own multiplication symbol.
+    weight: 3
+  - id: SA2
+    description: Preserves the four existing named choices (None, 'ldot', 'dot', 'times')
+      with their original LaTeX expansions (r' ', r' \,. \, ', r' \cdot ', r' \times
+      ') so existing call sites remain unchanged.
+    weight: 3
+  - id: SA3
+    description: Adds a test case in sympy/printing/tests/test_latex.py that exercises
+      latex() with a custom string mul_symbol (e.g., r'\,') to verify the arbitrary-value
+      code path.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing test assertions in test_latex.py for the
+      four predefined mul_symbol values (None, 'dot', 'ldot', 'times') are removed
+      or weakened.
+    weight: 3
+  - id: I2
+    description: Confirms that the public signature of the latex() function is unchanged
+      (mul_symbol kwarg still accepted, no new required parameters introduced).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: When mul_symbol is one of the four predefined named strings (None,
+      'ldot', 'dot', 'times'), the LaTeX printer produces the same output as before
+      the patch, ensuring backward compatibility.
+    weight: 3
+  - id: R2
+    description: When mul_symbol is set to an arbitrary string not in the predefined
+      table (e.g., r'\,'), the returned LaTeX string contains that exact string as
+      the separator between multiplicands rather than raising a KeyError.
+    weight: 3
+  - id: R3
+    description: When mul_symbol is an arbitrary string, numeric separators (used
+      for expressions like 1.5e20*x) do not raise a KeyError and produce a sensible
+      LaTeX string.
+    weight: 2

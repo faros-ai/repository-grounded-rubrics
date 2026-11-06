@@ -1,0 +1,63 @@
+metadata:
+  task_summary: Fix the Include directive in sphinx/directives/other.py to emit the
+    'source-read' event for included files so that source-read handlers can modify
+    their content before parsing.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the Include.run() method in sphinx/directives/other.py to
+      add logic that emits the 'source-read' event for the included file's content.
+    weight: 3
+  - id: FC2
+    description: Confines changes to sphinx/directives/other.py (and optionally test
+      files), without modifying unrelated modules such as sphinx/io.py or sphinx/events.py.
+    weight: 2
+  - id: FC3
+    description: Adds code somewhere in the diff that reads the included file's content
+      before passing it to the docutils Include machinery, so the content can be modified
+      by event handlers.
+    weight: 3
+  - id: FC4
+    description: Preserves the existing path-normalisation logic in Include.run()
+      (the call to self.env.relfn2path and self.env.note_included) alongside the new
+      source-read emission.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures the 'source-read' event is emitted with the included file's
+      relative document name (not its absolute filesystem path) as the first argument,
+      matching the signature used in sphinx/io.py.
+    weight: 2
+  - id: SA2
+    description: Ensures the modified content from source-read handlers (i.e. the
+      first element of the mutable list argument) is actually used when docutils parses
+      the included file, so replacements made in handlers appear in the rendered output.
+    weight: 3
+  - id: SA3
+    description: Skips emitting source-read for standard docutils angle-bracket includes
+      (arguments starting with '<' and ending with '>'), preserving the existing early-return
+      path.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Does not weaken any existing tests (no removal of assertions, no
+      addition of skip markers, no loosening of expected values in test files visible
+      in the diff).
+    weight: 2
+  - id: I2
+    description: Does not rename or remove the public Include class or its run() method
+      from sphinx/directives/other.py, preserving backward compatibility for code
+      that subclasses or references Include.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a source-read handler which modifies source[0] (e.g.
+      replacing '&REPLACE_ME;' with 'REPLACED') will have its modification reflected
+      in the rendered output for content coming from '.. include::' directives, not
+      just for top-level documents.
+    weight: 3
+  - id: R2
+    description: 'Preserves backward-compatible behaviour for top-level documents:
+      the source-read event continues to be emitted via SphinxStandaloneReader.read_source()
+      in sphinx/io.py for non-included documents.'
+    weight: 2

@@ -1,0 +1,61 @@
+metadata:
+  task_summary: Fix visit_Tuple in sphinx/pycode/ast.py so that non-empty tuple defaults
+    are rendered with parentheses (e.g., color=(1, 1, 1)) instead of bare comma-separated
+    values (e.g., color=1, 1, 1).
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sphinx/pycode/ast.py and no other production source files,
+      keeping the diff minimal and confined to the correct location.
+    weight: 2
+  - id: FC2
+    description: Changes the visit_Tuple method body in sphinx/pycode/ast.py so that
+      a non-empty tuple is wrapped in parentheses, i.e., produces output like '(1,
+      2, 3)' rather than '1, 2, 3'.
+    weight: 3
+  - id: FC3
+    description: Preserves the visit_Tuple branch for an empty tuple node (node.elts
+      is empty), still returning '()'.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the reported rendering defect where a function default
+      of the form color=(1, 1, 1) was displayed as color=1, 1, 1 in HTML output, by
+      ensuring the unparser wraps non-empty tuples in parentheses.
+    weight: 3
+  - id: SA2
+    description: Ensures the fix applies through the ast.unparse path used by stringify_signature
+      or _visit_arg_with_default, so that tuple-valued keyword defaults appear correctly
+      in autodoc-generated signatures.
+    weight: 2
+  - id: SA3
+    description: Updates (or adds) a test case covering a non-empty tuple expression
+      such as '(1, 2, 3)' to expect the parenthesised output '(1, 2, 3)' rather than
+      the bare '1, 2, 3'.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing test for the empty-tuple case '()' is weakened
+      or removed; the empty-tuple branch must still return '()'.
+    weight: 2
+  - id: I2
+    description: Confirms that the public interface of sphinx.pycode.ast.unparse and
+      _UnparseVisitor is preserved; no function or class is renamed or removed.
+    weight: 2
+  - id: I3
+    description: Avoids introducing unrelated changes (e.g., mass reformatting, dependency
+      additions, or modifications to files outside sphinx/pycode/ast.py and its test
+      file).
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that unparse called on an ast.Tuple node with non-empty elts
+      returns a string whose first character is '(' and last character is ')', so
+      downstream code such as _visit_arg_with_default produces 'color=(1, 1, 1)' in
+      a rendered signature.
+    weight: 3
+  - id: R2
+    description: Maintains backward compatibility for all other node visitors (visit_List,
+      visit_Set, visit_Dict, etc.) so that unparse continues to produce correct output
+      for non-tuple default values such as lists '[1, 2, 3]' and sets '{1, 2, 3}'.
+    weight: 2

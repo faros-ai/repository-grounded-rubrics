@@ -1,0 +1,57 @@
+metadata:
+  task_summary: Fix sphinx-quickstart so that pressing Enter at the 'new root path
+    (or just Enter to exit)' prompt correctly exits instead of raising a validation
+    error.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sphinx/cmd/quickstart.py and no unrelated files, keeping
+      the diff minimal and confined to the existing-conf.py loop in ask_user.
+    weight: 2
+  - id: FC2
+    description: Changes the validator argument in the do_prompt call for 'Please
+      enter a new root path (or just Enter to exit)' away from is_path alone, so that
+      an empty string is no longer rejected before the sys.exit(1) check can run.
+    weight: 3
+  - id: FC3
+    description: Adds or reuses a validator (e.g. is_path_or_empty, or a combined
+      wrapper) that accepts an empty string as a valid return value when the user
+      presses Enter without typing anything.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Implements the expected behavior from the PR description: pressing
+      Enter at the ''new root path (or just Enter to exit)'' prompt causes sphinx-quickstart
+      to exit rather than printing ''Please enter a valid path name.''.'
+    weight: 3
+  - id: SA2
+    description: Preserves the sys.exit(1) call (or equivalent exit) that is reached
+      when the user returns an empty path from the new-root-path prompt, matching
+      the 'or just Enter to exit' contract.
+    weight: 3
+  - id: SA3
+    description: Keeps the is_path validator unchanged and still applied to non-empty
+      input at the new-root-path prompt, so that an invalid non-empty directory still
+      triggers 'Please enter a valid path name.'.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Avoids weakening or removing the while-loop guard that checks for
+      an existing conf.py before prompting for a new root path.
+    weight: 3
+  - id: I2
+    description: Preserves the is_path validator (its signature, ValidationError raising
+      behavior, and path.expanduser call) without altering its existing logic.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: 'Ensures the do_prompt call for the new-root-path prompt returns
+      an empty string when the user presses Enter (no default substitution overrides
+      empty input), allowing the subsequent ''if not d["path"]: sys.exit(1)'' branch
+      to trigger.'
+    weight: 3
+  - id: R2
+    description: Ensures non-empty, valid directory input at the new-root-path prompt
+      still sets d['path'] to that path and continues the while loop, preserving normal
+      flow.
+    weight: 2

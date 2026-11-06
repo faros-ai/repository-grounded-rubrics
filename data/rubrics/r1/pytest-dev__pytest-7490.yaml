@@ -1,0 +1,66 @@
+metadata:
+  task_summary: Fix dynamically-added xfail markers (via request.node.add_marker)
+    being ignored in pytest_runtest_makereport, restoring pytest 5.x behavior where
+    such markers cause a failing test to be reported as XFAIL.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies src/_pytest/skipping.py and no other production source files,
+      keeping the change minimal and local to the xfail evaluation logic.
+    weight: 2
+  - id: FC2
+    description: Adds a re-evaluation call to evaluate_xfail_marks inside the pytest_runtest_makereport
+      hook (mirroring the existing re-evaluation pattern already present in pytest_runtest_call).
+    weight: 3
+  - id: FC3
+    description: Stores the re-evaluated xfail result back into item._store[xfailed_key]
+      inside pytest_runtest_makereport when xfailed is None, so the newly-detected
+      marker is used for report-outcome decisions.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Restores support for xfail markers added dynamically inside a test
+      body via request.node.add_marker, making a failing test report as XFAIL instead
+      of FAILED.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior for statically applied xfail markers
+      (markers declared via @pytest.mark.xfail on the test function), ensuring they
+      still result in XFAIL outcomes.
+    weight: 2
+  - id: SA3
+    description: Preserves the existing behavior for xfail markers added dynamically
+      during the fixture setup phase (before the test body runs), ensuring they are
+      still recognized and produce XFAIL outcomes.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Avoids weakening or removing any existing test cases related to xfail
+      marker behavior in testing/test_skipping.py.
+    weight: 2
+  - id: I2
+    description: Preserves the public API of evaluate_xfail_marks (its signature and
+      return type Optional[Xfail]) without modification.
+    weight: 1
+  - id: I3
+    description: 'Adds a regression test (in any test file) that exercises the scenario
+      from the PR description: dynamically adding an xfail marker inside the test
+      body via request.node.add_marker and asserting the outcome is XFAIL, not FAILED.'
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when xfailed_key is already set to a non-None Xfail
+      in the store (marker present at setup time), pytest_runtest_makereport does
+      not call evaluate_xfail_marks again, avoiding redundant work and preserving
+      determinism.
+    weight: 2
+  - id: R2
+    description: 'Ensures that --runxfail mode is still respected: when item.config.option.runxfail
+      is True, the dynamically-added xfail marker does not suppress the failure, keeping
+      the existing pass-through branch intact.'
+    weight: 2
+  - id: R3
+    description: Ensures that a dynamically-added xfail marker with run=False that
+      is added before the test body executes still causes the test to be skipped with
+      [NOTRUN] in pytest_runtest_call (the existing handling is not disrupted).
+    weight: 1

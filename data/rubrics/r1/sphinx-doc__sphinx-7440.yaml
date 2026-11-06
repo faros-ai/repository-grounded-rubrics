@@ -1,0 +1,54 @@
+metadata:
+  task_summary: Fix spurious 'duplicate term description' warning when a glossary
+    contains terms that differ only in case (e.g., 'MySQL' and 'mysql').
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the call to `std.note_object` inside `make_glossary_term`
+      in `sphinx/domains/std.py` so the term is no longer unconditionally lowercased
+      before registration (i.e., the argument previously written as `termtext.lower()`
+      is changed).
+    weight: 3
+  - id: FC2
+    description: Updates `_resolve_obj_xref` or equivalent term-lookup code in `sphinx/domains/std.py`
+      to perform a case-insensitive lookup (e.g., using `target.lower()` or iterating
+      with lowercased keys) so that `:term:` cross-references still resolve correctly
+      after the registration change.
+    weight: 3
+  - id: FC3
+    description: Confines diff changes to `sphinx/domains/std.py` (and optionally
+      test files) without modifying unrelated modules.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause stated in the PR description: terms that
+      differ only by case (e.g., ''MySQL'' vs ''mysql'') no longer share the same
+      registration key and therefore no longer trigger the ''duplicate term description''
+      warning.'
+    weight: 3
+  - id: SA2
+    description: Preserves the ability to look up glossary terms case-insensitively
+      via the `:term:` role, consistent with the pre-existing `XRefRole(lowercase=True,
+      ...)` behaviour for that role.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Does not weaken or remove the existing duplicate-term warning for
+      genuinely duplicated terms (same term text with the same case appearing more
+      than once), as exercised by the 'duplicated terms' case in `test_glossary_warning`.
+    weight: 3
+  - id: I2
+    description: Avoids renaming or removing the `make_glossary_term` function or
+      the `note_object` method, preserving the existing public/internal API surface.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that two glossary terms differing only in case (e.g., 'MySQL'
+      and 'mysql') are stored under distinct keys in `self.objects`, so `note_object`
+      does not emit a duplicate warning when both are defined.
+    weight: 3
+  - id: R2
+    description: Ensures that a `:term:` cross-reference to a lowercased version of
+      a term (e.g., `:term:\`mysql\``) still resolves to the correct glossary entry
+      after the case-sensitivity fix.
+    weight: 2

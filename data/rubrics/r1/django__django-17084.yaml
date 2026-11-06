@@ -1,0 +1,55 @@
+metadata:
+  task_summary: Fix aggregate() over annotated Window expressions by ensuring a subquery
+    wrapper is used when aggregates reference window-function annotations.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/db/models/sql/query.py in the get_aggregation() method
+      to extend the refs_subquery condition so it also detects annotations whose contains_over_clause
+      is True.
+    weight: 3
+  - id: FC2
+    description: Confines source-code changes to the minimum required files (primarily
+      django/db/models/sql/query.py) without introducing unrelated file churn.
+    weight: 2
+  - id: FC3
+    description: Adds or updates tests (e.g., in tests/expressions_window/tests.py
+      or tests/aggregation/tests.py) that exercise aggregate() called over a Window-function
+      annotation.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that when an aggregate_expr references an annotation with
+      contains_over_clause=True (a Window expression), the refs_subquery flag is set
+      to True so the subquery path is taken in get_aggregation().
+    weight: 3
+  - id: SA2
+    description: Preserves the existing refs_subquery check for annotations with subquery=True
+      so that unrelated subquery-based annotations still trigger the subquery path.
+    weight: 2
+  - id: SA3
+    description: Addresses the scenario from the PR description where Coalesce wrapping
+      a Window expression is annotated, then referenced by an outer Sum aggregate
+      in aggregate(), without altering the annotate() behavior.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms no existing tests in tests/expressions_window/ or tests/aggregation/
+      are weakened, removed, or have their assertions loosened.
+    weight: 2
+  - id: I2
+    description: Confirms the public API of QuerySet.aggregate() and QuerySet.annotate()
+      remains unchanged (no new required parameters or altered return types).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: When aggregate() references an annotation that contains_over_clause=True,
+      the compiled SQL wraps the window-expression query in a subquery (SELECT ...
+      FROM (SELECT ... OVER ...) subquery) so that no window call appears directly
+      inside an aggregate, avoiding the psycopg2 GroupingError.
+    weight: 3
+  - id: R2
+    description: Aggregate queries that do not reference any window-function annotations
+      continue to compile without a subquery wrapper, preserving pre-existing query
+      performance characteristics.
+    weight: 2

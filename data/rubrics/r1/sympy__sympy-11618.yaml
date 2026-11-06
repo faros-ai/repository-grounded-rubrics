@@ -1,0 +1,59 @@
+metadata:
+  task_summary: Fix the Point.distance method in sympy/geometry/point.py so that it
+    accounts for all dimensions of both points instead of silently truncating to the
+    shorter point via zip.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `def distance(` method inside `sympy/geometry/point.py`
+      to handle points of differing dimensionality, rather than silently truncating
+      via `zip`.
+    weight: 3
+  - id: FC2
+    description: Avoids changes to unrelated files or symbols outside the geometry
+      package, keeping the diff minimal and focused on the distance calculation bug.
+    weight: 2
+  - id: FC3
+    description: Replaces or augments the bare `zip(self.args, p.args)` call in `def
+      distance(` with a mechanism that pads missing coordinates with zero (e.g., uses
+      `zip_longest` with `fillvalue=S.Zero`, or explicitly extends the shorter args
+      tuple before zipping).
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that `Point(2, 0).distance(Point(1, 0, 2))` returns `sqrt(5)`
+      (i.e., accounts for the third coordinate `2` of the second point), matching
+      the PR description's stated correct result.
+    weight: 3
+  - id: SA2
+    description: Preserves correct distance results when both points have the same
+      dimensionality (e.g., `Point(1,1).distance(Point(4,5))` still returns `5`),
+      confirming no regression for the same-dimension case.
+    weight: 2
+  - id: SA3
+    description: Adds a test case (anywhere in the diff) that exercises `Point.distance`
+      with two points of different dimensions, such as a 2D vs 3D comparison producing
+      `sqrt(5)`.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing distance-related test assertions in `sympy/geometry/tests/test_point.py`
+      are removed or weakened (e.g., `Point.distance(p3, p4) == sqrt(2)` and `Point3D.distance(p3,
+      p4) == sqrt(3)` remain intact).
+    weight: 2
+  - id: I2
+    description: Confirms that the public signature of `def distance(self, p)` in
+      `Point` is unchanged, preserving backward API compatibility.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when a lower-dimensional point (e.g., `Point2D` with
+      2 args) is compared to a higher-dimensional point (e.g., `Point3D` with 3 args),
+      the missing coordinate is treated as zero rather than dropped, so the squared-difference
+      sum includes all dimensions.
+    weight: 3
+  - id: R2
+    description: Ensures that the distance method still returns a symbolic `sqrt`
+      expression (not a numeric approximation or incorrect integer) when inputs contain
+      symbolic coordinates, preserving existing symbolic computation behavior.
+    weight: 2

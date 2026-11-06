@@ -1,0 +1,53 @@
+metadata:
+  task_summary: Add double quotes around the qop value in the Digest Auth Authorization
+    header to comply with RFC2617.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies requests/auth.py and only requests/auth.py to fix the qop
+      quoting issue, introducing no unrelated file churn.
+    weight: 2
+  - id: FC2
+    description: Changes the line in build_digest_header that appends the qop field
+      so that the qop value is enclosed in double quotes, replacing the unquoted form
+      such as 'qop=auth' with a quoted form such as 'qop="auth"'.
+    weight: 3
+  - id: FC3
+    description: Keeps the change minimal and local to the qop-appending statement
+      in build_digest_header, without restructuring unrelated logic (e.g. HA1/HA2
+      computation, cnonce generation, or opaque/algorithm fields).
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Produces a qop directive value that is a quoted string as required
+      by RFC2617 (the PR description states qop-options 'SHOULD' be a quoted string
+      and references curl behavior as the reference implementation).
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior where the qop field is only appended
+      to the Authorization header when qop is not None, keeping the conditional 'if
+      qop:' guard intact.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing test assertions are weakened, skipped,
+      or deleted as part of the change (e.g., no '@pytest.mark.skip' added to Digest
+      Auth tests, no test conditions relaxed).
+    weight: 2
+  - id: I2
+    description: Preserves the public API of HTTPDigestAuth, including its __init__
+      signature and build_digest_header method signature, without renaming or removing
+      either.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures the Authorization header produced by build_digest_header
+      contains the qop directive with its value wrapped in double-quote characters,
+      so that RFC2617-strict server implementations (which reject unquoted qop) can
+      accept the request.
+    weight: 3
+  - id: R2
+    description: Maintains backward compatibility for cases where qop is None (no
+      qop field is sent), so requests to servers that do not advertise qop still succeed
+      without modification.
+    weight: 2

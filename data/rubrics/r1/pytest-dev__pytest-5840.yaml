@@ -1,0 +1,75 @@
+metadata:
+  task_summary: Fix ImportError on Windows when conftest.py paths are lowercased by
+    normcase inside unique_path, causing sys.path to contain lowercased directory
+    names that Python cannot resolve to valid module names.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `unique_path` function in `src/_pytest/pathlib.py` to
+      stop applying `normcase` to the returned path value (i.e., removes or replaces
+      the `normcase(str(path.realpath()))` expression so the returned path preserves
+      the original filesystem casing).
+    weight: 3
+  - id: FC2
+    description: Confines the casing-fix change to path deduplication/comparison logic
+      (in `src/_pytest/pathlib.py` or `src/_pytest/config/__init__.py`) without modifying
+      unrelated modules such as assertion rewriting, fixtures, or test collection.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test (anywhere in the diff) that exercises conftest
+      loading when the current working directory uses different casing than the actual
+      on-disk directory name, covering the scenario described in the PR description
+      (e.g., `jenkinsroot` vs `JenkinsRoot`).
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause stated in the PR description: the path
+      being converted to lowercase (via `normcase`) breaking `sys.path` insertion
+      so that `ModuleNotFoundError: No module named ''python''` no longer occurs when
+      directory names contain uppercase letters on Windows.'
+    weight: 3
+  - id: SA2
+    description: Preserves the original intent of `unique_path` (deduplicating symlinked
+      or aliased paths on case-insensitive file systems) while fixing the lowercasing
+      side-effect, rather than deleting the deduplication mechanism entirely.
+    weight: 2
+  - id: SA3
+    description: Ensures that the fix applies to the `conftestpath` handling path
+      in `_importconftest` (the call site `conftestpath = unique_path(conftestpath)`
+      in `src/_pytest/config/__init__.py`) so that conftest files are imported with
+      their original, correctly-cased paths.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing test assertions are weakened or removed
+      in the diff (e.g., no `skipif` conditions relaxed, no `assert` statements deleted
+      from conftest-related tests).
+    weight: 2
+  - id: I2
+    description: Confirms that the public signature of `unique_path` (accepting a
+      `py.path.local` and returning the same type) is preserved in the diff, maintaining
+      backward compatibility for callers.
+    weight: 2
+  - id: I3
+    description: Avoids introducing new third-party dependencies or significant import
+      churn in `src/_pytest/pathlib.py` (e.g., no new `import` statements beyond what
+      is already present or strictly necessary for the fix).
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that `unique_path` returns a path whose string representation
+      preserves the original filesystem casing (not a lowercased version), so that
+      `py.path.local.pyimport()` inserts a correctly-cased directory into `sys.path`
+      and Python can resolve module names correctly.
+    weight: 3
+  - id: R2
+    description: Ensures that conftest files located inside package directories with
+      mixed-case names (e.g., `Python/pisys/conftest.py`) can be loaded without raising
+      `ModuleNotFoundError` when the user's working directory path uses different
+      casing.
+    weight: 3
+  - id: R3
+    description: Maintains backward compatibility on case-sensitive file systems (Linux/macOS)
+      where `normcase` is a no-op, so the fix does not break existing behavior on
+      those platforms.
+    weight: 2

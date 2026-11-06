@@ -1,0 +1,56 @@
+metadata:
+  task_summary: Fix test_huge_range_log failure caused by a ValueError in LogNorm
+    when s_vmin equals zero (log10(0) = -inf), by correcting the boundary guard in
+    image.py or colors.py.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies lib/matplotlib/image.py or lib/matplotlib/colors.py to address
+      the LogNorm invalid vmin/vmax error, without changing unrelated files.
+    weight: 3
+  - id: FC2
+    description: Tightens the s_vmin boundary guard in lib/matplotlib/image.py so
+      that s_vmin equal to zero (or any non-positive value) is also clamped to a positive
+      value before being passed to LogNorm, i.e., changes the condition from strictly
+      less-than zero to less-than-or-equal-to zero (or equivalent).
+    weight: 3
+  - id: FC3
+    description: Confines the change to the minimal region around the existing LogNorm-specific
+      branch (the block containing 'isinstance(self.norm, mcolors.LogNorm)' and 'np.finfo(scaled_dtype).eps'),
+      avoiding unrelated refactoring.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the scenario described in the PR where data containing
+      huge positive values (e.g., 1e20) alongside negative values causes a ValueError
+      in LogNorm due to a non-finite transform of vmin or vmax.
+    weight: 3
+  - id: SA2
+    description: Ensures that test_huge_range_log (using data=np.full((5,5),-1) with
+      data[0:2,:]=1E20 and LogNorm(vmin=100, vmax=data.max())) no longer raises a
+      ValueError.
+    weight: 3
+  - id: SA3
+    description: Adds or updates a test (in lib/matplotlib/tests/test_image.py or
+      lib/matplotlib/tests/test_colors.py) that covers the huge-range log normalization
+      scenario to prevent regression.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the public API of LogNorm and _make_norm_from_scale without
+      altering their signatures or removing the 'Invalid vmin or vmax' guard in colors.py.
+    weight: 2
+  - id: I2
+    description: Does not weaken or skip the test_huge_range_log test (e.g., avoids
+      adding @pytest.mark.skip or xfail markers to the test).
+    weight: 3
+  runtime_rubrics:
+  - id: R1
+    description: Guarantees that when s_vmin is zero or negative after image resampling
+      with a LogNorm, the clamping to np.finfo(scaled_dtype).eps prevents log10(s_vmin)
+      from producing -inf, so np.isfinite([t_vmin, t_vmax]).all() returns True.
+    weight: 3
+  - id: R2
+    description: Preserves correct rendering for normal (non-huge-range) log-normalized
+      images by ensuring the eps clamp only activates when s_vmin is non-positive.
+    weight: 2

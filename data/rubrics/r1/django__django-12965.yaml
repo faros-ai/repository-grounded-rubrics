@@ -1,0 +1,61 @@
+metadata:
+  task_summary: Fix SQLDeleteCompiler.as_sql() to avoid generating an unnecessary
+    subquery (WHERE id IN SELECT id FROM ...) when deleting from a single table with
+    no joins, restoring the simpler DELETE FROM <table> SQL form.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the single_alias property or as_sql() method of SQLDeleteCompiler
+      in django/db/models/sql/compiler.py to correctly detect single-table delete
+      scenarios where alias_map is empty or has at most one active alias.
+    weight: 3
+  - id: FC2
+    description: Confines changes to at most django/db/models/sql/compiler.py and
+      related test files, avoiding unrelated file churn outside the delete query compilation
+      path.
+    weight: 2
+  - id: FC3
+    description: Adds or updates test coverage in tests/delete_regress/tests.py or
+      the queries test suite exercising the no-filter single-table delete SQL form
+      (asserting DELETE FROM without a WHERE IN subquery).
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that Model.objects.all().delete() on a simple (no joins,
+      no filters) queryset generates SQL of the form DELETE FROM <table> without a
+      WHERE clause or subquery, matching the Django 3.0 behavior described in the
+      PR.
+    weight: 3
+  - id: SA2
+    description: Preserves the subquery path (WHERE pk IN (SELECT pk FROM ...)) for
+      multi-table delete scenarios where joins are required, so deletes on querysets
+      with joins still produce correct SQL.
+    weight: 3
+  - id: SA3
+    description: Addresses the case where alias_map is empty at the time single_alias
+      is evaluated, treating a query with no aliased joins as a single-alias (single-table)
+      delete rather than triggering the subquery branch.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing tests in Ticket19102Tests (test_ticket_19102_annotate,
+      test_ticket_19102_extra, test_ticket_19102_distinct_on, test_ticket_19102_select_related,
+      test_ticket_19102_defer) are not weakened or removed, as these cover the legitimate
+      multi-alias subquery delete path.
+    weight: 2
+  - id: I2
+    description: Confirms that the public API of QuerySet.delete() and _raw_delete()
+      is unchanged, with no alterations to their signatures or return types.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that SQLDeleteCompiler.as_sql() returns a SQL string starting
+      with DELETE FROM <table> and without a WHERE IN subquery when the query has
+      no active joins (alias_refcount has no entry with count > 0, or alias_map is
+      empty).
+    weight: 3
+  - id: R2
+    description: Ensures that SQLDeleteCompiler.as_sql() still generates the subquery
+      form (DELETE FROM <table> WHERE pk IN (SELECT pk FROM ...)) when the query references
+      multiple tables, so multi-join deletes remain correct.
+    weight: 3

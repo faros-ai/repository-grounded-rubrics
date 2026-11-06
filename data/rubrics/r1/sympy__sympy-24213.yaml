@@ -1,0 +1,56 @@
+metadata:
+  task_summary: Fix `_collect_factor_and_dimension` in `UnitSystem` to correctly handle
+    addition of quantities whose dimensions are physically equivalent (e.g., `velocity`
+    and `acceleration*time`) but symbolically different.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `Add` branch inside `_collect_factor_and_dimension`
+      in `sympy/physics/units/unitsystem.py` to replace the raw `dim != addend_dim`
+      equality check with a check that uses dimensional-dependency equivalence.
+    weight: 3
+  - id: FC2
+    description: Confines all changes to `sympy/physics/units/unitsystem.py` (and
+      optionally the corresponding test file), without modifying unrelated files or
+      introducing new top-level dependencies.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements a dimension-equivalence check (e.g., using `get_dimension_system().equivalent_dims(dim,
+      addend_dim)` or comparing `get_dimensional_dependencies` results) so that physically
+      equivalent dimensions like `Dimension(velocity)` and `Dimension(acceleration*time)`
+      are accepted in the same addition expression.
+    weight: 3
+  - id: SA2
+    description: Preserves the `ValueError` raise path so that genuinely incompatible
+      dimensions (e.g., `length` added to `time`) still raise `ValueError` with a
+      message referencing the mismatched dimension.
+    weight: 2
+  - id: SA3
+    description: Ensures the fix handles the case where the first addend's dimension
+      and subsequent addend dimensions are equivalent under the unit system, returning
+      a valid `(factor, dimension)` tuple rather than raising.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing tests for genuinely inconsistent dimensions
+      (e.g., `u + w` where `u` is length and `w` is time) still expect a `ValueError`,
+      without weakening or removing those assertions.
+    weight: 2
+  - id: I2
+    description: Confirms that `_collect_factor_and_dimension` public-facing signature
+      and return type (a two-element tuple of scale factor and `Dimension`) remain
+      unchanged.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Produces a valid `(factor, Dimension)` tuple (no exception) when
+      evaluating an expression like `a1*t1 + v1` where `a1` has dimension `acceleration`,
+      `t1` has dimension `time`, and `v1` has dimension `velocity`, because `acceleration*time`
+      is equivalent to `velocity` in base dimensions.
+    weight: 3
+  - id: R2
+    description: Ensures the returned dimension in the `Add` case represents a consistent
+      physical dimension (e.g., `Dimension(velocity)` or an equivalent form) rather
+      than a nonsensical combination, so downstream conversion calls remain valid.
+    weight: 1

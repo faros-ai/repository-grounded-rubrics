@@ -1,0 +1,58 @@
+metadata:
+  task_summary: Fix `is_zero` incorrectly returning `False` for Add expressions with
+    imaginary terms whose imaginary parts cancel, e.g. `-2*I + (1 + I)**2`.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies `_eval_is_zero` inside `sympy/core/add.py` as the primary
+      (and ideally only) change to production logic, keeping the fix local to the
+      Add class.
+    weight: 3
+  - id: FC2
+    description: Avoids modifying unrelated files (e.g. no changes to `sympy/core/mul.py`,
+      `sympy/core/expr.py`, or files outside the `sympy/core/` directory) beyond the
+      minimal fix and any accompanying test.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Removes or guards the branch in `_eval_is_zero` that returns `False`
+      when `b.is_zero` is `True` and `im` is `True` (and `im_or_z` is `False`), so
+      that expression `-2*I + (1 + I)**2` no longer incorrectly yields `is_zero =
+      False`.
+    weight: 3
+  - id: SA2
+    description: Ensures that `_eval_is_zero` returns `None` (not `False`) when the
+      real-part sum is zero but imaginary terms are present and their cancellation
+      cannot be determined, consistent with the principle that `is_zero` must never
+      give a wrong answer and should return `None` when uncertain.
+    weight: 3
+  - id: SA3
+    description: Preserves the existing correct branch that returns `True` when `b.is_zero`
+      and no imaginary or `im_or_z` terms exist (i.e., the `not im_or_z and not im`
+      guard remains intact).
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that `test_Add_is_zero` (or any existing `is_zero`-related
+      test in `sympy/core/tests/test_arit.py`) is not weakened, removed, or skipped.
+    weight: 2
+  - id: I2
+    description: Confirms the public `is_zero` property API on `Add` remains unchanged
+      (no signature modification, no rename of `_eval_is_zero`).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that `(-2*I + (1 + I)**2).is_zero` evaluates to `True` or
+      `None` (not `False`) after the fix, consistent with the expression actually
+      being zero.
+    weight: 3
+  - id: R2
+    description: Ensures that a sum of purely-imaginary terms that genuinely do not
+      cancel (e.g. `I + 2*I`) still produces `is_zero = False`, so the fix does not
+      regress the non-zero imaginary case.
+    weight: 2
+  - id: R3
+    description: Adds or updates a test case (anywhere in the test suite) that exercises
+      `is_zero` on an `Add` expression containing imaginary terms that sum to zero,
+      such as `-2*I + (1 + I)**2`, to prevent future regressions.
+    weight: 1

@@ -1,0 +1,60 @@
+metadata:
+  task_summary: Fix the 'Bases' section showing 'torch.nn.' instead of 'torch.nn.Module'
+    when a class inherits from a mocked class, caused by _MockObject.__init__ setting
+    self.__qualname__ = '' which then corrupts the restify() output.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sphinx/ext/autodoc/mock.py or sphinx/util/typing.py (or
+      both) to address the empty __qualname__ on _MockObject instances corrupting
+      the 'Bases' section output.
+    weight: 3
+  - id: FC2
+    description: Avoids unrelated file churn — changes are confined to the mock/typing
+      subsystem (e.g., sphinx/ext/autodoc/mock.py, sphinx/util/typing.py) without
+      touching unrelated modules.
+    weight: 2
+  - id: FC3
+    description: Adds or updates at least one test that exercises show_inheritance
+      for a class inheriting a mocked base (e.g., using 'missing_module.Class' or
+      similar mock), verifying that 'Bases' output contains the full qualified name
+      rather than a truncated one ending in a dot.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Fixes the root cause where _MockObject instances stored in __orig_bases__
+      produce an empty __qualname__ (set to '' by _MockObject.__init__), causing restify()
+      to emit 'module.' instead of 'module.ClassName'.
+    weight: 3
+  - id: SA2
+    description: Ensures the corrected 'Bases' output contains the full dotted name
+      of the mocked base class (e.g., 'missing_module.Class' rather than 'missing_module.')
+      when show_inheritance is enabled.
+    weight: 3
+  - id: SA3
+    description: Preserves correct 'Bases' output for non-mocked base classes (e.g.,
+      normal Python classes and typing generics) so that existing show_inheritance
+      behavior is unchanged.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: 'Confirms that no existing autodoc tests for show_inheritance (e.g.,
+      assertions containing ''Bases: :py:class:'') are weakened, removed, or skipped.'
+    weight: 2
+  - id: I2
+    description: Confirms that the public interface of _MockObject, _MockModule, _make_subclass,
+      ismock, mock, and undecorate in sphinx/ext/autodoc/mock.py remains intact —
+      no symbols are renamed or removed.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures restify() called on a _MockObject instance (as would appear
+      in __orig_bases__ of a class inheriting a mocked type) produces a ':py:class:'
+      reference containing the non-empty class name, not a trailing-dot form like
+      'torch.nn.'.
+    weight: 3
+  - id: R2
+    description: Ensures the fix handles the case where the _MockObject instance is
+      accessed via __orig_bases__ (PEP 560 path in ClassDocumenter.add_content) rather
+      than only the __bases__ fallback path.
+    weight: 2

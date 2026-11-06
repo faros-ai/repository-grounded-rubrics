@@ -1,0 +1,62 @@
+metadata:
+  task_summary: Fix SplitArrayWidget so that CheckboxInput's mutation of attrs['checked']
+    in get_context() does not bleed across loop iterations, causing all widgets after
+    the first True value to be incorrectly checked.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies code in django/contrib/postgres/forms/array.py or django/forms/widgets.py
+      (or both) to address the attrs mutation bug — no unrelated files are changed.
+    weight: 3
+  - id: FC2
+    description: Isolates the fix to the specific get_context method(s) responsible
+      for the bug — either SplitArrayWidget.get_context in array.py or CheckboxInput.get_context
+      in widgets.py — without restructuring unrelated widget logic.
+    weight: 2
+  - id: FC3
+    description: Avoids introducing new imports, dependencies, or structural changes
+      beyond what is strictly needed to prevent the attrs dict mutation from propagating
+      across iterations.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause described in the PR: CheckboxInput.get_context()
+      sets attrs[''checked''] = True on the shared final_attrs dict, which persists
+      across loop iterations in SplitArrayWidget.get_context().'
+    weight: 3
+  - id: SA2
+    description: Ensures that each subwidget in SplitArrayWidget.get_context() receives
+      an independent attrs dict, so that a True value at position i does not mark
+      subsequent False values at positions i+1, i+2, ... as checked.
+    weight: 3
+  - id: SA3
+    description: Adds or updates a test covering SplitArrayField with BooleanField
+      (or SplitArrayWidget with CheckboxInput) and a data array containing both True
+      and False values (e.g., [True, False] or [False, True, False]), verifying that
+      only the True-valued widget is checked.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing public API signatures of SplitArrayWidget.get_context
+      and CheckboxInput.get_context — no parameters are added, removed, or reordered.
+    weight: 2
+  - id: I2
+    description: Does not weaken or remove existing tests for SplitArrayWidget, SplitArrayField,
+      or CheckboxInput (e.g., in tests/postgres_tests/test_array.py or tests/forms_tests/widget_tests/test_checkboxinput.py).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when SplitArrayWidget renders a list like [True, False,
+      True], the widget at index 1 (False) is not rendered with checked=True because
+      of the preceding True at index 0.
+    weight: 3
+  - id: R2
+    description: Ensures that CheckboxInput.get_context() does not mutate the original
+      attrs dict passed in from the caller — either by making a copy before setting
+      'checked', or by the caller passing a fresh copy each iteration.
+    weight: 3
+  - id: R3
+    description: Confirms that non-BooleanField subwidgets within SplitArrayWidget
+      are unaffected by the fix — i.e., TextInput or other widgets that do not mutate
+      attrs continue to render correctly.
+    weight: 2

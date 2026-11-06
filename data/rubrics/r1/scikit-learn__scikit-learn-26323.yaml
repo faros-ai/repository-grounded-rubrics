@@ -1,0 +1,53 @@
+metadata:
+  task_summary: Fix ColumnTransformer.set_output to also propagate the output format
+    to the remainder estimator when it is an estimator (not 'drop' or 'passthrough').
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the set_output method inside sklearn/compose/_column_transformer.py
+      to include self.remainder in the collection of transformers that receive _safe_set_output
+      calls.
+    weight: 3
+  - id: FC2
+    description: Confines changes to sklearn/compose/_column_transformer.py (and optionally
+      its test file), avoiding unrelated file churn.
+    weight: 2
+  - id: FC3
+    description: Adds a test (in the ColumnTransformer test file or equivalent) covering
+      set_output with remainder set to an estimator instance, not just 'drop' or 'passthrough'.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures set_output calls _safe_set_output on self.remainder when
+      remainder is not the string 'drop' or 'passthrough', mirroring the guard already
+      present for entries in self.transformers.
+    weight: 3
+  - id: SA2
+    description: Preserves existing behavior for remainder='drop' and remainder='passthrough',
+      so that _safe_set_output is not called on those string values.
+    weight: 2
+  - id: SA3
+    description: Addresses the case where set_output is called before fitting (self.transformers_
+      may not yet exist), so the remainder estimator is still configured via self.remainder.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing tests for set_output with remainder='drop'
+      and remainder='passthrough' are not removed or weakened.
+    weight: 2
+  - id: I2
+    description: Confirms that the public signature of ColumnTransformer.set_output
+      (accepting transform keyword argument and returning self) is preserved unchanged.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: When set_output(transform='pandas') is called on a ColumnTransformer
+      whose remainder is an estimator, the remainder estimator's output is a DataFrame,
+      so the all(hasattr(X, 'iloc') for X in Xs) check in _hstack succeeds and pandas
+      concat is used for the final result.
+    weight: 3
+  - id: R2
+    description: When set_output is called both before and after fitting, the remainder
+      estimator is correctly configured in both scenarios, because the fix operates
+      on self.remainder (always present) rather than relying solely on self.transformers_.
+    weight: 2

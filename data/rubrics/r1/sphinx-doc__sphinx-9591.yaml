@@ -1,0 +1,58 @@
+metadata:
+  task_summary: Fix cross-references not working in property type annotations by handling
+    non-callable property objects in record_typehints.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sphinx/ext/autodoc/typehints.py to address the property
+      type-hint recording gap (any change to that file targeting the record_typehints
+      function).
+    weight: 3
+  - id: FC2
+    description: Adds a branch in record_typehints (or equivalent location in the
+      diff) that handles property objects (isinstance check for property or inspect.isproperty)
+      separately from the existing callable(obj) path.
+    weight: 3
+  - id: FC3
+    description: Extracts the underlying getter function (via fget for property or
+      func for cached_property) when recording type hints for property objects, mirroring
+      the pattern already used in PropertyDocumenter.add_directive_header.
+    weight: 2
+  - id: FC4
+    description: Confines changes to files directly related to autodoc type-hint processing
+      (e.g., sphinx/ext/autodoc/typehints.py and/or sphinx/ext/autodoc/__init__.py)
+      without unrelated file churn.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Records the return annotation of a property''s getter function into
+      the annotations temp_data dict under the key ''return'', so that merge_typehints
+      can later emit a cross-referenceable :type: or rtype field for property members.'
+    weight: 3
+  - id: SA2
+    description: Ensures the fix applies to both plain property objects (with fget)
+      and cached_property objects (with func), consistent with the dual handling already
+      present in PropertyDocumenter.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing callable(obj) handling path in record_typehints
+      unchanged, so that type hint recording for regular functions and methods continues
+      to work as before.
+    weight: 3
+  - id: I2
+    description: Does not weaken any existing tests (no removal of assertions, no
+      addition of skip markers, no loosening of expected output) in test_ext_autodoc_autoproperty.py
+      or related autodoc test files.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: 'Produces a cross-referenceable :type: or rtype annotation (using
+      restify/stringify output) for a property whose return annotation is a user-defined
+      class such as Point, rather than emitting plain unlinked text.'
+    weight: 3
+  - id: R2
+    description: Does not cause errors (TypeError, ValueError, or AttributeError)
+      when record_typehints encounters a property with no fget (or no return annotation),
+      by guarding the getter lookup and signature extraction appropriately.
+    weight: 2

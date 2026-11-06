@@ -1,0 +1,61 @@
+metadata:
+  task_summary: Allow the `mul_symbol` kwarg of `latex()` to accept arbitrary string
+    values beyond the four predefined choices (None, 'ldot', 'dot', 'times').
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies `sympy/printing/latex.py` to handle arbitrary string values
+      for `mul_symbol` in the `__init__` method of `LatexPrinter`, not just the four
+      keys in `mul_symbol_table`.
+    weight: 3
+  - id: FC2
+    description: Confines changes to `sympy/printing/latex.py` (and optionally its
+      test file), avoiding unrelated file modifications outside the latex printer
+      subsystem.
+    weight: 2
+  - id: FC3
+    description: Updates the docstring or inline comment for `mul_symbol` in `sympy/printing/latex.py`
+      to indicate that arbitrary string values are now accepted (e.g., removing or
+      relaxing the 'Can be one of None, ldot, dot, or times' restriction).
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements support for a user-supplied arbitrary string as the `mul_symbol`
+      value (e.g., `r'\,'`) so it is used directly as the multiplication separator
+      in the rendered LaTeX output.
+    weight: 3
+  - id: SA2
+    description: Preserves backward compatibility by keeping the four original `mul_symbol`
+      values (None, 'ldot', 'dot', 'times') mapped to their existing LaTeX strings
+      (` `, ` \,.\ `, ` \cdot `, ` \times `) unchanged.
+    weight: 3
+  - id: SA3
+    description: Handles the `mul_symbol_latex_numbers` setting (used for number-times-number
+      separators) correctly when an arbitrary string is supplied, either by using
+      the same arbitrary string or by falling back to the dot symbol.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing tests for `mul_symbol` values ('dot', 'ldot',
+      'times', and None) are not weakened, removed, or skipped.
+    weight: 3
+  - id: I2
+    description: Confirms that the public `latex()` function signature is preserved
+      and no other `latex()` parameters are altered.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when a known key such as 'dot', 'ldot', or 'times' is
+      passed as `mul_symbol`, the resulting `mul_symbol_latex` setting still resolves
+      to the predefined LaTeX string (e.g., `r' \cdot '` for 'dot'), not the raw key
+      string itself.
+    weight: 3
+  - id: R2
+    description: Ensures that when an arbitrary string is passed as `mul_symbol` (e.g.,
+      `r'\,'`), the code does not raise a `KeyError` from the `mul_symbol_table` lookup.
+    weight: 3
+  - id: R3
+    description: Ensures that the arbitrary `mul_symbol` string is propagated to the
+      `mul_symbol_latex` setting used in `_print_Mul` and similar print methods (lines
+      referencing `self._settings['mul_symbol_latex']`).
+    weight: 2

@@ -1,0 +1,51 @@
+metadata:
+  task_summary: 'Fix `Dataset.merge()` to accept a `DataArray` as the `other` argument
+    without raising `AttributeError: ''DataArray'' object has no attribute ''items''`.'
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies `dataset_merge_method` or `Dataset.merge` (in `xarray/core/merge.py`
+      or `xarray/core/dataset.py`) to handle a `DataArray` passed as the `other` argument,
+      rather than leaving it entirely unmodified.
+    weight: 3
+  - id: FC2
+    description: Adds a `DataArray`-to-`Dataset` conversion (e.g., via `to_dataset()`
+      or `as_dataset()`) in `dataset_merge_method` or in the `Dataset.merge` call
+      site before `other` is passed into merge logic that calls `.items()`.
+    weight: 3
+  - id: FC3
+    description: Confines the change to the minimal set of files needed (e.g., `xarray/core/merge.py`
+      and/or `xarray/core/dataset.py`), without touching unrelated modules.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures `Dataset.merge(da)` where `da` is a named `DataArray` produces
+      the same result as `xr.merge([ds, da])`, matching the expected behavior described
+      in the PR.
+    weight: 3
+  - id: SA2
+    description: Ensures the fix handles the case where `other` is a `DataArray` throughout
+      the `overwrite_vars` branching logic in `dataset_merge_method` (including when
+      `overwrite_vars` is non-empty), not only the simple no-overwrite path.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: 'Confirms that the public signature of `Dataset.merge` (parameters:
+      `other`, `inplace`, `overwrite_vars`, `compat`, `join`, `fill_value`) is preserved
+      unchanged.'
+    weight: 3
+  - id: I2
+    description: Confirms that no existing tests for `Dataset.merge` or `dataset_merge_method`
+      are removed, skipped, or have their assertions weakened.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Adds a test case (anywhere in the test suite) that calls `ds.merge(da)`
+      with a named `DataArray` and asserts the result is identical to `xr.merge([ds,
+      da])`, directly reproducing the scenario from the PR description.
+    weight: 1
+  - id: R2
+    description: Maintains backward compatibility so that passing a `Dataset` or a
+      plain dict as `other` to `Dataset.merge` continues to work without error after
+      the change.
+    weight: 3

@@ -1,0 +1,52 @@
+metadata:
+  task_summary: Remove the `.replace('.[', '[')` call in `getmodpath()` in `src/_pytest/python.py`
+    that incorrectly mangles parametrized test IDs containing '.[' in their reported
+    headline.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Removes the `return s.replace('.[', '[')` expression from `getmodpath`
+      in `src/_pytest/python.py`, replacing it with a plain `return s` or equivalent
+      that does not strip the dot before `[`.
+    weight: 3
+  - id: FC2
+    description: 'Confines all edits to the minimal set of files required: at minimum
+      `src/_pytest/python.py` and optionally test files, with no unrelated file churn.'
+    weight: 2
+  - id: FC3
+    description: Adds a test case (anywhere in the test suite) exercising `getmodpath()`
+      or the test report headline for a parametrized test whose parameter contains
+      `.[` (e.g., `'.['` or `'..[`'), verifying the full parameter string is preserved.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause identified in the PR description: the `s.replace(''.['',
+      ''['')` transformation inside `getmodpath` in `src/_pytest/python.py` that silently
+      drops a dot from parameter IDs containing `.[`.'
+    weight: 3
+  - id: SA2
+    description: Ensures the fix preserves the behavior that `getmodpath` joins the
+      chain of node names with dots (e.g., `TestX.testmethod_one`), and only removes
+      the erroneous bracket substitution.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing `getmodpath` test assertions (e.g., `'testone'`,
+      `'TestX.testmethod_one'`, `'TestY.testmethod_one'`) in `testing/test_collection.py`
+      are not weakened, removed, or skipped.
+    weight: 3
+  - id: I2
+    description: Confirms no public API signatures (`getmodpath`, `reportinfo`, `PyobjMixin`)
+      are renamed or removed; only the internal string transformation is corrected.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Preserves the correct report headline for parametrized tests whose
+      IDs contain `.[`, so a test such as `test_boo[..[` is reported in the failure
+      header as `test_boo[..[` and not the truncated `test_boo[.[`.
+    weight: 3
+  - id: R2
+    description: Maintains unchanged behavior for parametrized test IDs that do not
+      contain `.[`, so names like `test_foo[bar]` or `TestX.test_method` continue
+      to appear correctly in report headlines.
+    weight: 2

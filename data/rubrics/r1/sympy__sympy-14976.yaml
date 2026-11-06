@@ -1,0 +1,58 @@
+metadata:
+  task_summary: Add a _print_Rational method to MpmathPrinter so that rational numbers
+    are wrapped in mpmath-aware expressions (rather than plain Python integer division)
+    when lambdify is called with modules='mpmath', preserving full precision in numeric
+    computations.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Adds a _print_Rational method inside the MpmathPrinter class in sympy/printing/pycode.py.
+    weight: 3
+  - id: FC2
+    description: Confines changes to the printing layer (e.g., sympy/printing/pycode.py
+      or sympy/printing/lambdarepr.py) rather than modifying unrelated modules such
+      as lambdify.py, solvers.py, or core number classes.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test in the printing test suite (e.g., test_pycode.py
+      or test_lambdarepr.py) that exercises MpmathPrinter with a Rational argument.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures the emitted code for a Rational expression avoids bare Python
+      integer-division literals (e.g., avoids producing '232/3' directly) when printed
+      by MpmathPrinter.
+    weight: 3
+  - id: SA2
+    description: Ensures the emitted code for a non-unit Rational (where q != 1) references
+      an mpmath precision-aware construct such as mpmath.mpf, so the value is computed
+      at the runtime mpmath precision rather than as a Python float.
+    weight: 3
+  - id: SA3
+    description: Handles the special case where the Rational denominator q equals
+      1 (integer-valued rational) without unnecessarily wrapping it in an mpmath call,
+      consistent with how similar printers (_print_Rational in rcode.py, jscode.py)
+      treat integers.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing _print_Float behavior in MpmathPrinter (using
+      mpmath.mpf with internal mpf tuple args) without removing or weakening it.
+    weight: 2
+  - id: I2
+    description: Avoids weakening or deleting any existing assertions in test_MpmathPrinter
+      or related mpmath lambdify tests (e.g., the sign(x) assertion, the mpmath_precision
+      test).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: When MpmathPrinter prints a Rational such as S(1)/3 or Rational(232,
+      3), the resulting code string contains an mpmath-qualified call (e.g., 'mpmath.mpf')
+      so that at runtime the value is evaluated at the current mpmath working precision
+      rather than as a machine-precision float.
+    weight: 3
+  - id: R2
+    description: 'The fix is backward-compatible: lambdify(x, expr, ''mpmath'') for
+      expressions containing only integer or symbolic terms (no Rational) continues
+      to produce the same output as before the patch.'
+    weight: 2

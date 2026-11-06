@@ -1,0 +1,61 @@
+metadata:
+  task_summary: Fix unittest setUpClass auto-use fixtures to have names starting with
+    underscore so they are hidden by default in --fixtures output (as they were before
+    v6.2.0).
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the fixture name format in `_make_xunit_fixture` (in `src/_pytest/unittest.py`)
+      so that the generated name starts with an underscore (e.g., changes `f"unittest_{setup_name}_fixture_{obj.__qualname__}"`
+      to a name beginning with `_`).
+    weight: 3
+  - id: FC2
+    description: Confines edits to the fixture-naming logic only, without altering
+      the fixture's `autouse=True`, `scope`, or behavioural body of `_make_xunit_fixture`
+      in `src/_pytest/unittest.py`.
+    weight: 2
+  - id: FC3
+    description: Applies the same underscore-prefix fix to at least one of the `xunit_setup_*_fixture_*`
+      name strings in `src/_pytest/python.py` (e.g., `xunit_setup_class_fixture_`,
+      `xunit_setup_module_fixture_`, `xunit_setup_function_fixture_`, or `xunit_setup_method_fixture_`),
+      since those auto-use fixtures share the same visibility problem.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures the generated fixture name (in `src/_pytest/unittest.py`)
+      begins with `_` so that `write_fixture` in `src/_pytest/python.py` (line containing
+      `argname.startswith("_")`) hides it when `verbose <= 0`, matching the behavior
+      described in the PR as existing before v6.2.0.
+    weight: 3
+  - id: SA2
+    description: 'Preserves the fixture''s uniqueness guarantee: the new name still
+      incorporates `obj.__qualname__` (or equivalent unique identifier) so that separate
+      `TestCase` subclasses each get a distinct fixture name.'
+    weight: 2
+  - id: SA3
+    description: Adds a test or assertion (anywhere in the test suite) that exercises
+      `--fixtures` output for a `unittest.TestCase` subclass with `setUpClass` and
+      confirms the generated fixture name does not appear without `-v`.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Avoids weakening or removing any existing test cases in `testing/test_unittest.py`
+      or `testing/python/fixtures.py` that verify unittest fixture behaviour.
+    weight: 2
+  - id: I2
+    description: Confirms that no public API symbols (e.g., `_make_xunit_fixture`,
+      `UnitTestCase`, `pytest.fixture`) are renamed, removed, or have their signatures
+      changed by the patch.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that the underscore-prefixed fixture name is still detected
+      and stored via `parsefactories` so that the auto-use fixture continues to execute
+      `setUpClass`/`tearDownClass` for every collected `UnitTestCase`.
+    weight: 3
+  - id: R2
+    description: Ensures that passing `-v` (verbose > 0) to `--fixtures` still causes
+      the previously-hidden underscore-prefixed fixture to appear in the output, because
+      the `write_fixture` condition `verbose <= 0 and argname.startswith("_")` only
+      suppresses at non-verbose levels.
+    weight: 2

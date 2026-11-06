@@ -1,0 +1,52 @@
+metadata:
+  task_summary: Fix InheritDocstrings metaclass to also inherit docstrings for properties,
+    not just plain functions.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the InheritDocstrings.__init__ method in astropy/utils/misc.py
+      to add handling for property objects.
+    weight: 3
+  - id: FC2
+    description: Confines all production-code changes to astropy/utils/misc.py without
+      touching unrelated modules.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test in astropy/utils/tests/test_misc.py that exercises
+      property docstring inheritance via InheritDocstrings.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Replaces or supplements the inspect.isfunction(val) guard with a
+      check that also matches property instances, directly addressing the stated root
+      cause that inspect.isfunction returns False for properties.
+    weight: 3
+  - id: SA2
+    description: Implements docstring propagation for properties such that a subclass
+      property whose docstring is None receives the parent class property docstring
+      (via the class MRO).
+    weight: 3
+  - id: SA3
+    description: Preserves the existing inspect.isfunction branch so that regular
+      method docstring inheritance continues to work as before.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public signature of InheritDocstrings (a metaclass
+      named InheritDocstrings in astropy/utils/misc.py) is unchanged.
+    weight: 2
+  - id: I2
+    description: Avoids weakening or skipping any existing test for InheritDocstrings
+      in the test suite.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when a subclass property has no docstring (None), the
+      metaclass assigns the docstring from the first matching property found in cls.__mro__
+      to the subclass property.
+    weight: 3
+  - id: R2
+    description: Ensures that a subclass property that already has its own non-None
+      docstring is left unchanged (i.e., the inherited docstring does not overwrite
+      an explicitly provided one).
+    weight: 2

@@ -1,0 +1,50 @@
+metadata:
+  task_summary: Fix viewcode extension so it does not generate module pages for epub
+    builds when viewcode_enable_epub=False, even when html and epub are built together.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sphinx/ext/viewcode.py and only that file (no unrelated
+      file churn) to address the epub page-generation bug.
+    weight: 3
+  - id: FC2
+    description: Adds a guard inside the collect_pages function in sphinx/ext/viewcode.py
+      that checks whether the current builder is an epub builder and whether viewcode_enable_epub
+      is False, so the function returns early without yielding pages.
+    weight: 3
+  - id: FC3
+    description: Leaves the existing guard in doctree_read (checking app.builder.name.startswith('epub')
+      and env.config.viewcode_enable_epub) unchanged, without weakening or removing
+      it.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Ensures the fix addresses the scenario described in the PR: running
+      both html and epub builders (e.g., make html epub) does not produce viewcode
+      module pages in the epub output when viewcode_enable_epub is False (the default).'
+    weight: 3
+  - id: SA2
+    description: Preserves the default value of viewcode_enable_epub as False in the
+      setup function call to app.add_config_value, consistent with the PR's expectation
+      that epub pages should not be created by default.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms the public API of collect_pages (its signature and the html-collect-pages
+      event connection) is preserved unchanged.
+    weight: 2
+  - id: I2
+    description: Confirms no test cases are deleted, skipped, or weakened in tests/test_ext_viewcode.py
+      or any other test file appearing in the diff.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when the builder name starts with 'epub' and viewcode_enable_epub
+      is False, collect_pages exits before yielding any (pagename, context, template)
+      tuples, so no module source pages are written to the epub output directory.
+    weight: 3
+  - id: R2
+    description: Ensures that when the builder is an HTML builder (name does not start
+      with 'epub'), collect_pages continues to yield module pages normally, preserving
+      correct behavior for standard HTML builds.
+    weight: 2

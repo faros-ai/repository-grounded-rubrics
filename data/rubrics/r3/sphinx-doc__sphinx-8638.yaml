@@ -1,0 +1,53 @@
+metadata:
+  task_summary: Fix the Python domain's find_obj method so that instance/class attribute
+    cross-references do not spuriously link to same-named attributes in unrelated
+    classes or modules.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sphinx/domains/python.py and confines all changes to the
+      find_obj method or its direct callers, avoiding unrelated file churn.
+    weight: 3
+  - id: FC2
+    description: Adds or adjusts logic in the searchmode == 1 branch of find_obj to
+      resolve classname-qualified lookups (i.e., classname + '.' + name) before falling
+      through to the open-ended fuzzy endswith search.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that when a classname context is present, find_obj prioritises
+      an exact match for classname + '.' + name over the broad fuzzy search that matches
+      any oname.endswith('.' + name) across all registered objects.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing fallback fuzzy endswith search for cases where
+      no classname or modname context is available, so that partial-name cross-references
+      still resolve when context is absent.
+    weight: 2
+  - id: SA3
+    description: Ensures the fix applies to the 'attr' role (py:attribute / instance
+      variable) lookup path, which is the primary source of the spurious cross-class
+      linking described in the PR.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public signature of find_obj (env, modname, classname,
+      name, type, searchmode) is not altered, preserving backward compatibility for
+      any callers.
+    weight: 3
+  - id: I2
+    description: Confirms that existing test assertions in test_domain_py.py for find_obj
+      (e.g., NestedParentA, NestedChildA lookups) are not weakened, removed, or skipped.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a reference to an attribute name that exists on the
+      current class (classname.attrname) resolves to that class's attribute and not
+      to a same-named attribute on a different class, as demonstrated by the PR's
+      described scenario of somepackage.subA::Foo.somename linking to somepackage.subB::Bar.somename.
+    weight: 3
+  - id: R2
+    description: Ensures that a reference to an attribute name that does not exist
+      on the current class (no classname.attrname in objects) still attempts resolution
+      via the fuzzy endswith search, so legitimate indirect references remain functional.
+    weight: 2

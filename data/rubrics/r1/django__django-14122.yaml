@@ -1,0 +1,57 @@
+metadata:
+  task_summary: Prevent Meta.ordering fields from being incorrectly added to the SQL
+    GROUP BY clause when annotating/aggregating querysets.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/db/models/sql/compiler.py and limits edits to the
+      logic that determines which order_by expressions are added to the GROUP BY clause.
+    weight: 3
+  - id: FC2
+    description: Avoids unrelated file churn by not modifying files outside of django/db/models/sql/compiler.py
+      and optional test files related to aggregation or ordering.
+    weight: 2
+  - id: FC3
+    description: Adds a test case (in tests/aggregation/ or tests/ordering/) that
+      exercises annotate() or aggregate() on a model with a Meta.ordering field to
+      verify correct GROUP BY behavior.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements a guard in get_group_by (in django/db/models/sql/compiler.py)
+      that skips adding expressions to GROUP BY when those expressions originate from
+      Meta.ordering, mirroring the existing order_by = None suppression in the as_sql
+      method.
+    weight: 3
+  - id: SA2
+    description: Uses self._meta_ordering (the instance attribute set in get_order_by
+      when Meta.ordering is the active ordering source) to identify which order_by
+      entries to exclude from GROUP BY.
+    weight: 3
+  - id: SA3
+    description: Preserves the suppression of Meta.ordering fields from the ORDER
+      BY clause (the order_by = None path in as_sql guarded by self._meta_ordering)
+      while also suppressing them from GROUP BY.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that explicit order_by() calls (not from Meta.ordering)
+      are still included in the GROUP BY clause, so the existing correct aggregation
+      behavior for user-specified ordering is preserved.
+    weight: 3
+  - id: I2
+    description: Confirms that no existing tests in tests/aggregation/tests.py are
+      removed or weakened (e.g., no assertions removed, no skip decorators added to
+      passing tests).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a queryset using annotate() or aggregate() on a model
+      with a Meta.ordering definition does not include the ordering fields in the
+      generated GROUP BY SQL clause, producing correct aggregation results.
+    weight: 3
+  - id: R2
+    description: Ensures that when get_group_by receives an order_by list that is
+      entirely from Meta.ordering (self._meta_ordering is set), none of those order_by
+      expressions contribute columns to the GROUP BY expressions list.
+    weight: 2

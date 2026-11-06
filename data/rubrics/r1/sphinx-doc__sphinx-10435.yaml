@@ -1,0 +1,66 @@
+metadata:
+  task_summary: Fix LaTeX inline code highlighting to suppress leading and trailing
+    newlines that render as spurious whitespace in PDF output by using LaTeX percent-comment
+    tokens.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the replacement string in the `visit_literal` method of
+      `sphinx/writers/latex.py` so that the replacement for `\begin{Verbatim}[commandchars=\\\{\}]`
+      ends with a `%` character (e.g., `\sphinxcode{\sphinxupquote{%`) to comment
+      out the newline that would otherwise produce a leading space in LaTeX output.
+    weight: 3
+  - id: FC2
+    description: Adds a `%` token (somewhere in the `visit_literal` highlighted-code
+      path in `sphinx/writers/latex.py`) between the end of the highlighted content
+      and the closing `}}`, so the trailing newline before the closing braces is suppressed
+      in LaTeX output.
+    weight: 3
+  - id: FC3
+    description: Confines the whitespace-suppression changes to the highlighted inline-code
+      branch of `visit_literal` in `sphinx/writers/latex.py` (the branch that calls
+      `self.highlighter.highlight_block` and raises `nodes.SkipNode`), leaving other
+      `visit_literal` branches (title, keyboard, plain `\sphinxcode`) unmodified.
+    weight: 2
+  - id: FC4
+    description: Updates the `test_latex_code_role` test assertion in the test suite
+      to match the corrected LaTeX output format (e.g., replacing the old `\sphinxcode{\sphinxupquote{`
+      + newline assertion with one that includes the `%` comment characters), so the
+      test reflects the fixed behavior rather than the buggy one.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements the fix described in the PR by ensuring the generated
+      `.tex` file for an inline highlighted code role contains `\sphinxcode{\sphinxupquote{%`
+      (with a trailing percent sign) rather than `\sphinxcode{\sphinxupquote{` followed
+      by a bare newline.
+    weight: 3
+  - id: SA2
+    description: Ensures the trailing newline before the closing `}}` of the inline
+      highlighted code block is also commented out with `%`, matching the PR description's
+      expected mark-up of `content%` immediately before `}}`.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms the fix does not alter the handling of non-highlighted inline
+      literals (the `\sphinxcode{\sphinxupquote{` path without syntax highlighting)
+      in `visit_literal`.
+    weight: 2
+  - id: I2
+    description: Confirms the `visit_literal_block` / `depart_literal_block` code-block
+      path (which wraps content in `sphinxVerbatim` environments) is not modified
+      by this patch.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Produces LaTeX output where the inline highlighted code starts with
+      `\sphinxcode{\sphinxupquote{%` followed immediately by a newline and then the
+      highlighted `\PYG{...}` tokens, so no whitespace character appears before the
+      first token in the rendered PDF.
+    weight: 3
+  - id: R2
+    description: Produces LaTeX output where the last `\PYG{...}` token of the inline
+      code is immediately followed by `%` and then `}}` (with no intervening bare
+      newline), so no whitespace character appears after the last token in the rendered
+      PDF.
+    weight: 2

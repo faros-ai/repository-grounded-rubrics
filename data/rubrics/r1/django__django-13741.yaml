@@ -1,0 +1,57 @@
+metadata:
+  task_summary: Set disabled=True by default on ReadOnlyPasswordHashField so that
+    the password value from initial data is always used, eliminating the need for
+    a separate clean_password method in UserChangeForm.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Sets kwargs.setdefault('disabled', True) (or equivalent) inside ReadOnlyPasswordHashField.__init__
+      in django/contrib/auth/forms.py, making the field disabled by default.
+    weight: 3
+  - id: FC2
+    description: Removes or marks as redundant the clean_password method from UserChangeForm
+      in django/contrib/auth/forms.py, since disabled=True on ReadOnlyPasswordHashField
+      already prevents password value changes.
+    weight: 2
+  - id: FC3
+    description: Removes or simplifies the bound_data and/or has_changed methods on
+      ReadOnlyPasswordHashField (since disabled=True on forms.Field base class already
+      provides equivalent behavior via the base class implementation).
+    weight: 1
+  - id: FC4
+    description: Confines all auth-forms changes to django/contrib/auth/forms.py without
+      modifying unrelated files outside of documentation, tests, or release notes.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements the disabled property on ReadOnlyPasswordHashField as
+      described in the PR description, ensuring submitted values are ignored in favor
+      of the form's initial data without requiring a custom clean_password method.
+    weight: 3
+  - id: SA2
+    description: Updates the documentation example in docs/topics/auth/customizing.txt
+      to remove or note as no longer required the clean_password method in the custom
+      UserChangeForm example.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the public API of ReadOnlyPasswordHashField by keeping
+      __init__ accepting *args and **kwargs so existing callers that pass disabled=False
+      or other keyword arguments are not broken.
+    weight: 2
+  - id: I2
+    description: Avoids weakening existing tests for ReadOnlyPasswordHashField or
+      UserChangeForm (e.g., does not skip or delete test_bug_19133, test_bug_19349_bound_password_field,
+      or test_readonly_field_has_changed).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when a tampered password value is submitted in a UserChangeForm
+      POST, the field's disabled=True behavior causes the initial password value to
+      be used instead of the submitted value, preventing accidental password overwrites.
+    weight: 3
+  - id: R2
+    description: Ensures that ReadOnlyPasswordHashField still defaults required=False
+      (via kwargs.setdefault) so that forms using the field do not require users to
+      supply a password hash value.
+    weight: 2

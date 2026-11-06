@@ -1,0 +1,67 @@
+metadata:
+  task_summary: Fix get_backend() inadvertently clearing Gcf.figs when figures were
+    created inside rc_context by preventing spurious switch_backend(_auto_backend_sentinel)
+    calls that invoke close('all').
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies lib/matplotlib/__init__.py or lib/matplotlib/pyplot.py (or
+      both) to address the spurious backend-resolution triggered by get_backend()
+      after rc_context exits.
+    weight: 3
+  - id: FC2
+    description: Confines changes to the minimal set of files directly involved in
+      the bug (rc_context restoration logic in lib/matplotlib/__init__.py, RcParams.__getitem__
+      backend guard, or switch_backend close-all logic in lib/matplotlib/pyplot.py)
+      without touching unrelated modules.
+    weight: 2
+  - id: FC3
+    description: Avoids weakening any existing test in lib/matplotlib/tests/ (no removal
+      of assertions, no added skip markers, no relaxation of expected values in previously
+      passing tests).
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the root cause by ensuring that when rc_context restores
+      rcParams via dict.update, the backend key is not reset to _auto_backend_sentinel
+      if a real backend has already been selected, OR ensures that rcParams['backend']
+      access no longer calls switch_backend(_auto_backend_sentinel) unnecessarily
+      when a backend is already loaded.
+    weight: 3
+  - id: SA2
+    description: Ensures Gcf.figs is not cleared by a call to get_backend() when the
+      first figure was created inside an rc_context, directly fixing the assertion
+      failure shown in the PR description's actual outcome.
+    weight: 3
+  - id: SA3
+    description: Handles the specific interaction between rc_context's finally-block
+      dict.update restoration and the _auto_backend_sentinel value, not merely suppressing
+      or swallowing the error in a different way.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the public return type and documented behavior of get_backend(),
+      which must still return the name of the current backend as a string.
+    weight: 3
+  - id: I2
+    description: Preserves the documented behavior of rc_context() such that all rcParams
+      (other than backend resolution state) are still restored to their pre-context
+      values when the context exits.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Adds a conditional guard or equivalent structural change (visible
+      as added lines in the diff) that prevents switch_backend from being invoked
+      with _auto_backend_sentinel when a backend has already been resolved, so that
+      close('all') in switch_backend is not triggered spuriously.
+    weight: 3
+  - id: R2
+    description: Preserves the behavior where the very first call to get_backend()
+      (before any figure is created and before switch_backend has been called) still
+      correctly resolves the auto sentinel and selects an appropriate backend.
+    weight: 2
+  - id: R3
+    description: Adds a regression test (visible as a new test function in the diff)
+      that creates a figure inside rc_context, then calls get_backend(), and asserts
+      that Gcf.figs still contains the figure afterward.
+    weight: 1

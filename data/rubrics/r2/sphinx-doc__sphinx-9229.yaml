@@ -1,0 +1,75 @@
+metadata:
+  task_summary: Fix inconsistent behavior where type alias documentation (GenericAlias,
+    NewType, TypeVar) shows "alias of ..." instead of user-provided docstrings in
+    sphinx.ext.autodoc.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies GenericAliasMixin.update_content in sphinx/ext/autodoc/__init__.py
+      to conditionally suppress the "alias of %s" append when the object already has
+      a user-provided docstring.
+    weight: 3
+  - id: FC2
+    description: Modifies NewTypeMixin.update_content in sphinx/ext/autodoc/__init__.py
+      to conditionally suppress the "alias of %s" append when the object already has
+      a user-provided docstring.
+    weight: 3
+  - id: FC3
+    description: Avoids introducing changes outside of sphinx/ext/autodoc/__init__.py
+      (or closely related autodoc modules), keeping the diff minimal and localized
+      to the mixin classes that control "alias of ..." injection.
+    weight: 2
+  - id: FC4
+    description: Adds or updates test fixtures or test cases (e.g. in tests/roots/test-ext-autodoc/target/genericalias.py
+      or similar) for the scenario where a GenericAlias or NewType variable has a
+      user-provided docstring comment.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that when a type alias such as Dict[str, Any], Union[str,
+      None], or Callable is assigned and followed by a docstring (via "#:" comment
+      or next-line triple-quote), the autodoc output renders the docstring content
+      rather than the "alias of ..." default text.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior of appending "alias of ..." for GenericAlias
+      or NewType objects that do NOT have a user-provided docstring, so that undocumented
+      type aliases still display their type information.
+    weight: 3
+  - id: SA3
+    description: Addresses all affected mixin classes (GenericAliasMixin, NewTypeMixin,
+      and optionally TypeVarMixin) or documents via the diff that TypeVarMixin was
+      already correctly gating on docstrings through its get_doc override and required
+      no change.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing passing tests in tests/test_ext_autodoc_autodata.py
+      or tests/test_ext_autodoc_autoattribute.py are weakened, skipped, or removed
+      to accommodate the fix.
+    weight: 2
+  - id: I2
+    description: 'Confirms that the public update_content method signature on GenericAliasMixin
+      and NewTypeMixin remains unchanged (same parameter name more_content: StringList,
+      no new required parameters) so downstream subclasses or third-party extensions
+      are unaffected.'
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Adds a conditional branch (inside GenericAliasMixin.update_content
+      or a method it calls) that checks for a non-empty docstring before deciding
+      to append "alias of %s", so the alias text is suppressed when a user docstring
+      is present.
+    weight: 3
+  - id: R2
+    description: Adds a conditional branch (inside NewTypeMixin.update_content or
+      a method it calls) that checks for a non-empty docstring before deciding to
+      append "alias of %s", so the alias text is suppressed when a user docstring
+      is present.
+    weight: 3
+  - id: R3
+    description: 'Ensures that the docstring-detection logic handles both docstring
+      sources used by DataDocumenter and AttributeDocumenter: the "#:" module-level
+      comment (get_module_comment / get_attribute_comment) and the next-line triple-quote
+      docstring, so neither source causes the "alias of ..." text to erroneously appear.'
+    weight: 2

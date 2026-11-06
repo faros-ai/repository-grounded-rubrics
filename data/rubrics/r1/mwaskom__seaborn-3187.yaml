@@ -1,0 +1,61 @@
+metadata:
+  task_summary: Fix legend values for large numeric ranges by incorporating the ScalarFormatter
+    offset (e.g. 1e6) into legend labels or title in the objects API and/or the legacy
+    scatterplot API.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the legend-building block in seaborn/_core/scales.py (around
+      the lines that set new._legend) to call get_offset() on the formatter after
+      format_ticks() and use the result.
+    weight: 3
+  - id: FC2
+    description: Modifies locator_to_legend_entries in seaborn/utils.py to call get_offset()
+      on the formatter after set_locs/format_ticks and incorporate the offset into
+      the returned values.
+    weight: 2
+  - id: FC3
+    description: Confines all changes to the legend/formatter-related code paths (seaborn/_core/scales.py
+      and/or seaborn/utils.py) without modifying unrelated files such as mark renderers,
+      color-scale logic, or test infrastructure.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Incorporates the formatter offset string (retrieved via get_offset())
+      into the legend by appending it to the variable title or by prepending/appending
+      it to the tick labels, so that large-range values like body_mass_mg in the order
+      of 1E6 are not silently truncated.
+    weight: 3
+  - id: SA2
+    description: Applies the offset only when get_offset() returns a non-empty string,
+      leaving legend labels unchanged when no offset is active (i.e. the common small-number
+      case is unaffected).
+    weight: 3
+  - id: SA3
+    description: Produces a legend title or label that includes the offset token (such
+      as '1e6') when ScalarFormatter computes a non-trivial offset for large numeric
+      data.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing _legend tuple structure (locs list, labels
+      list) stored on Scale objects; any offset information is added alongside rather
+      than replacing the existing locs/labels pair.
+    weight: 2
+  - id: I2
+    description: Does not weaken, skip, or remove existing test assertions in tests/_core/test_scales.py
+      or related test files (no @pytest.mark.skip, no deletion of assert statements,
+      no relaxation of equality checks).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: When ScalarFormatter.get_offset() returns a non-empty string after
+      format_ticks() is called with large tick values (e.g. values around 1e6), the
+      legend title or labels include that offset string so that the displayed legend
+      is not misleadingly small.
+    weight: 3
+  - id: R2
+    description: When get_offset() returns an empty string (small numeric ranges not
+      triggering the offset threshold), the legend title and labels remain identical
+      to the pre-fix behavior, ensuring no regression for typical seaborn usage.
+    weight: 2

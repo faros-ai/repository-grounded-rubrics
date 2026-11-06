@@ -1,0 +1,52 @@
+metadata:
+  task_summary: Fix the reversed `top`/`bottom` alignment behavior in `HPacker` by
+    correcting the logic in `_get_aligned_offsets` in `lib/matplotlib/offsetbox.py`.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies `lib/matplotlib/offsetbox.py` and confines changes to the
+      alignment logic in `_get_aligned_offsets` (or the call sites in `HPacker.get_extent_offsets`)
+      without touching unrelated code.
+    weight: 3
+  - id: FC2
+    description: Swaps the mapping of `top` and `bottom` values so that `top` produces
+      the offset expression used for the far/high edge (equivalent to `height - h
+      + d`) and `bottom` produces the offset expression used for the near/low edge
+      (equivalent to `d`), correcting their previously reversed association.
+    weight: 3
+  - id: FC3
+    description: Preserves the offset computations for `align='left'`, `align='right'`,
+      `align='center'`, and `align='baseline'` unchanged in `_get_aligned_offsets`.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the bug reported in the PR where `align='top'` and `align='bottom'`
+      in `HPacker` produced visually reversed alignment results.
+    weight: 3
+  - id: SA2
+    description: Ensures the fix applies to the shared `_get_aligned_offsets` function
+      used by both `HPacker` and `VPacker`, or alternatively adds a correction specifically
+      in `HPacker.get_extent_offsets` without regressing `VPacker` behavior.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public API signatures of `HPacker`, `VPacker`,
+      `PackerBase`, and `_get_aligned_offsets` remain unchanged (no added, removed,
+      or renamed parameters).
+    weight: 2
+  - id: I2
+    description: Avoids weakening or removing existing tests for `HPacker`, `VPacker`,
+      or offset-box alignment; does not add `@pytest.mark.skip` or similar skip markers
+      to alignment-related tests.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when `HPacker` is constructed with `align='bottom'`,
+      children are positioned so their bottom edges are co-linear (i.e., shorter children
+      are not shifted upward relative to taller ones).
+    weight: 3
+  - id: R2
+    description: Ensures that when `HPacker` is constructed with `align='top'`, children
+      are positioned so their top edges are co-linear (i.e., shorter children are
+      shifted upward to match the tallest child's top edge).
+    weight: 3

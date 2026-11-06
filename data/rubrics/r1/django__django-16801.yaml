@@ -1,0 +1,60 @@
+metadata:
+  task_summary: Avoid connecting the post_init signal handler in ImageField.contribute_to_class
+    when neither width_field nor height_field is set, eliminating a no-op signal dispatch
+    overhead on model instantiation.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies only django/db/models/fields/files.py (or its immediate
+      test counterpart) without touching unrelated files, keeping the diff minimal
+      and scoped to the ImageField signal registration.
+    weight: 3
+  - id: FC2
+    description: Adds a conditional guard in the ImageField.contribute_to_class method
+      so that signals.post_init.connect is called only when self.width_field or self.height_field
+      is truthy, visible as a new if-branch wrapping the signals.post_init.connect
+      call.
+    weight: 3
+  - id: FC3
+    description: Leaves the update_dimension_fields method body unchanged (the existing
+      early-return guard 'has_dimension_fields = self.width_field or self.height_field'
+      is not removed or altered).
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the described performance issue by ensuring that an ImageField
+      without width_field and height_field does not register a post_init receiver
+      on the model class at all.
+    weight: 3
+  - id: SA2
+    description: 'Preserves the post_init connection for ImageField instances where
+      at least one of width_field or height_field is set, so that dimension fields
+      still get populated after model.__init__ (bug #11196 behavior is retained).'
+    weight: 3
+  - id: SA3
+    description: Keeps the condition gated on the not-abstract check (cls._meta.abstract)
+      alongside the new width_field/height_field check, consistent with the existing
+      intent to skip signal registration for abstract models.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Does not weaken or skip existing tests that exercise update_dimension_fields
+      or post_init signal behavior for ImageField models that have width_field or
+      height_field configured.
+    weight: 2
+  - id: I2
+    description: Preserves the public API of ImageField (constructor signature, contribute_to_class,
+      update_dimension_fields, deconstruct) without removing or renaming any public
+      method or parameter.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that instantiating a model with an ImageField that has no
+      width_field and no height_field no longer triggers any post_init receiver registered
+      by that ImageField, eliminating the no-op signal dispatch cost.
+    weight: 3
+  - id: R2
+    description: Ensures that instantiating a model with an ImageField that has width_field
+      or height_field configured still causes update_dimension_fields to be invoked
+      via the post_init signal, so dimension columns are populated correctly.
+    weight: 3

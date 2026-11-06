@@ -1,0 +1,60 @@
+metadata:
+  task_summary: Fix call_command so that kwargs for arguments belonging to a required
+    mutually exclusive group are forwarded to parse_args, preventing a false CommandError
+    about missing required arguments.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/core/management/__init__.py and no other production
+      source files, keeping the change local to the call_command function.
+    weight: 3
+  - id: FC2
+    description: Extends the parse_args construction block (the list comprehension
+      near the comment 'Any required arguments which are passed in via **options must
+      be passed to parse_args()') to also include options whose dest appears in any
+      required mutually exclusive group of the parser.
+    weight: 3
+  - id: FC3
+    description: Adds or modifies a test command fixture (e.g., a management command
+      file under tests/user_commands/management/commands/) that uses add_mutually_exclusive_group(required=True)
+      to enable testing the fix.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the case where individual actions have opt.required ==
+      False but belong to a mutually exclusive group with group.required == True,
+      which the original code failed to handle.
+    weight: 3
+  - id: SA2
+    description: Ensures that when a caller passes a kwarg whose dest matches any
+      action inside a required mutually exclusive group, that kwarg is serialised
+      into parse_args (e.g., as '--shop-id=1') so the parser does not raise 'one of
+      the arguments ... is required'.
+    weight: 3
+  - id: SA3
+    description: Adds a test (or uses an existing test) that invokes call_command
+      with a kwarg satisfying a required mutually exclusive group and asserts it succeeds
+      without raising CommandError.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing behaviour for individually-required arguments
+      (opt.required == True), so that the original parse_args construction logic for
+      non-group required options continues to work.
+    weight: 3
+  - id: I2
+    description: Does not weaken or skip any existing tests related to call_command,
+      required_option, or mutually exclusive groups.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that passing a kwarg for one member of a required mutually
+      exclusive group (e.g., shop_id=1) causes call_command to succeed, while passing
+      no member of the group still raises an appropriate error.
+    weight: 3
+  - id: R2
+    description: Confirms that passing kwargs for multiple members of the same mutually
+      exclusive group (e.g., shop_id=1 and shop_name='x') is handled consistently,
+      either passing through to argparse for conflict detection or forwarding only
+      one, without silently discarding the conflict.
+    weight: 2

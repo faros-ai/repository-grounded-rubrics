@@ -1,0 +1,59 @@
+metadata:
+  task_summary: Fix clone() in sklearn/base.py to handle estimator-type parameters
+    (classes rather than instances) without raising a TypeError.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the conditional guard in the clone() function inside sklearn/base.py
+      so that it also short-circuits when the input is an estimator type (a class),
+      preventing the erroneous call to get_params() on a class rather than an instance.
+    weight: 3
+  - id: FC2
+    description: Confines all changes to sklearn/base.py (and optionally its test
+      file) without introducing unrelated file modifications.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Adds isinstance(estimator, type) (or an equivalent check that distinguishes
+      a class object from an instance) to the branch in clone() that routes the input
+      to copy.deepcopy rather than calling get_params(), matching the fix proposed
+      in the PR description.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior of clone() for normal estimator instances
+      (objects that have get_params and are not of type type), so that cloning a standard
+      instance like StandardScaler() still goes through the get_params path.
+    weight: 3
+  - id: SA3
+    description: Adds a test or assertion that demonstrates cloning an estimator whose
+      parameter value is an estimator class (e.g., StandardScaler(with_mean=StandardScaler))
+      no longer raises a TypeError.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Avoids weakening any existing test assertions in the test suite (e.g.,
+      does not remove or relax assert_raises calls for TypeError or RuntimeError in
+      test_clone_buggy or similar tests).
+    weight: 2
+  - id: I2
+    description: Preserves the public signature of clone(estimator, safe=True) without
+      adding, removing, or reordering parameters.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when a parameter value is an estimator class (a type
+      that has get_params as an unbound method), clone() treats it as a non-estimator-instance
+      and falls back to copy.deepcopy, rather than trying to call get_params() on
+      the class object.
+    weight: 3
+  - id: R2
+    description: Ensures that when safe=True and the input is an estimator class (not
+      an instance), clone() does not raise a TypeError about 'it does not seem to
+      be a scikit-learn estimator', because the class-vs-instance distinction is handled
+      before the safe-mode error branch.
+    weight: 2
+  - id: R3
+    description: Maintains backward-compatible behavior where clone() still raises
+      a TypeError for objects that neither have get_params nor are a type, when safe=True,
+      preserving the existing error-surface contract.
+    weight: 2

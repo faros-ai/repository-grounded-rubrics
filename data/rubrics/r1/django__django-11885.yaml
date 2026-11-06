@@ -1,0 +1,103 @@
+metadata:
+  task_summary: Combine fast-delete querysets targeting the same database table into
+    a single OR-joined DELETE query to reduce database round-trips.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/db/models/deletion.py as the primary (and ideally
+      only) changed production file, keeping edits confined to the Collector class.
+    weight: 3
+  - id: FC2
+    description: Adds logic somewhere in django/db/models/deletion.py that groups
+      entries in self.fast_deletes by their target model (or db_table) so that multiple
+      querysets for the same table are processed together.
+    weight: 3
+  - id: FC3
+    description: Adds code in the fast-delete execution phase (the loop that calls
+      _raw_delete) that combines querysets targeting the same model using an OR-based
+      mechanism (e.g., QuerySet.__or__ or query.combine with sql.OR) rather than issuing
+      separate DELETE statements.
+    weight: 3
+  - id: FC4
+    description: Does not introduce unrelated file churn (e.g., changes to django/db/models/query.py,
+      sql/subqueries.py, or unrelated test files beyond the delete test suite).
+    weight: 2
+  - id: FC5
+    description: Adds or updates tests in tests/delete/tests.py (or tests/delete/)
+      that exercise the combined fast-delete behavior, such as verifying that two
+      fast-delete querysets on the same table result in fewer SQL queries than before.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Implements the described query-count reduction: when multiple fast-delete
+      querysets target the same database table, the patch causes them to be merged
+      into a single DELETE query using OR conditions rather than N separate DELETE
+      statements.'
+    weight: 3
+  - id: SA2
+    description: 'Handles the ManyToManyField self-referential case (analogous to
+      the person_friends example): two fast-delete querysets against the same junction
+      table are collapsed into one DELETE with OR.'
+    weight: 2
+  - id: SA3
+    description: 'Handles the multiple-ForeignKey case (analogous to the Entry model
+      with created_by and updated_by pointing to User): two fast-delete querysets
+      against the same table are collapsed into one DELETE with OR.'
+    weight: 2
+  - id: SA4
+    description: Preserves the deletion of the root object itself (e.g., DELETE FROM
+      person WHERE id = :id) as a separate query so that the fast-delete combination
+      does not accidentally merge related-row deletes with the root-object delete.
+    weight: 2
+  - id: SA5
+    description: Leaves fast-delete querysets that target distinct tables unaffected,
+      issuing one DELETE per distinct table rather than attempting to combine across
+      different models.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: 'Preserves the public API of the Collector class: the self.fast_deletes
+      attribute remains a list, and can_fast_delete remains callable with the same
+      signature.'
+    weight: 2
+  - id: I2
+    description: Does not weaken or remove existing test assertions (e.g., assertNumQueries
+      counts in test_fast_delete_fk, test_fast_delete_m2m, test_fast_delete_revm2m)
+      unless the PR description explicitly requires their adjustment.
+    weight: 2
+  - id: I3
+    description: 'Does not alter the behavior for non-fast-delete code paths: the
+      self.data dict-based deletion loop and the field_updates loop remain structurally
+      unchanged.'
+    weight: 2
+  - id: I4
+    description: Preserves the deleted_counter accumulation logic so that the return
+      value of Collector.delete() (total count and per-model-label dict) remains accurate
+      after combining querysets.
+    weight: 3
+  runtime_rubrics:
+  - id: R1
+    description: 'Ensures that combining fast-delete querysets via OR does not skip
+      deleting any rows: all rows that would have been deleted by N separate queries
+      are still deleted when those queries are merged into one.'
+    weight: 3
+  - id: R2
+    description: Ensures the combined query is issued only within the atomic transaction
+      block already established in Collector.delete(), preserving the transactional
+      integrity of the deletion sequence.
+    weight: 2
+  - id: R3
+    description: Ensures that when fast-delete querysets are merged, signal listeners
+      (pre_delete, post_delete) are still not fired for fast-deleted objects, consistent
+      with the existing fast-delete contract.
+    weight: 2
+  - id: R4
+    description: Ensures that the single-instance fast-delete optimization (the early-return
+      path in Collector.delete() for a single object with no dependencies) is not
+      broken by the new combining logic.
+    weight: 2
+  - id: R5
+    description: 'Avoids pathological behavior when self.fast_deletes contains many
+      querysets for many distinct models: the grouping logic must iterate over the
+      list a bounded number of times (linear, not quadratic).'
+    weight: 1

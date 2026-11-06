@@ -1,0 +1,61 @@
+metadata:
+  task_summary: 'Fix the `add` template filter in `django/template/defaultfilters.py`
+    so that concatenating a plain `str` with a lazy string (such as `gettext_lazy`)
+    no longer silently returns an empty string due to a `TypeError: can only concatenate
+    str (not "__proxy__") to str`.'
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies `def add(` in `django/template/defaultfilters.py` and only
+      that function to fix the lazy-string concatenation bug, without touching unrelated
+      functions or files.
+    weight: 3
+  - id: FC2
+    description: Adds or adjusts an import (such as `force_str` from `django.utils.encoding`)
+      in `django/template/defaultfilters.py` if the fix relies on a utility not already
+      imported, keeping imports minimal and consistent with existing style.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test in the `add` filter test file (e.g., `tests/template_tests/filter_tests/test_add.py`)
+      that exercises concatenation of a plain string with a lazy string produced by
+      something like `gettext_lazy` or `lazystr`.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Resolves the root cause identified in the PR description: the `add`
+      filter no longer produces an empty string when concatenating a `str` value with
+      a lazy-string argument (or vice versa).'
+    weight: 3
+  - id: SA2
+    description: 'Ensures the fix targets the string-concatenation fallback path inside
+      `def add(`, specifically the `return value + arg` branch that raises `TypeError:
+      can only concatenate str (not "__proxy__") to str`.'
+    weight: 2
+  - id: SA3
+    description: Preserves the existing integer-addition path (`int(value) + int(arg)`)
+      and the empty-string fallback for truly incompatible types, so that existing
+      test cases (`add01` through `add07`) are not broken.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing tests in `tests/template_tests/filter_tests/test_add.py`
+      are removed or weakened (e.g., no `@skip`, no assertion deletions, no expected-value
+      changes that hide old behavior).
+    weight: 3
+  - id: I2
+    description: Confirms that the `add` filter's public signature `def add(value,
+      arg)` and its `@register.filter(is_safe=False)` decorator remain unchanged.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when `value` is a plain `str` and `arg` is a lazy string
+      proxy (`__proxy__`), the filter produces the concatenated string result (e.g.,
+      `'hello' + lazy('world')` yields `'helloworld'`) instead of silently returning
+      `''`.
+    weight: 3
+  - id: R2
+    description: 'Ensures backward compatibility: non-string types that are genuinely
+      incompatible (e.g., `int(''not_an_int'') + int(16)` failing, then `''not_an_int''
+      + 16` also failing) still cause the filter to return `''''` rather than raising
+      an unhandled exception.'
+    weight: 2

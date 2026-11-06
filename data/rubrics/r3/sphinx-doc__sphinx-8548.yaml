@@ -1,0 +1,81 @@
+metadata:
+  task_summary: Fix autodoc inherited-members to correctly find docstrings for inherited
+    data/attribute members by also searching base-class namespaces in attr_docs.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies logic in sphinx/ext/autodoc/__init__.py within the filter_members
+      method so that the attr_docs lookup for (namespace, membername) also considers
+      base-class namespaces (e.g., iterating over MRO or parent class qualnames),
+      not solely the current class namespace.
+    weight: 3
+  - id: FC2
+    description: Modifies the inherited-attribute docstring lookup in sphinx/ext/autodoc/__init__.py
+      or sphinx/ext/autodoc/importer.py to use ModuleAnalyzer instances from base-class
+      modules (not just the current class module) when resolving attr_docs for inherited
+      data members.
+    weight: 3
+  - id: FC3
+    description: Adds or updates a fixture file (e.g., under tests/roots/test-ext-autodoc/target/)
+      to define a base class with a documented data/attribute member and a derived
+      class that inherits it, enabling test coverage of the reported scenario.
+    weight: 1
+  - id: FC4
+    description: Confines all production-code changes to autodoc-related files (sphinx/ext/autodoc/__init__.py
+      and/or sphinx/ext/autodoc/importer.py) without touching unrelated extension
+      modules or core sphinx files.
+    weight: 2
+  - id: FC5
+    description: Adds a test function (anywhere in the tests directory) that exercises
+      the inherited-members option on a class with a documented data/attribute member
+      defined in a base class.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the stated root cause from the PR description: the search
+      for a cached attribute docstring via (namespace, attrname) as key is extended
+      to check base-class namespaces, so inherited data members are found.'
+    weight: 3
+  - id: SA2
+    description: 'Ensures that when :inherited-members: is active, a data/attribute
+      member defined in a base class and documented via a comment (attr_docs) in that
+      base class is kept (keep = True) in filter_members rather than silently dropped
+      as undocumented.'
+    weight: 3
+  - id: SA3
+    description: 'Preserves the existing behavior for non-inherited members: the (namespace,
+      membername) check against attr_docs for attributes defined directly on the documenting
+      class is unchanged.'
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing tests for inherited-members behavior (e.g.,
+      test_autodoc_inherited_members, test_autodoc_inherited_members_Base) are weakened,
+      skipped, or removed in the patch.
+    weight: 2
+  - id: I2
+    description: Confirms that the public API of filter_members (signature, return
+      type List[Tuple[str, Any, bool]]) is preserved unchanged in the patch.
+    weight: 2
+  - id: I3
+    description: Avoids introducing new required dependencies or imports beyond what
+      is already used in sphinx/ext/autodoc/__init__.py and sphinx/ext/autodoc/importer.py
+      (e.g., no new third-party packages).
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: 'Ensures that a data member documented with an inline comment (e.g.,
+      #: docstring) in a base class is included in the output when :inherited-members:
+      is set on a derived class, by virtue of a non-empty attr_docs match against
+      a base-class namespace.'
+    weight: 3
+  - id: R2
+    description: 'Maintains backward compatibility: when :inherited-members: is not
+      set, the behavior of filter_members for both directly-defined and inherited
+      attributes remains identical to the pre-patch behavior.'
+    weight: 2
+  - id: R3
+    description: 'Prevents false positives: an attribute that is not documented in
+      any base class (absent from all ancestor attr_docs entries) is not incorrectly
+      marked as documented (isattr = True) due to the new base-class lookup.'
+    weight: 2

@@ -1,0 +1,59 @@
+metadata:
+  task_summary: Fix inconsistent handling of double single-quotes ('') in FITS Card
+    values that span CONTINUE card boundaries, where premature per-card unescaping
+    causes double-unescaping and loss of a single-quote character.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies astropy/io/fits/card.py and no other unrelated production
+      files, keeping the fix local to the FITS card parsing logic.
+    weight: 2
+  - id: FC2
+    description: Changes the per-card value unescaping logic inside the multi-card
+      branch of _split (the block that calls value.rstrip().replace("''", "'") on
+      each CONTINUE sub-card's strg group before joining values).
+    weight: 3
+  - id: FC3
+    description: Does not alter the top-level single-card parsing path in _parse_value
+      (the re.sub("''", "'", m.group("strg")) call) since the bug is in the CONTINUE-card
+      accumulation path, not in that final unescaping step.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that a Card created with a value containing double single-quotes
+      (e.g., 'x'*65 + "''") produces the same value when round-tripped through Card.fromstring(str(card)),
+      matching the expected behavior described in the PR.
+    weight: 3
+  - id: SA2
+    description: 'Addresses the root cause of double-unescaping: the patch removes
+      or defers the per-subcard replace("''''", "''") in _split so that joined CONTINUE
+      card values are not unescaped twice (once in _split and once in _parse_value).'
+    weight: 3
+  - id: SA3
+    description: Handles the case where a double single-quote pair ('') in an escaped
+      value string is split across two CONTINUE card boundaries by _words_group or
+      by the card length limit of 80 characters.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing behavior of normal (non-CONTINUE) FITS Card
+      string parsing; the fix does not modify the single-card _parse_value path that
+      calls re.sub("''", "'", m.group("strg")).
+    weight: 2
+  - id: I2
+    description: Does not weaken, skip, or remove existing tests in astropy/io/fits/tests/test_header.py
+      related to long string values, CONTINUE cards, or single-quote handling.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: After the fix, the joined valuecomment string assembled in _split
+      from multiple CONTINUE sub-cards still contains properly escaped double single-quote
+      sequences (pairs of '' representing a literal ') so that the subsequent re.sub
+      in _parse_value correctly yields one single-quote per pair.
+    weight: 3
+  - id: R2
+    description: Adds test coverage exercising round-trip correctness (Card.fromstring(str(card)).value
+      == card.value) for string values containing double single-quotes ('') at positions
+      that cause the value to span CONTINUE card boundaries (e.g., value lengths around
+      65-69 characters as shown in the PR).
+    weight: 1

@@ -1,0 +1,56 @@
+metadata:
+  task_summary: Add self.get_swappable_settings_name.cache_clear() to Apps.clear_cache()
+    so that the functools.cache on get_swappable_settings_name is properly invalidated
+    alongside other internal caches.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/apps/registry.py and only django/apps/registry.py
+      in the production source (i.e., no unrelated production files are changed).
+    weight: 3
+  - id: FC2
+    description: Adds a call to self.get_swappable_settings_name.cache_clear() inside
+      the def clear_cache( method body in django/apps/registry.py.
+    weight: 3
+  - id: FC3
+    description: Confines the change to a single new line (or minimal set of lines)
+      within def clear_cache( without restructuring or renaming surrounding code.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the stated problem that Apps.clear_cache() failed to clear
+      the get_swappable_settings_name cache by ensuring cache_clear() is called on
+      that method.
+    weight: 3
+  - id: SA2
+    description: Ensures the cache_clear() call targets self.get_swappable_settings_name
+      specifically, matching the @functools.cache-decorated method identified in the
+      PR description.
+    weight: 3
+  - id: SA3
+    description: Preserves the existing self.get_models.cache_clear() call and the
+      model _expire_cache() loop inside clear_cache, keeping prior clearing behavior
+      intact.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public signature of def clear_cache( remains unchanged
+      (no new parameters, no return value change).
+    weight: 2
+  - id: I2
+    description: Confirms that the public signature of def get_swappable_settings_name(
+      remains unchanged (still decorated with @functools.cache and accepts the same
+      to_string parameter).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that after calling apps.clear_cache(), a subsequent call
+      to apps.get_swappable_settings_name() will recompute its result rather than
+      returning a stale cached value, because cache_clear() is now invoked unconditionally
+      inside clear_cache.
+    weight: 3
+  - id: R2
+    description: 'Ensures that the get_swappable_settings_name cache is cleared regardless
+      of the value of self.ready, because the cache_clear() call is not gated behind
+      the if self.ready: block.'
+    weight: 2

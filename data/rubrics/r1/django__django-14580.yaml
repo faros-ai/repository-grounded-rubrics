@@ -1,0 +1,55 @@
+metadata:
+  task_summary: Fix missing 'from django.db import models' import in generated migrations
+    when models.Model appears as a base class, causing NameError at migration load
+    time.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the TypeSerializer.serialize() method in django/db/migrations/serializer.py
+      to include the models import when serializing models.Model.
+    weight: 3
+  - id: FC2
+    description: Confines changes to the serializer or writer code responsible for
+      the missing import, without unrelated modifications to other modules.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test exercising the scenario where models.Model
+      appears as a base class and verifies that the generated migration string contains
+      a valid import for models.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Replaces the empty imports list [] in the models.Model special-case
+      entry within TypeSerializer.serialize() with a non-empty set containing the
+      models import string.
+    weight: 3
+  - id: SA2
+    description: Ensures the serialized output for models.Model includes 'from django.db
+      import models' (or an equivalent that causes models to be importable) so that
+      the generated migration file is valid Python.
+    weight: 3
+  - id: SA3
+    description: Preserves the existing string representation 'models.Model' returned
+      by TypeSerializer.serialize() for the models.Model special case.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Avoids weakening existing tests in tests/migrations/test_writer.py
+      by removing assertions or skipping test cases.
+    weight: 2
+  - id: I2
+    description: Preserves the public API of TypeSerializer, MigrationWriter, and
+      serializer_factory without renaming or removing them.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when a model uses models.Model as a base (directly in
+      the bases tuple), the MigrationWriter.as_string() output includes either 'from
+      django.db import models' or 'from django.db import migrations, models', so the
+      migration module can be imported without NameError.
+    weight: 3
+  - id: R2
+    description: Maintains backward compatibility so migrations that previously serialized
+      non-models.Model types (e.g., custom mixin classes or builtins) continue to
+      produce the same import statements as before the fix.
+    weight: 2

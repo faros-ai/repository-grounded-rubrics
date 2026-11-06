@@ -1,0 +1,58 @@
+metadata:
+  task_summary: Fix MigrationExecutor.unapply_migration to also mark the squashed
+    migration itself as unapplied when unapplying it with replaced migration files
+    still present.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/db/migrations/executor.py and no other production
+      files, keeping the change minimal and local to the unapply logic.
+    weight: 2
+  - id: FC2
+    description: Adds a call to self.recorder.record_unapplied(migration.app_label,
+      migration.name) inside the migration.replaces branch of the unapply_migration
+      method, in addition to the existing loop that records each replaced migration
+      as unapplied.
+    weight: 3
+  - id: FC3
+    description: Leaves the else branch of unapply_migration (the non-squashed path)
+      unchanged, so that non-replacement migrations continue to call self.recorder.record_unapplied(migration.app_label,
+      migration.name) exactly once.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the described scenario where unapplying a squashed migration
+      while the replaced files are still present failed to mark the squash migration
+      as unapplied in the django_migrations table.
+    weight: 3
+  - id: SA2
+    description: Ensures the squash migration key itself (app_label, migration.name)
+      is explicitly recorded as unapplied during unapply, since check_replacements
+      only handles the apply direction and cannot remove the squash record when rolling
+      back.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing test assertions about migration recording
+      behaviour are removed or weakened in the patch.
+    weight: 2
+  - id: I2
+    description: Confirms that check_replacements and record_migration remain unmodified,
+      preserving the forward-apply and squash-marking logic.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that after unapplying a squashed migration (one with migration.replaces
+      set), the squash migration key (app_label, name) is absent from recorder.applied_migrations(),
+      not only the individual replaced migration keys.
+    weight: 3
+  - id: R2
+    description: Ensures that after unapplying a squashed migration, each key in migration.replaces
+      is still individually recorded as unapplied via self.recorder.record_unapplied,
+      preserving the existing behaviour for the replaced migrations.
+    weight: 2
+  - id: R3
+    description: Confirms that unapplying a non-squashed migration (migration.replaces
+      is falsy) is unaffected by the fix and records only self.recorder.record_unapplied(migration.app_label,
+      migration.name).
+    weight: 2

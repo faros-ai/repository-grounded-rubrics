@@ -1,0 +1,62 @@
+metadata:
+  task_summary: Fix RenameIndex.database_backwards() crash when an unnamed index (old_fields)
+    is moved backward then forward again, by restoring the auto-generated name instead
+    of being a no-op.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: 'Removes or replaces the early-return no-op guard ''if self.old_fields:
+      return'' inside RenameIndex.database_backwards() in django/db/migrations/operations/models.py
+      so that backward migration for unnamed indexes performs an actual rename.'
+    weight: 3
+  - id: FC2
+    description: Adds logic inside RenameIndex.database_backwards() (when old_fields
+      is set) that looks up the auto-generated index name on the to_state model using
+      schema_editor._constraint_names or an equivalent mechanism, constructs the old
+      index object, and calls schema_editor.rename_index() to rename new_name back
+      to the auto-generated name.
+    weight: 3
+  - id: FC3
+    description: Limits changes to django/db/migrations/operations/models.py and the
+      migrations test file (tests/migrations/test_operations.py) without modifying
+      unrelated files.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Implements the re-apply scenario described in the PR description:
+      after database_backwards() the forward migration can be applied again without
+      raising a ProgrammingError about the index already existing.'
+    weight: 3
+  - id: SA2
+    description: Updates the test_rename_index_unnamed_index test to add a 're-apply
+      renaming' step (database_forwards after database_backwards) that asserts new_pony_test_idx
+      exists, matching the diff shown in the PR description.
+    weight: 2
+  - id: SA3
+    description: Removes or updates the assertNumQueries(0) assertion on the backward
+      step for unnamed indexes in test_rename_index_unnamed_index, since the backward
+      operation is no longer a no-op and issues real database queries.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the public interface of RenameIndex (constructor signature,
+      deconstruct(), describe(), migration_name_fragment, reduce()) without adding,
+      removing, or renaming any public parameters or methods.
+    weight: 2
+  - id: I2
+    description: Confirms that the named-index backward path (old_name set, old_fields
+      not set) in RenameIndex.database_backwards() is unchanged — it still swaps new_name/old_name,
+      delegates to database_forwards, and swaps back.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that after database_backwards() for an unnamed index, the
+      database index name is restored to the auto-generated name (not new_pony_test_idx),
+      so that a subsequent database_forwards() call finds the auto-generated name
+      and can rename it again without conflict.
+    weight: 3
+  - id: R2
+    description: Ensures that database_backwards() for a named index (old_name set)
+      still performs a real rename in the database (not a no-op), preserving existing
+      behavior for the named-index backward path.
+    weight: 2

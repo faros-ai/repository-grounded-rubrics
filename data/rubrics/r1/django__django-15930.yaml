@@ -1,0 +1,57 @@
+metadata:
+  task_summary: Fix Case()/When() crashing with a ProgrammingError when ~Q(pk__in=[])
+    is used as a When() condition, which resolves to an empty SQL condition string
+    and generates invalid SQL like 'CASE WHEN THEN True'.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies When.as_sql() or Case.as_sql() (in django/db/models/expressions.py)
+      to handle the case where compiler.compile(self.condition) returns an empty string,
+      rather than leaving the behavior unchanged.
+    weight: 3
+  - id: FC2
+    description: Confines changes to the expressions-related code (e.g., django/db/models/expressions.py
+      or django/db/models/sql/where.py) without introducing unrelated file modifications.
+    weight: 2
+  - id: FC3
+    description: Adds a test or test case exercising Case(When(~Q(pk__in=[]), then=Value(True)),
+      default=Value(False)) to confirm the fix prevents invalid SQL generation.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that when the When condition compiles to an empty SQL string
+      (i.e., matches all rows, as produced by ~Q(pk__in=[])), the generated SQL does
+      not contain the bare 'WHEN THEN' pattern that causes a ProgrammingError.
+    weight: 3
+  - id: SA2
+    description: Ensures that when the When condition matches all rows (empty condition
+      SQL), the CASE expression behaves correctly by treating all rows as matching
+      that When branch (i.e., the default is not unconditionally returned instead).
+    weight: 2
+  - id: SA3
+    description: Preserves the existing behavior of Case.as_sql() that skips When
+      branches whose condition raises EmptyResultSet (i.e., Q(pk__in=[]) without negation
+      still causes the branch to be skipped).
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the existing ValueError raised for an empty Q() condition
+      ('An empty Q() can not be used as a When() condition.') in When.__init__() is
+      not removed or weakened.
+    weight: 2
+  - id: I2
+    description: Confirms that no existing tests in tests/expressions_case/tests.py
+      are removed, commented out, or made less strict as part of the fix.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: When Case(When(~Q(pk__in=[]), then=Value(True)), default=Value(False))
+      is compiled to SQL, the generated SQL is valid and does not contain the empty-condition
+      fragment 'CASE WHEN THEN'.
+    weight: 3
+  - id: R2
+    description: When the When condition resolves to an all-matching (empty SQL) WhereNode
+      at compile time, the resulting CASE expression either short-circuits to the
+      When branch result directly or emits valid SQL equivalent to 'CASE WHEN 1=1
+      THEN ...' or similar always-true form.
+    weight: 2

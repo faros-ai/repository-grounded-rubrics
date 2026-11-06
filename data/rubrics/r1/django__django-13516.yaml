@@ -1,0 +1,50 @@
+metadata:
+  task_summary: Fix flush() on OutputWrapper (self.stdout/self.stderr in management
+    commands) so it delegates to the underlying stream instead of using the no-op
+    TextIOBase.flush().
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Implements an explicit flush() method in the OutputWrapper class
+      inside django/core/management/base.py that delegates to self._out.flush().
+    weight: 3
+  - id: FC2
+    description: Confines the change to django/core/management/base.py (or equivalent
+      OutputWrapper location) without modifying unrelated files.
+    weight: 2
+  - id: FC3
+    description: Adds a test (anywhere in the test suite) that exercises flush() on
+      an OutputWrapper instance and verifies it propagates to the underlying stream.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause stated in the PR description: the OutputWrapper
+      inheriting from TextIOBase has a no-op flush() that shadows delegation via __getattr__,
+      so a flush() method must be explicitly defined to forward the call.'
+    weight: 3
+  - id: SA2
+    description: Ensures the fix applies to both self.stdout and self.stderr management
+      command streams, since both are OutputWrapper instances wrapping the real underlying
+      stream.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing OutputWrapper.__getattr__ delegation mechanism
+      and does not remove or replace it.
+    weight: 2
+  - id: I2
+    description: Preserves the existing OutputWrapper.write() signature and behavior,
+      confirming the patch adds only the flush() method without altering write().
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that calling flush() on an OutputWrapper delegates to the
+      wrapped stream's flush(), so incremental output (such as migration progress
+      lines printed via self.stdout.flush()) is flushed immediately rather than buffered
+      until the process ends.
+    weight: 3
+  - id: R2
+    description: Confirms that the flush() delegation does not break when the underlying
+      _out stream does not have a flush() method, either by guarding the call or by
+      relying on the standard guarantee that file-like objects support flush().
+    weight: 1

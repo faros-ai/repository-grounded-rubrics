@@ -1,0 +1,50 @@
+metadata:
+  task_summary: Fix URLValidator to reject URLs containing LF, CR, or tab characters
+    independently of Python's urlsplit bpo-43882 fix that silently strips those characters.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/core/validators.py and only that production file
+      (no unrelated file churn) to address the URLValidator regression.
+    weight: 3
+  - id: FC2
+    description: Adds a guard inside URLValidator.__call__ (before or instead of delegating
+      to urlsplit) that detects the presence of LF, CR, or tab characters in the URL
+      value.
+    weight: 3
+  - id: FC3
+    description: Adds or adjusts test data in tests/validators/tests.py covering URLs
+      with embedded LF, CR, or tab characters that must raise ValidationError.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements the 'reject URLs containing forbidden characters early'
+      strategy described in the PR description, so that ValidationError is raised
+      for values like 'http://www.djangoproject.com/\n' regardless of Python version.
+    weight: 3
+  - id: SA2
+    description: 'Addresses both failing test cases cited in the PR description: ''http://www.djangoproject.com/\n''
+      and ''http://[::ffff:192.9.5.5]\n''.'
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that valid URLs (those without LF, CR, or tab characters)
+      are still accepted by URLValidator and no previously-passing valid-URL test
+      cases are broken.
+    weight: 3
+  - id: I2
+    description: Preserves the existing public signature of URLValidator.__call__
+      (single value argument) and the ValidationError exception type raised on invalid
+      input.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that URLValidator raises ValidationError for URLs containing
+      a newline character (LF, '\n') even when running on Python versions that apply
+      the bpo-43882 urlsplit fix (which would otherwise strip the newline silently).
+    weight: 3
+  - id: R2
+    description: Ensures that the forbidden-character check happens before urlsplit
+      is called on the value, so the fix is not defeated by Python's bpo-43882 stripping
+      behavior inside urlsplit.
+    weight: 2

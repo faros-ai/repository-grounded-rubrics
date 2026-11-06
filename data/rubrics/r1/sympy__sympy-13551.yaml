@@ -1,0 +1,57 @@
+metadata:
+  task_summary: Fix incorrect symbolic evaluation of Product(n + 1/2**k, [k, 0, n-1])
+    caused by the is_Add branch in _eval_product treating Product(a+b) as Product(a)+Product(b).
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the is_Add branch inside _eval_product in sympy/concrete/products.py
+      to remove or guard the incorrect sum-of-products computation.
+    weight: 3
+  - id: FC2
+    description: Confines edits to sympy/concrete/products.py (and optionally its
+      test file) without introducing unrelated file churn across the repository.
+    weight: 2
+  - id: FC3
+    description: Removes or replaces the line computing p as sum([self._eval_product(i,
+      (k, a, n)) for i in p.as_coeff_Add()]) which is the root cause of the wrong
+      result.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that Product(n + 1/2**k, (k, 0, n-1)).doit() with n=2 no
+      longer returns 9/2 (the incorrect value) by preventing the is_Add branch from
+      returning a sum of sub-products for a symbolic-limit product.
+    weight: 3
+  - id: SA2
+    description: Preserves the unevaluated Product form (returning None or the unevaluated
+      Product object) when the is_Add numerator cannot be correctly evaluated as a
+      product, so callers get an unevaluated result rather than a wrong answer.
+    weight: 2
+  - id: SA3
+    description: Adds a test case (in the test file for products) exercising Product(n
+      + 1/2**k, (k, 0, n-1)) with a concrete numeric substitution such as n=2 to confirm
+      the correct value 15/2.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing tests for cases that do correctly evaluate
+      Add-term products (e.g., product(1 + 1/k, (k, 1, n)) == rf(2, n)/factorial(n)
+      and product(1 + a/k**2, (k, 1, n))) remain passing by not removing or weakening
+      the is_Add branch logic that handles evaluable cases.
+    weight: 3
+  - id: I2
+    description: Confirms that the public API signature and return type of Product.doit()
+      and product() are unchanged (still return an Expr).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when n - a is not a concrete integer and the product
+      of an Add expression cannot be evaluated symbolically, _eval_product returns
+      None so that the doit() method falls back to returning an unevaluated Product
+      rather than a mathematically incorrect closed form.
+    weight: 3
+  - id: R2
+    description: Ensures that Add-term products whose numerator is a polynomial in
+      k (such as product(1 + 1/k, (k, 1, n))) continue to be evaluated through the
+      is_polynomial branch rather than incorrectly returning None.
+    weight: 2

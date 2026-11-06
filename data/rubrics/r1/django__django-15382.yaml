@@ -1,0 +1,66 @@
+metadata:
+  task_summary: Fix filter on ~Exists(empty queryset) incorrectly removing the entire
+    WHERE block when combined with other filters.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `as_sql` method inside `class Exists` in `django/db/models/expressions.py`
+      to intercept `EmptyResultSet` raised by the empty subquery.
+    weight: 3
+  - id: FC2
+    description: Confines the production-code fix to `django/db/models/expressions.py`
+      (the `Exists` class) without unrelated churn in unrelated modules such as `sql/where.py`
+      or `sql/compiler.py`.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test exercising `filter(~Exists(queryset.none()),
+      ...)` combined with at least one other filter condition, verifying the remaining
+      WHERE clause is not removed.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Handles the negated case: when `self.negated` is `True` and the
+      subquery raises `EmptyResultSet`, the `Exists.as_sql` returns `('''', [])` (always-True
+      condition, so the filter is a no-op and other WHERE conditions are preserved).'
+    weight: 3
+  - id: SA2
+    description: 'Handles the non-negated case: when `self.negated` is `False` and
+      the subquery raises `EmptyResultSet`, the `Exists.as_sql` re-raises or propagates
+      `EmptyResultSet` so that `filter(Exists(Model.objects.none()))` correctly yields
+      an empty queryset.'
+    weight: 2
+  - id: SA3
+    description: 'Preserves the behavior of `Exists` when the subquery is non-empty:
+      `as_sql` still produces `EXISTS(...)` SQL (or `NOT EXISTS(...)` when negated)
+      as before.'
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Avoids weakening or removing any existing tests for `Exists`, `WhereNode`,
+      or `NothingNode` SQL generation in the test suite.
+    weight: 2
+  - id: I2
+    description: Preserves the public API of `Exists.__init__`, `Exists.__invert__`,
+      and `Exists.select_format` (signatures and behavior remain unchanged by the
+      patch).
+    weight: 2
+  - id: I3
+    description: Imports `EmptyResultSet` (from `django.core.exceptions`) in any file
+      where it is newly caught, without introducing extraneous new imports elsewhere.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that `MyModel.objects.filter(~Exists(MyModel.objects.none()),
+      name='test')` generates SQL with a WHERE clause containing the `name='test'`
+      condition instead of producing `EmptyResultSet` or an empty WHERE block.
+    weight: 3
+  - id: R2
+    description: Ensures that `MyModel.objects.filter(Exists(MyModel.objects.none()))`
+      still returns an empty queryset (EXISTS on an empty subquery is always False),
+      preserving the original empty-result behavior for the non-negated form.
+    weight: 2
+  - id: R3
+    description: Preserves backward-compatible behavior for `Exists` used in annotations
+      (SELECT clause) with an empty queryset, as exercised by the existing `test_exists_none_with_aggregate`
+      test.
+    weight: 1

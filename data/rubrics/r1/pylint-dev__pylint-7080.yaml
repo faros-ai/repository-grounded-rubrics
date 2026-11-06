@@ -1,0 +1,62 @@
+metadata:
+  task_summary: Fix --recursive=y ignoring ignore-paths by ensuring directory paths
+    from os.walk are correctly matched against ignore_paths regex patterns in _discover_files.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `_discover_files` method in `pylint/lint/pylinter.py`
+      to correctly apply `ignore-paths` filtering when recursively discovering files.
+    weight: 3
+  - id: FC2
+    description: Avoids unrelated file modifications — changes are confined to the
+      file(s) responsible for recursive file discovery or path-matching logic (e.g.,
+      `pylint/lint/pylinter.py` and/or `pylint/lint/expand_modules.py`).
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test that exercises `--recursive=y` combined with
+      `--ignore-paths` to verify paths matching the pattern are excluded from linting.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that when `--recursive=y` is used, directory paths discovered
+      via `os.walk` in `_discover_files` are tested against `ignore_paths` patterns
+      in a way that correctly skips matching directories (e.g., a directory like `src/gen`
+      is excluded when the pattern `^src/gen/.*$` or similar is configured).
+    weight: 3
+  - id: SA2
+    description: Ensures the fix handles the path normalization issue so that paths
+      passed to `_is_in_ignore_list_re` (or equivalent matching logic) are in a format
+      compatible with the compiled `ignore-paths` regex patterns, accounting for OS
+      path separators or partial directory paths.
+    weight: 2
+  - id: SA3
+    description: Preserves the existing behavior of `ignore`, `ignore-patterns`, and
+      `ignore-paths` for the non-recursive `expand_modules` code path (i.e., changes
+      do not break the existing `_is_ignored_file` logic used outside `_discover_files`).
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing tests for `expand_modules`, `_is_in_ignore_list_re`,
+      or `_is_ignored_file` are not deleted or weakened (e.g., no removal of assertions
+      or parametrize cases).
+    weight: 2
+  - id: I2
+    description: Confirms the public signature of `expand_modules` in `pylint/lint/expand_modules.py`
+      is preserved (same parameters and return type).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that directories whose paths match a configured `ignore-paths`
+      pattern are added to `skip_subtrees` in `_discover_files`, so that `os.walk`
+      subtrees rooted at those directories are skipped entirely during recursive discovery.
+    weight: 3
+  - id: R2
+    description: Ensures that non-ignored directories and files are still yielded
+      by `_discover_files` when `--recursive=y` is active, so legitimate modules outside
+      the `ignore-paths` pattern continue to be linted.
+    weight: 2
+  - id: R3
+    description: Ensures that path comparison in recursive discovery works across
+      both POSIX and Windows path separators, consistent with how `_regexp_paths_csv_transfomer`
+      in `pylint/config/argument.py` compiles patterns to match both formats.
+    weight: 2

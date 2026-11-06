@@ -1,0 +1,63 @@
+metadata:
+  task_summary: 'Fix false ambiguous cross-reference warnings for :type: and :rtype:
+    info fields by making implicit xrefs created by field types use the same module/class
+    context as explicit :py:class: roles.'
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sphinx/domains/python.py as the primary (or only) changed
+      file, with no unrelated files edited.
+    weight: 3
+  - id: FC2
+    description: Adds a process_field_xref method to PythonDomain (or an equivalent
+      mechanism in sphinx/domains/python.py) that attaches py:module and py:class
+      context from env.ref_context to the pending_xref node.
+    weight: 3
+  - id: FC3
+    description: Ensures the fix is localized to the Python domain's xref processing
+      (e.g., in PythonDomain or PyXrefMixin) without touching unrelated domain files
+      such as sphinx/domains/cpp.py or sphinx/domains/c.py.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause described in the PR: implicit xrefs from
+      :type: and :rtype: fields did not carry py:module or py:class context, causing
+      them to search all (sub)modules instead of the current module first.'
+    weight: 3
+  - id: SA2
+    description: 'Ensures that the fix makes field-created pending_xref nodes carry
+      the same py:module and py:class attributes as those created by explicit :py:class:
+      roles via PyXRefRole.process_link.'
+    weight: 2
+  - id: SA3
+    description: Preserves the refspecific=True attribute already set by PyXrefMixin.make_xref
+      so that the existing searchmode=1 prioritized lookup (module-qualified name
+      first, fuzzy suffix last) is retained.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms the public API of type_to_xref, PyXrefMixin, PyField, PyGroupedField,
+      and PyTypedField is preserved (no signature changes or removals of these symbols).
+    weight: 2
+  - id: I2
+    description: Confirms that existing resolve_xref and find_obj logic is not altered;
+      the fix acts at xref-node creation/annotation time, not inside the resolution
+      phase.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: 'Ensures that an unqualified type name such as ''A'' used in :param
+      A a: or :rtype: A inside a py:currentmodule:: mod.submod context resolves to
+      mod.submod.A without emitting a ''more than one target found'' warning, mirroring
+      the behavior of explicit :py:class:`A`.'
+    weight: 3
+  - id: R2
+    description: 'Ensures that fully-qualified type names like mod.A or mod.submod.A
+      in :type: and :rtype: fields still resolve correctly after the fix (no regression
+      for qualified references).'
+    weight: 2
+  - id: R3
+    description: Ensures that the ambiguity warning 'more than one target found for
+      cross-reference' is no longer emitted for the cases described in the PR (unqualified
+      A inside mod or mod.submod currentmodule contexts).
+    weight: 2

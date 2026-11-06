@@ -1,0 +1,63 @@
+metadata:
+  task_summary: 'Fix false positive unused-import for a module referenced only via
+    a dotted attribute in a type comment (e.g., `# type: abc.ABC`).'
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies `_store_type_annotation_node` in `pylint/checkers/variables.py`
+      to handle `astroid.Attribute` nodes (i.e., dotted names like `abc.ABC`) by storing
+      the root name (e.g., `abc`) into `_type_annotation_names` instead of silently
+      returning.
+    weight: 3
+  - id: FC2
+    description: Adds or modifies logic in `pylint/checkers/variables.py` (e.g., in
+      `_store_type_annotation_names`, `leave_assign`, or an equivalent call site)
+      to also process the `type_comment` attribute of `Assign` nodes, not only `type_annotation`.
+    weight: 3
+  - id: FC3
+    description: 'Adds a functional test file (e.g., under `tests/functional/`) that
+      exercises `unused-import` suppression for imports used only in inline type comments
+      with dotted attribute access such as `# type: abc.ABC`.'
+    weight: 1
+  - id: FC4
+    description: Confines all non-test changes to `pylint/checkers/variables.py` without
+      touching unrelated checker files, linter core files, or configuration files.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Ensures that a module imported via `import abc` and referenced only
+      as `abc.ABC` in an inline type comment (`# type: abc.ABC`) is no longer flagged
+      with `unused-import`.'
+    weight: 3
+  - id: SA2
+    description: 'Ensures that a name imported via `from abc import ABC` and referenced
+      only in a plain inline type comment (`# type: ABC`) continues to be suppressed
+      from `unused-import` (preserving the prior fix from issue #3112).'
+    weight: 2
+  - id: SA3
+    description: Preserves the existing behaviour in `_store_type_annotation_node`
+      for `astroid.Name` (simple names) and `astroid.Subscript` (generic/subscript
+      types) so those code paths are not broken.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the fix does not weaken or skip any existing test assertions
+      in `tests/functional/u/unused/unused_typing_imports.py` or related test files.
+    weight: 2
+  - id: I2
+    description: Confirms that the public signature of `_store_type_annotation_node`
+      and `_store_type_annotation_names` in `VariablesChecker` is not changed in a
+      way that breaks callers outside the diff.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Avoids emitting `unused-import` for a module name (e.g., `abc`) that
+      appears as the root of a dotted attribute reference (e.g., `abc.ABC`) in an
+      inline `# type:` comment, by adding `abc` to `_type_annotation_names` when an
+      `astroid.Attribute` node is encountered.
+    weight: 3
+  - id: R2
+    description: Preserves `unused-import` detection for modules that are genuinely
+      unused (i.e., not referenced in any annotation, type comment, or runtime code),
+      ensuring the fix does not suppress the warning too broadly.
+    weight: 2

@@ -1,0 +1,58 @@
+metadata:
+  task_summary: Add an 'edit_only' parameter to model formsets that disallows new
+    object creation even when extra POST data is submitted.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Adds an 'edit_only' class attribute or constructor parameter to 'BaseModelFormSet'
+      in django/forms/models.py that controls whether new object creation is permitted.
+    weight: 3
+  - id: FC2
+    description: Adds 'edit_only' as a keyword parameter to both 'modelformset_factory'
+      and 'inlineformset_factory' in django/forms/models.py, with a default that preserves
+      existing behavior (e.g., False).
+    weight: 3
+  - id: FC3
+    description: Modifies 'save_new_objects' in 'BaseModelFormSet' (or adds a corresponding
+      guard elsewhere in django/forms/models.py) so that new objects are not saved
+      when 'edit_only' is truthy.
+    weight: 3
+  - id: FC4
+    description: Confines production code changes to django/forms/models.py without
+      introducing unrelated churn in django/contrib/admin, django/forms/formsets.py,
+      or other modules.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Provides a server-side enforcement mechanism (validation error or
+      silent skip in save) that blocks new object creation even when extra POST data
+      is submitted manually or via JavaScript, addressing the described unreliability
+      of 'extra=0'.
+    weight: 3
+  - id: SA2
+    description: Keeps 'edit_only' as an independent parameter from 'extra'; setting
+      'edit_only=True' does not change how many extra blank forms are displayed, only
+      whether submitted extra form data creates new objects.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the default value of 'edit_only' is False (or equivalent
+      falsy) in 'modelformset_factory' and 'inlineformset_factory', so all existing
+      callers that omit 'edit_only' retain unchanged behavior.
+    weight: 3
+  - id: I2
+    description: Confirms that no existing test cases in the diff are weakened, disabled,
+      or removed; any added tests cover new 'edit_only' behavior rather than replacing
+      prior coverage.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when 'edit_only=True' and extra forms with non-empty
+      changed data are submitted, no new model instances are saved (either via a 'ValidationError'
+      raised during full_clean or via a no-op in 'save_new_objects').
+    weight: 3
+  - id: R2
+    description: Ensures that when 'edit_only=True', editing existing objects (initial
+      forms) still works correctly and 'save_existing_objects' continues to persist
+      their changes.
+    weight: 2

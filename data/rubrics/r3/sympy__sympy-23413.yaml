@@ -1,0 +1,65 @@
+metadata:
+  task_summary: Fix a bug in `_hermite_normal_form` in `sympy/polys/matrices/normalforms.py`
+    where rows are incorrectly dropped from the result when a row's pivot entry is
+    zero in the current pivot column but a pivot exists in a column already processed
+    to the right.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies `_hermite_normal_form` in `sympy/polys/matrices/normalforms.py`
+      to fix the incorrect row-dropping behavior, with no unrelated files changed.
+    weight: 3
+  - id: FC2
+    description: Confines the fix to the logic around the `b == 0` / `k += 1` block
+      (lines 237-238) or the final result-selection `return DomainMatrix.from_rep(A)[:,
+      k:]` in `_hermite_normal_form`, rather than introducing widespread restructuring.
+    weight: 2
+  - id: FC3
+    description: Adds at least one test case in the HNF test suite exercising a matrix
+      where a row's leftmost pivot-column entries are zero but the matrix is not rank-deficient
+      (e.g., a matrix equivalent to the PR example `[[0, 0, 1], [5, 8, 12]]` or `[[5,
+      8, 12], [0, 0, 1]]`).
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that `hermite_normal_form` applied to the transposed flip
+      of `Matrix([[5, 8, 12], [0, 0, 1]])` no longer falsely removes a row, producing
+      a result with the same number of rows as the input instead of one fewer row.
+    weight: 3
+  - id: SA2
+    description: 'Preserves the correct HNF column-selection behavior: when a row
+      is genuinely zero (i.e., the matrix is truly rank-deficient), the result still
+      has fewer columns than the input, consistent with existing tests such as `m
+      = DM([[2, 7], [0, 0], [0, 0]], ZZ)` yielding an empty-column matrix.'
+    weight: 2
+  - id: SA3
+    description: Addresses the specific scenario described in the PR where a non-rank-deficient
+      matrix is falsely identified as rank-deficient because the current row's pivot
+      column entry happens to be zero (the pivot is already set in a rightward column
+      from a prior iteration).
+    weight: 3
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing `test_hermite_normal` assertions (e.g., for
+      `DM([[2, 7, 17, 29, 41], ...], ZZ)`, `DM([[10, 8, 6, 30, 2], ...], ZZ)`, and
+      `DM([[2, 7], [0, 0], [0, 0]], ZZ)`) are not weakened, removed, or skipped in
+      the diff.
+    weight: 3
+  - id: I2
+    description: Avoids changing the public signatures of `hermite_normal_form`, `_hermite_normal_form`,
+      or `_hermite_normal_form_modulo_D` (parameters, return types, or raised exception
+      types remain unchanged).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that `_hermite_normal_form` applied to a tall matrix (more
+      rows than columns) where the topmost processed row has a zero in its assigned
+      pivot column returns a result with the correct number of columns equal to the
+      matrix rank, not rank minus one.
+    weight: 3
+  - id: R2
+    description: Maintains that `_hermite_normal_form` still correctly handles genuinely
+      rank-deficient inputs (where all entries in a row from the pivot column leftward
+      are zero and no earlier pivot exists for that row), returning a result with
+      fewer columns than there are rows.
+    weight: 2

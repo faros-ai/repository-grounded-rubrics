@@ -1,0 +1,100 @@
+metadata:
+  task_summary: 'Make pyreverse read PEP 484 Python type hints (e.g., `a: str = None`)
+    so that annotated attributes are shown with their declared type in UML class diagrams.'
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies `pylint/pyreverse/inspector.py` to introduce logic that
+      reads function argument type annotations (via `args.annotations`) when populating
+      `instance_attrs_type`, rather than relying solely on `node.infer()`.
+    weight: 3
+  - id: FC2
+    description: Confines the type-annotation reading logic to pyreverse files (`pylint/pyreverse/`)
+      and does not introduce unrelated edits in checker or linter files outside the
+      pyreverse package.
+    weight: 2
+  - id: FC3
+    description: Modifies or extends `handle_assignattr_type` (in `pylint/pyreverse/inspector.py`)
+      or adds a new dedicated helper function in the pyreverse package to extract
+      the annotated type from a function argument.
+    weight: 3
+  - id: FC4
+    description: 'Adds or updates test data (e.g., in `tests/data/clientmodule_test.py`
+      or a new fixture file) to include a class with a PEP 484 annotated parameter
+      (such as `a: str = None`) for use by the pyreverse test suite.'
+    weight: 2
+  - id: FC5
+    description: Updates `tests/data/classes_No_Name.dot` (the reference dot output
+      file) or adds a new reference file if the change to annotation-based type resolution
+      causes the rendered attribute label to include the annotated type.
+    weight: 2
+  - id: FC6
+    description: Does not modify files unrelated to the pyreverse UML generation pipeline
+      (e.g., does not alter checker message definitions, configuration files, or non-pyreverse
+      lint logic).
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Implements logic that, for a class attribute `self.a = a` where
+      parameter `a` has a PEP 484 annotation (e.g., `a: str = None`), populates `instance_attrs_type`
+      with the annotated type (`str`) rather than leaving it as `Uninferable` or `NoneType`.'
+    weight: 3
+  - id: SA2
+    description: Extends the `class_names` method in `pylint/pyreverse/diagrams.py`
+      or the annotation-processing logic such that annotation-derived type nodes (e.g.,
+      `astroid.Name` for simple types like `str`) are recognized and returned as human-readable
+      class names in the UML attribute label.
+    weight: 3
+  - id: SA3
+    description: Handles the case where a function parameter has a type annotation
+      but its default value is `None`, so the annotation (not the `None` default)
+      is used to label the corresponding instance attribute in the diagram.
+    weight: 3
+  - id: SA4
+    description: 'Handles class-level annotated assignments (`AnnAssign` nodes, e.g.,
+      `a: str`) as an additional source of type information for pyreverse UML attribute
+      display, or explicitly scopes the fix to function-argument annotations as described
+      in the PR.'
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing behavior of `handle_assignattr_type` for attributes
+      whose type can already be inferred by `node.infer()` (i.e., when inference does
+      not yield `Uninferable` or `NoneType`, the inferred type is still used).
+    weight: 3
+  - id: I2
+    description: Does not weaken or skip any existing tests in the pyreverse test
+      suite (no `pytest.mark.skip`, no deletion of assertions in `unittest_pyreverse_inspector.py`,
+      `unittest_pyreverse_writer.py`, or `unittest_pyreverse_diadefs.py`).
+    weight: 2
+  - id: I3
+    description: Preserves the public interface and behavior of `Linker`, `ClassDiagram`,
+      `handle_assignattr_type`, and `project_from_files` for callers that do not use
+      annotated parameters.
+    weight: 2
+  - id: I4
+    description: Avoids introducing new third-party dependencies beyond those already
+      used by pyreverse (i.e., `astroid` and the standard library).
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: 'Ensures that when a class attribute is assigned from an annotated
+      function parameter (e.g., `self.a = a` where `a: str`), the attribute label
+      in the generated diagram contains the annotation type name (e.g., `a : str`),
+      not just the bare attribute name.'
+    weight: 3
+  - id: R2
+    description: Ensures that when the inference result of an attribute assignment
+      is `astroid.Uninferable` (as happens when the default is `None`), the annotation-based
+      fallback is applied rather than silently omitting the type from the label.
+    weight: 3
+  - id: R3
+    description: 'Maintains backward-compatible behavior for attributes that already
+      resolve to a concrete class via `node.infer()` (such as `self.attr = ''string_literal''`
+      rendering as `attr : str`), so no regression in pre-existing dot output.'
+    weight: 2
+  - id: R4
+    description: Handles gracefully the case where no type annotation is present on
+      a function parameter (i.e., the annotation is `None` in `args.annotations`),
+      falling back to the existing inference-based approach without raising an error.
+    weight: 2

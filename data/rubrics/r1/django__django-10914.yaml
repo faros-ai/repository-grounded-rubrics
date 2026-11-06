@@ -1,0 +1,56 @@
+metadata:
+  task_summary: Change the default value of FILE_UPLOAD_PERMISSIONS from None to 0o644
+    in global_settings.py to ensure consistent file permissions regardless of whether
+    a MemoryUploadedFile or TemporaryUploadedFile is used.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Changes the value of FILE_UPLOAD_PERMISSIONS from None to 0o644 in
+      django/conf/global_settings.py.
+    weight: 3
+  - id: FC2
+    description: Confines the core fix to django/conf/global_settings.py without modifying
+      unrelated files or settings (e.g., FILE_UPLOAD_DIRECTORY_PERMISSIONS or FILE_UPLOAD_TEMP_DIR).
+    weight: 2
+  - id: FC3
+    description: 'Updates the docs/ref/settings.txt documentation for FILE_UPLOAD_PERMISSIONS
+      to reflect the new default of 0o644 (e.g., changes ''Default: None'' to ''Default:
+      0o644'').'
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the inconsistent-permissions problem described in the PR
+      by ensuring that when FILE_UPLOAD_PERMISSIONS is at its default, FileSystemStorage
+      calls os.chmod with 0o644 for both MemoryUploadedFile and TemporaryUploadedFile
+      code paths.
+    weight: 3
+  - id: SA2
+    description: Updates the docs/ref/settings.txt description of FILE_UPLOAD_PERMISSIONS
+      to remove or revise the text that says 'temporary files will have a mode of
+      0o600, and files saved from memory will be saved using the system standard umask',
+      which describes the old None-default inconsistency.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing FILE_UPLOAD_PERMISSIONS override behavior
+      in FileSystemStorage._save so that explicitly configured permissions (e.g.,
+      0o654 via override_settings) are still applied via os.chmod.
+    weight: 3
+  - id: I2
+    description: Updates the test for the default FILE_UPLOAD_PERMISSIONS case (currently
+      testing FILE_UPLOAD_PERMISSIONS=None yields 0o666 & ~umask) to match the new
+      default of 0o644 rather than silently passing under the old None logic.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that with the new default, both code paths in FileSystemStorage._save
+      (temporary_file_path via file_move_safe and in-memory via os.open with 0o666)
+      result in the same final file permission of 0o644 because os.chmod is now unconditionally
+      called when file_permissions_mode resolves to 0o644.
+    weight: 3
+  - id: R2
+    description: Preserves backward compatibility by allowing users who previously
+      relied on None behavior (no os.chmod call) to still opt out by explicitly setting
+      FILE_UPLOAD_PERMISSIONS = None in their project settings, given that the FileSystemStorage
+      only skips os.chmod when file_permissions_mode is None.
+    weight: 2

@@ -1,0 +1,57 @@
+metadata:
+  task_summary: Fix inconsistent behavior of hexbin's mincnt parameter when C is supplied
+    vs. not supplied, by changing the strict greater-than comparison to greater-than-or-equal
+    in the C-is-not-None branch.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the C-is-not-None branch in the hexbin method of lib/matplotlib/axes/_axes.py
+      to change the comparison from 'len(acc) > mincnt' to 'len(acc) >= mincnt'.
+    weight: 3
+  - id: FC2
+    description: Confines the fix to the hexbin-related code in lib/matplotlib/axes/_axes.py
+      without altering unrelated methods or files.
+    weight: 2
+  - id: FC3
+    description: Updates the docstring for the mincnt parameter in the hexbin method
+      so it accurately describes the corrected behavior (at least mincnt points, rather
+      than strictly more than mincnt).
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Implements the resolution proposed in the PR description: when C
+      is not None, uses ''len(acc) >= mincnt'' (not ''len(acc) > mincnt'') so that
+      mincnt=1 with C specified keeps bins with exactly one data point, consistent
+      with the C is None behavior.'
+    weight: 3
+  - id: SA2
+    description: Preserves the existing C-is-None branch behavior where 'accum[accum
+      < mincnt] = np.nan' already correctly implements >= semantics, leaving that
+      branch unchanged.
+    weight: 2
+  - id: SA3
+    description: Ensures that when mincnt is None, the default value assigned in the
+      C-is-not-None branch (mincnt = 0) still causes 'len(acc) >= 0' to keep all non-empty
+      bins, consistent with the prior default behavior of showing all bins that have
+      at least one point.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public signature of hexbin (including the mincnt,
+      C, and reduce_C_function parameters) is unchanged in the patch.
+    weight: 2
+  - id: I2
+    description: Confirms that no existing tests related to hexbin are weakened, deleted,
+      or marked as skipped in the patch.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Produces consistent behavior such that with mincnt=1 and C supplied,
+      only bins containing at least one data point are displayed, matching the output
+      produced by mincnt=1 without C.
+    weight: 3
+  - id: R2
+    description: 'Preserves backward compatibility for the case where mincnt=0 and
+      C is supplied: the condition ''len(acc) >= 0'' is always true for any list,
+      so all non-empty bins continue to be shown.'
+    weight: 2

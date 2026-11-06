@@ -1,0 +1,53 @@
+metadata:
+  task_summary: Pass `prog=self.prog_name` to `CommandParser` in `ManagementUtility.execute()`
+    so that `%(prog)s` in the usage string reflects the argv-derived program name
+    rather than `sys.argv[0]`.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies `django/core/management/__init__.py` and no other production
+      source files, keeping the diff minimal and confined to the relevant location.
+    weight: 2
+  - id: FC2
+    description: Adds `prog=self.prog_name` as a keyword argument to the `CommandParser(...)`
+      call inside `ManagementUtility.execute()` in `django/core/management/__init__.py`.
+    weight: 3
+  - id: FC3
+    description: Does not alter or remove the existing `usage='%(prog)s subcommand
+      [options] [args]'`, `add_help=False`, or `allow_abbrev=False` keyword arguments
+      already passed to `CommandParser` in `ManagementUtility.execute()`.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures `self.prog_name` (computed in `ManagementUtility.__init__`
+      from `self.argv[0]` and the `__main__.py` special-case) is the value forwarded
+      as `prog` to `CommandParser`, matching the fix described in the PR description.
+    weight: 3
+  - id: SA2
+    description: Leaves `ManagementUtility.__init__` unchanged, confirming the fix
+      is applied only at the `CommandParser` construction site in `execute()` rather
+      than re-deriving the program name.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the public signature of `execute_from_command_line(argv=None)`
+      without any changes, keeping backward compatibility for callers that pass a
+      custom `argv`.
+    weight: 2
+  - id: I2
+    description: Avoids introducing any new imports, dependencies, or helper functions
+      beyond what is strictly required by the one-line `prog=self.prog_name` addition.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Guarantees that when `ManagementUtility` is constructed with a custom
+      `argv` whose first element differs from `sys.argv[0]` (including `None`), the
+      `%(prog)s` placeholder in the usage string resolves to the custom-argv-derived
+      program name rather than raising an exception or using the wrong `sys.argv[0]`.
+    weight: 3
+  - id: R2
+    description: 'Preserves the `__main__.py`-to-`python -m django` substitution logic:
+      when `self.prog_name` equals `''python -m django''`, that string is correctly
+      forwarded as `prog` to `CommandParser`, so the usage line shows `python -m django
+      subcommand [options] [args]`.'
+    weight: 2

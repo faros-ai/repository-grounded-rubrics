@@ -1,0 +1,52 @@
+metadata:
+  task_summary: Fix the PostgreSQL dbshell client to append additional parameters
+    before the database name so that psql does not ignore them.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/db/backends/postgresql/client.py so that args.extend(parameters)
+      (or equivalent) is placed before the dbname is appended to args, reversing the
+      original order.
+    weight: 3
+  - id: FC2
+    description: Confines production-code changes to django/db/backends/postgresql/client.py
+      and makes no unrelated file modifications outside of test files.
+    weight: 2
+  - id: FC3
+    description: Updates the test_parameters test case (or adds a new one) in the
+      PostgreSQL dbshell test file to assert that parameters appear before the database
+      name in the constructed args list.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures the constructed args list places the database name (dbname)
+      as the last positional element, after all additional parameters, matching the
+      psql CLI contract described in the PR description.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior for all other settings-derived arguments
+      (user with -U, host with -h, port with -p) so they still appear before any additional
+      parameters and before dbname.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing tests are deleted or weakened (e.g., no
+      removal of assertions or addition of skip decorators) in the process of applying
+      the fix.
+    weight: 2
+  - id: I2
+    description: Confirms that the public method signature of settings_to_cmd_args_env(cls,
+      settings_dict, parameters) is unchanged.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when parameters such as -c and a query string are passed,
+      they are inserted into the args list before the database name, so psql treats
+      them as valid options rather than ignoring them with 'extra command-line argument
+      ignored' warnings.
+    weight: 3
+  - id: R2
+    description: Ensures that when no additional parameters are supplied, the constructed
+      args list is unchanged from the pre-fix behaviour (database name still appears
+      at the end, no extra elements inserted).
+    weight: 2

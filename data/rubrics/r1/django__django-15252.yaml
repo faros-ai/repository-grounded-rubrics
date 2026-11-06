@@ -1,0 +1,58 @@
+metadata:
+  task_summary: MigrationRecorder must consult the db router's allow_migrate rules
+    before creating or querying the django_migrations table on any non-default database
+    connection.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/db/migrations/recorder.py and adds an import of router
+      from django.db so that allow_migrate can be called within MigrationRecorder.
+    weight: 3
+  - id: FC2
+    description: Adds a conditional check in ensure_schema of MigrationRecorder that
+      calls router.allow_migrate (or router.allow_migrate_model) with self.connection.alias
+      before attempting to create the django_migrations table.
+    weight: 3
+  - id: FC3
+    description: Adds conditional router checks in applied_migrations, record_applied,
+      and record_unapplied so that all three methods skip their operations when allow_migrate
+      returns False for the current connection alias.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures the router allow_migrate call uses self.connection.alias
+      as the db argument and the migrations app label (matching the Migration model's
+      app_label = 'migrations'), consistent with how executor.py calls router.allow_migrate.
+    weight: 3
+  - id: SA2
+    description: Ensures that when allow_migrate returns False, ensure_schema returns
+      early without calling editor.create_model, so the django_migrations table is
+      never created on disallowed connections.
+    weight: 3
+  - id: SA3
+    description: Preserves the original behavior of ensure_schema, applied_migrations,
+      record_applied, and record_unapplied when allow_migrate returns True, so that
+      migrations are still recorded normally on allowed connections.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms the public method signatures of MigrationRecorder (ensure_schema,
+      applied_migrations, record_applied, record_unapplied, flush) are unchanged,
+      preserving backward API compatibility.
+    weight: 2
+  - id: I2
+    description: Confirms no existing tests in the migrations test suite are deleted,
+      skipped, or weakened by the patch.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when a db router's allow_migrate returns False for a
+      connection alias, MigrationRecorder does not raise MigrationSchemaMissing or
+      DatabaseError by attempting to create or query the django_migrations table on
+      that connection.
+    weight: 3
+  - id: R2
+    description: Ensures that applied_migrations returns an empty dict on connections
+      where allow_migrate returns False, matching the existing pattern used when the
+      django_migrations table does not exist.
+    weight: 2

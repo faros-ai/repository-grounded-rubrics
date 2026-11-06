@@ -1,0 +1,71 @@
+metadata:
+  task_summary: 'Extend the autodoc :private-members: option to accept a comma-separated
+    list of specific private member names to document, analogous to how :special-members:
+    and :members: accept arguments.'
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Changes the `option_spec` entry for `'private-members'` in `ModuleDocumenter`
+      from `bool_option` to a callable that supports comma-separated member names
+      (e.g., `members_option` or an equivalent new function).
+    weight: 3
+  - id: FC2
+    description: Changes the `option_spec` entry for `'private-members'` in `ClassDocumenter`
+      from `bool_option` to the same callable used in `ModuleDocumenter`, keeping
+      both in sync.
+    weight: 3
+  - id: FC3
+    description: Modifies the `filter_members` method in `sphinx/ext/autodoc/__init__.py`
+      to handle `private_members` being a list of specific names, so that a private
+      member is kept only when its name appears in that list.
+    weight: 3
+  - id: FC4
+    description: Avoids changes outside of `sphinx/ext/autodoc/__init__.py` and closely
+      related test or documentation files (i.e., no unrelated file churn).
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Implements the `private-members` option so that supplying a comma-separated
+      argument (e.g., `:private-members: _foo, _bar`) restricts documentation to only
+      those named private members, mirroring how `:members:` restricts member documentation.'
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior where `:private-members:` with no
+      argument (flag-only usage) documents all private members (i.e., the no-argument
+      form still maps to `ALL` or equivalent truthy sentinel).
+    weight: 3
+  - id: SA3
+    description: Adds or updates documentation (e.g., in `doc/usage/extensions/autodoc.rst`)
+      to describe that `:private-members:` now accepts optional arguments analogous
+      to `:special-members:`.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing tests exercising `:private-members:` as a
+      bare flag (without arguments) are not weakened, removed, or marked skip.
+    weight: 2
+  - id: I2
+    description: Confirms that the `members_option` function (or whatever callable
+      is reused for `:private-members:`) is not modified in a way that breaks its
+      contract for `:members:` or `:special-members:`.
+    weight: 2
+  - id: I3
+    description: Avoids renaming or removing the `bool_option` function itself, since
+      it is used by other options such as `undoc-members` and `show-inheritance`.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: 'Ensures that when `:private-members: _foo` is specified, only the
+      private member `_foo` is included in the generated output while other private
+      members whose names do not appear in the list are excluded.'
+    weight: 3
+  - id: R2
+    description: Ensures that when `:private-members:` is given without arguments,
+      all private members (names starting with `_`) continue to be included, preserving
+      backward compatibility with existing documentation builds.
+    weight: 3
+  - id: R3
+    description: Ensures that private members not in the explicit list are excluded
+      even when `undoc-members` is set, so the name-based filter takes precedence
+      over the undoc-members fallback.
+    weight: 2

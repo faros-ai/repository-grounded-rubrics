@@ -1,0 +1,56 @@
+metadata:
+  task_summary: Fix whitespace in CREATE INDEX statements so that DESC ordering has
+    a space before it and opclasses without explicit ordering have no trailing space.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `Columns.__str__` method in `django/db/backends/ddl_references.py`
+      to produce a space between the quoted column name and a non-empty `col_suffixes`
+      value (e.g., 'DESC').
+    weight: 3
+  - id: FC2
+    description: Modifies the `IndexColumns.__str__` method in `django/db/backends/ddl_references.py`
+      to avoid appending an empty `col_suffixes` entry, eliminating the trailing space
+      when opclasses are used with ascending order.
+    weight: 3
+  - id: FC3
+    description: Confines all changes to `django/db/backends/ddl_references.py` (and
+      optionally test files), without introducing unrelated file modifications or
+      dependency changes.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the bug where `Index(fields=['-name'], name='idx')` would
+      generate `("name"DESC)` instead of `("name" DESC)` by ensuring a space is inserted
+      before non-empty ordering suffixes.
+    weight: 3
+  - id: SA2
+    description: Addresses the bug where `Index(fields=['name'], name='idx', opclasses=['text_pattern_ops'])`
+      would generate `("name" text_pattern_ops )` (trailing space) instead of `("name"
+      text_pattern_ops)` by skipping empty ordering suffix strings.
+    weight: 3
+  - id: SA3
+    description: Adds or updates tests in `tests/backends/test_ddl_references.py`
+      or a schema test to cover `IndexColumns` with empty `col_suffixes` (ascending
+      + opclass) and non-empty `col_suffixes` (descending with or without opclass).
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing behavior of `Columns.__str__` when `col_suffixes`
+      is empty or not provided (i.e., `IndexError` path still returns just `self.quote_name(column)`).
+    weight: 2
+  - id: I2
+    description: Does not weaken, skip, or remove any existing tests in `tests/backends/test_ddl_references.py`
+      or `tests/schema/tests.py`.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when `col_suffixes` contains non-empty strings (e.g.,
+      'DESC'), the generated column expression includes exactly one space between
+      the quoted column name and the suffix, producing output like `"name" DESC`.
+    weight: 3
+  - id: R2
+    description: Ensures that when `IndexColumns.__str__` is called with an opclass
+      and an empty-string col_suffix (ascending order), the result has no trailing
+      whitespace after the opclass name, producing output like `"name" text_pattern_ops`.
+    weight: 3

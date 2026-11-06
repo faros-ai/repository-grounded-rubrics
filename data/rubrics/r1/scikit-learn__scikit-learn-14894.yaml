@@ -1,0 +1,57 @@
+metadata:
+  task_summary: Fix ZeroDivisionError in _sparse_fit of sklearn/svm/base.py when support_vectors_
+    is empty (n_SV == 0) for sparse SVM inputs.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the _sparse_fit method in sklearn/svm/base.py to handle
+      the case where n_SV is zero, guarding the construction of dual_coef_indptr or
+      dual_coef_indices.
+    weight: 3
+  - id: FC2
+    description: Confines the fix to sklearn/svm/base.py (or the _sparse_fit function
+      specifically), without introducing unrelated changes to other SVM files or unrelated
+      modules.
+    weight: 2
+  - id: FC3
+    description: Adds a test or test case (in the svm test suite) that exercises _sparse_fit
+      with sparse input data that results in empty support_vectors_, reproducing the
+      scenario from the PR description.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that when n_SV equals zero, the resulting self.dual_coef_
+      is set to a sparse matrix (sp.csr_matrix) with shape (n_class, 0), consistent
+      with the PR description's expected result of sp.csr_matrix([]).
+    weight: 3
+  - id: SA2
+    description: Eliminates the ZeroDivisionError previously raised by the expression
+      dual_coef_indices.size / n_class when dual_coef_indices.size is zero (i.e.,
+      when n_SV is 0).
+    weight: 3
+  - id: SA3
+    description: Preserves the existing behavior of _sparse_fit for the non-empty
+      support_vectors_ case, keeping the dual_coef_indptr and dual_coef_ construction
+      logic unchanged when n_SV is greater than zero.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: 'Confirms that the public API of the SVM classes (SVR, SVC, etc.)
+      is not changed: fit(), predict(), and dual_coef_ remain accessible with the
+      same signatures and types.'
+    weight: 2
+  - id: I2
+    description: Confirms that no existing tests in the svm test suite are weakened,
+      skipped, or removed as part of the fix.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that calling fit() on an SVR (or SVM classifier) with sparse
+      csr_matrix input that produces zero support vectors completes without raising
+      any exception, matching the dense code path's behavior.
+    weight: 3
+  - id: R2
+    description: Ensures that the empty-support-vector branch produces a dual_coef_
+      that is a scipy sparse matrix (sp.csr_matrix), so downstream code using sparse
+      operations on dual_coef_ does not break.
+    weight: 2

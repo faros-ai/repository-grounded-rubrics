@@ -1,0 +1,54 @@
+metadata:
+  task_summary: Fix loaddata failing on a non-default database when a model's natural_key()
+    method accesses a ForeignKey, by ensuring the temporary instance used in build_instance
+    queries the correct database.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `build_instance` function in `django/core/serializers/base.py`
+      to fix the non-default database lookup failure.
+    weight: 3
+  - id: FC2
+    description: Confines changes to serializer-related code (e.g., `django/core/serializers/base.py`
+      or `django/core/serializers/python.py`) without introducing unrelated file churn.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test covering `build_instance` or `loaddata` behavior
+      when using a non-default database together with natural keys that involve FK
+      relationships.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures the temporary model instance created in `build_instance`
+      (via `Model(**data)`) has its `_state.db` set to the `db` argument before calling
+      `natural_key()`, so FK descriptor lookups target the correct database.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing logic that calls `default_manager.db_manager(db).get_by_natural_key(*natural_key)`
+      to retrieve the primary key from the correct non-default database after computing
+      `natural_key`.
+    weight: 2
+  - id: SA3
+    description: Ensures the fix applies when `pk` is `None`, `default_manager` has
+      `get_by_natural_key`, and `Model` has a `natural_key` method — matching the
+      existing guard conditions in `build_instance`.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the public signature `build_instance(Model, data, db)`
+      without adding or removing parameters.
+    weight: 2
+  - id: I2
+    description: Avoids weakening existing tests (e.g., no removal of assertions or
+      test disabling) for natural key serialization behavior.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when `natural_key()` on a model instance accesses a
+      ForeignKey field (causing a DB lookup via `get_object`), the query is routed
+      to the `db` passed to `build_instance` rather than the default database.
+    weight: 3
+  - id: R2
+    description: Maintains backward-compatible behavior when `db` is `'default'` or
+      `None`, so that existing loaddata usage against the default database is unaffected.
+    weight: 2

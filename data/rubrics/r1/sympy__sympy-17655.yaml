@@ -1,0 +1,62 @@
+metadata:
+  task_summary: Fix unexpected exception when computing `sympify(2.0) * Point(...)`
+    by ensuring scalar-times-Point multiplication produces a Point rather than a SymPy
+    Mul expression.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sympy/geometry/point.py or sympy/geometry/entity.py to address
+      the reverse-multiplication path for Point objects — no unrelated files are changed.
+    weight: 3
+  - id: FC2
+    description: Adds a `__rmul__` method (or equivalent alias such as `__rmul__ =
+      __mul__`) inside the Point class in sympy/geometry/point.py so that scalar-from-left
+      multiplication is handled by Point's own logic.
+    weight: 3
+  - id: FC3
+    description: Keeps the change minimal and local — does not introduce unrelated
+      refactors, mass renames, or new imports beyond what is needed to support the
+      fix.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that `sympify(2.0) * Point(1, 1)` returns a Point object
+      (not a Mul expression), matching the behavior of `Point(1, 1) * sympify(2.0)`
+      as stated in the PR description.
+    weight: 3
+  - id: SA2
+    description: Ensures that `point1 + sympify(2.0) * point2` no longer raises a
+      GeometryError or TypeError, consistent with the expected behavior described
+      in the PR.
+    weight: 3
+  - id: SA3
+    description: Adds or updates a test that exercises `sympify(float) * Point(...)`
+      or the full expression `Point(...) + sympify(float) * Point(...)` to prevent
+      regression.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the existing `__mul__` method on Point (which multiplies
+      each coordinate by the factor) is preserved and unchanged.
+    weight: 2
+  - id: I2
+    description: Confirms that `GeometryEntity.__rmul__` behavior is not removed or
+      replaced in a way that would break non-Point geometry subclasses that legitimately
+      rely on it.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures the new `__rmul__` (or equivalent) delegates to Point's coordinate-wise
+      multiplication logic, so the result coordinates equal the scalar times each
+      original coordinate.
+    weight: 3
+  - id: R2
+    description: 'Ensures backward compatibility: `Point(...) * scalar` (left-multiplication)
+      still works correctly and produces the same result as `scalar * Point(...)`
+      after the fix.'
+    weight: 2
+  - id: R3
+    description: Preserves the GeometryError raised by `Point.__add__` for genuinely
+      incompatible operands (non-Point, non-scalar-multiple-of-Point inputs), so the
+      error surface for invalid additions is not silently swallowed.
+    weight: 2

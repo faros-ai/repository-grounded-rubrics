@@ -1,0 +1,78 @@
+metadata:
+  task_summary: Fix RelatedFieldListFilter to fall back to Model._meta.ordering when
+    no ModelAdmin ordering is set, and fix RelatedOnlyFieldListFilter to pass an ordering
+    kwarg to field.get_choices.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `field_choices` method of `RelatedFieldListFilter` in
+      `django/contrib/admin/filters.py` to fall back to the related model's `_meta.ordering`
+      when no related ModelAdmin ordering is found.
+    weight: 3
+  - id: FC2
+    description: Modifies the `field_choices` method of `RelatedOnlyFieldListFilter`
+      in `django/contrib/admin/filters.py` to pass an `ordering` keyword argument
+      to `field.get_choices`.
+    weight: 3
+  - id: FC3
+    description: Confines all production code changes to `django/contrib/admin/filters.py`
+      without modifying unrelated modules such as model field code or unrelated admin
+      modules.
+    weight: 2
+  - id: FC4
+    description: Adds or updates test cases in the admin_filters test file that exercise
+      `RelatedFieldListFilter` ordering falling back to `Model._meta.ordering` when
+      no ModelAdmin ordering is defined.
+    weight: 1
+  - id: FC5
+    description: Adds or updates test cases in the admin_filters test file that exercise
+      `RelatedOnlyFieldListFilter` respecting ordering (either from ModelAdmin or
+      `_meta.ordering`).
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the PR description's complaint that `RelatedFieldListFilter.field_choices`
+      initializes `ordering` to an empty tuple and never falls back to `field.remote_field.model._meta.ordering`
+      when the related model has no registered ModelAdmin.
+    weight: 3
+  - id: SA2
+    description: Addresses the PR description's complaint that `RelatedOnlyFieldListFilter.field_choices`
+      calls `field.get_choices` without an `ordering` keyword argument, causing related
+      objects to appear unordered even when ordering is defined.
+    weight: 3
+  - id: SA3
+    description: Ensures that when a related ModelAdmin is registered, its `get_ordering`
+      result is still preferred over the model's `_meta.ordering` in `RelatedFieldListFilter.field_choices`.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public signature of `RelatedFieldListFilter.field_choices(self,
+      field, request, model_admin)` is preserved and not renamed or removed.
+    weight: 2
+  - id: I2
+    description: Confirms that the public signature of `RelatedOnlyFieldListFilter.field_choices(self,
+      field, request, model_admin)` is preserved and not renamed or removed.
+    weight: 2
+  - id: I3
+    description: Avoids weakening, skipping, or removing any existing test assertions
+      related to `RelatedFieldListFilter` or `RelatedOnlyFieldListFilter` ordering
+      behavior.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when no ModelAdmin is registered for the related model,
+      `RelatedFieldListFilter.field_choices` uses the related model's `_meta.ordering`
+      (accessed via `field.remote_field.model._meta.ordering` or equivalent) as the
+      ordering passed to `field.get_choices`.
+    weight: 3
+  - id: R2
+    description: Ensures that `RelatedOnlyFieldListFilter.field_choices` passes a
+      non-empty `ordering` argument to `field.get_choices` when a related ModelAdmin
+      with ordering is registered or when `_meta.ordering` is set, rather than omitting
+      the kwarg entirely.
+    weight: 3
+  - id: R3
+    description: Maintains backward compatibility so that when no ordering is defined
+      anywhere (neither ModelAdmin nor `_meta.ordering`), `field.get_choices` is still
+      called with an empty ordering, preserving existing default behavior.
+    weight: 2

@@ -1,0 +1,52 @@
+metadata:
+  task_summary: Fix FITSDiff falsely reporting differences for Q-format variable-length
+    array (VLA) columns by extending the VLA comparison branch in TableDataDiff to
+    cover 'Q' format in addition to 'P' format.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the VLA comparison branch in astropy/io/fits/diff.py so
+      that the condition checking col.format covers both 'P' and 'Q' variable-length
+      array formats, not just 'P'.
+    weight: 3
+  - id: FC2
+    description: Confines changes to astropy/io/fits/diff.py (the column-comparison
+      logic in TableDataDiff) without modifying unrelated files such as column.py,
+      util.py, or convenience.py.
+    weight: 2
+  - id: FC3
+    description: Adds a test case (anywhere in the diff) that exercises FITSDiff or
+      TableDataDiff with a 'QD' or similar Q-format VLA column and asserts the result
+      is identical when comparing equal data.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that comparing a FITS file containing a Q-format VLA column
+      (e.g., format='QD') to itself produces an identical result, matching the expected
+      behavior stated in the PR description.
+    weight: 3
+  - id: SA2
+    description: Ensures that Q-format VLA rows are compared element-wise using np.allclose
+      (or an equivalent tolerance-based comparison), consistent with the existing
+      per-element comparison used for P-format VLAs.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing P-format VLA comparison path so that pre-existing
+      PI/PD/PE VLA column tests remain valid and unaffected by the change.
+    weight: 3
+  - id: I2
+    description: Does not weaken, skip, or remove any existing tests in test_diff.py
+      that previously validated P-format VLA or table data comparison behavior.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Avoids passing Q-format VLA object-dtype arrays through np.where(arra
+      != arrb), which cannot correctly compare ragged object arrays and is the root
+      cause of the false-positive differences.
+    weight: 3
+  - id: R2
+    description: Maintains correct detection of genuine differences in Q-format VLA
+      columns when corresponding rows contain distinct values, so the fix does not
+      suppress true positives.
+    weight: 2

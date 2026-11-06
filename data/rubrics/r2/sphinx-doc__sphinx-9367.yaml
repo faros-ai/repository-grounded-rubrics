@@ -1,0 +1,52 @@
+metadata:
+  task_summary: Fix visit_Tuple in sphinx/pycode/ast.py so that a 1-element tuple
+    like (1,) retains its trailing comma instead of being rendered as (1).
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sphinx/pycode/ast.py and only sphinx/pycode/ast.py as the
+      production-code change (no unrelated files altered).
+    weight: 2
+  - id: FC2
+    description: Changes the visit_Tuple method inside _UnparseVisitor in sphinx/pycode/ast.py
+      to handle the single-element case.
+    weight: 3
+  - id: FC3
+    description: Adds a test case with source '(1,)' and expected '(1,)' (labeled
+      Tuple single element or equivalent) to the test file covering test_unparse.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements logic that appends a trailing comma when the tuple node
+      has exactly one element (len(node.elts) == 1), matching the PR requirement that
+      (1,) renders as (1,).
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior for zero-element tuples, returning
+      '()' unchanged.
+    weight: 2
+  - id: SA3
+    description: Preserves the existing behavior for multi-element tuples such as
+      (1, 2, 3), returning them without any additional trailing comma.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Avoids weakening or removing any existing parametrized test cases
+      in tests/test_pycode_ast.py (e.g., the existing Tuple and empty-Tuple entries
+      remain intact).
+    weight: 2
+  - id: I2
+    description: Keeps the public function signatures of ast.unparse and ast.parse
+      in sphinx/pycode/ast.py unchanged.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures visit_Tuple produces a string containing a trailing comma
+      for a single-element tuple node, so unparse(ast.parse('(1,)').body[0].value)
+      returns a string ending with ',)'.
+    weight: 3
+  - id: R2
+    description: Ensures visit_Tuple does not introduce a trailing comma for tuples
+      with two or more elements, preserving backward-compatible output like '(1, 2,
+      3)'.
+    weight: 2

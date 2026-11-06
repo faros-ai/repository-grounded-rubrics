@@ -1,0 +1,60 @@
+metadata:
+  task_summary: Add a `keep_attrs` parameter to the top-level `xr.where()` function
+    in `xarray/core/computation.py` so that attributes on DataArray/Dataset inputs
+    are preserved when requested, consistent with the global `keep_attrs` option.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `def where(` signature in `xarray/core/computation.py`
+      to accept a `keep_attrs` parameter (e.g., `keep_attrs=None`).
+    weight: 3
+  - id: FC2
+    description: Passes the resolved `keep_attrs` value as a keyword argument to the
+      `apply_ufunc` call inside `xr.where` in `xarray/core/computation.py`.
+    weight: 3
+  - id: FC3
+    description: Adds logic (anywhere in the diff) that resolves a `None` `keep_attrs`
+      value by calling `_get_keep_attrs` from `xarray/core/options.py`, matching the
+      pattern already used in `apply_ufunc`.
+    weight: 2
+  - id: FC4
+    description: Updates the docstring of `xr.where` in `xarray/core/computation.py`
+      to document the new `keep_attrs` parameter.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that calling `xr.where(cond, x, y, keep_attrs=True)` (or
+      when the global option is set to `True`) propagates attributes from the input
+      DataArray `x` to the output, as described in the PR.
+    weight: 3
+  - id: SA2
+    description: Ensures that the default behavior (when `keep_attrs` is not explicitly
+      supplied) defers to the global `xr.set_options(keep_attrs=...)` setting rather
+      than silently dropping attributes in all cases.
+    weight: 2
+  - id: SA3
+    description: Adds a test (anywhere in the diff) that exercises `xr.where` with
+      a DataArray carrying `.attrs` and asserts those attributes appear in the result
+      when `keep_attrs=True` or the global option is set.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: 'Confirms that the existing `xr.where` call sites and public API
+      contract are preserved: the three positional arguments `cond`, `x`, `y` remain
+      unchanged in their position and meaning.'
+    weight: 3
+  - id: I2
+    description: Confirms that no existing tests for `xr.where` or `apply_ufunc` in
+      the test suite are deleted or weakened (e.g., no `pytest.mark.skip` added, no
+      assertion removed) in the diff.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: 'Maintains backward compatibility: when `keep_attrs` is omitted and
+      the global option is at its default (`''default''` or `False`), the output of
+      `xr.where` has empty `.attrs`, preserving the pre-patch behavior.'
+    weight: 3
+  - id: R2
+    description: Ensures that passing `keep_attrs=False` explicitly to `xr.where`
+      produces a result with empty `.attrs`, regardless of the global option.
+    weight: 2

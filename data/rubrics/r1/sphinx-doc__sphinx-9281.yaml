@@ -1,0 +1,56 @@
+metadata:
+  task_summary: 'Fix ugly rendering of Python Enum values as default arguments in
+    autodoc function signatures by returning a clean `ClassName.member_name` representation
+    instead of the raw `<ClassName.member_name: value>` repr.'
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies `object_description` in `sphinx/util/inspect.py` to add
+      a special-case branch for `enum.Enum` instances before the generic `repr()`
+      fallback.
+    weight: 3
+  - id: FC2
+    description: Confines the enum-rendering fix to `sphinx/util/inspect.py` without
+      introducing unrelated changes to other source files.
+    weight: 2
+  - id: FC3
+    description: Uses the already-imported `enum` module (present at line 13 of `sphinx/util/inspect.py`)
+      or the existing `isenumattribute` helper to detect enum instances, avoiding
+      a new import.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Produces a rendered default-value string of the form `ClassName.member_name`
+      (e.g., `MyEnum.ValueA`) for enum members, matching the expected signature format
+      described in the PR.
+    weight: 3
+  - id: SA2
+    description: Ensures the fix applies inside `object_description` so that `stringify_signature`
+      (which calls `object_description(param.default)` for each parameter) benefits
+      from the change without additional modifications.
+    weight: 2
+  - id: SA3
+    description: Does not alter the rendering of non-enum default values (dict, set,
+      frozenset, plain types) that are already handled by the existing branches in
+      `object_description`.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: 'Preserves the public signature of `object_description(object: Any)
+      -> str` without adding, removing, or renaming parameters.'
+    weight: 3
+  - id: I2
+    description: Avoids weakening or removing existing tests for `object_description`,
+      `test_dictionary_sorting`, `test_set_sorting`, or `test_frozenset_sorting` in
+      the test suite.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Returns a string containing the class name and member name separated
+      by a dot (e.g., `EnumCls.val1`) when `object_description` receives an `enum.Enum`
+      instance, so autodoc signatures display a readable default value.
+    weight: 3
+  - id: R2
+    description: Falls back to the existing `repr()`-based path for non-enum objects,
+      preserving backward-compatible behavior for all other argument types.
+    weight: 2

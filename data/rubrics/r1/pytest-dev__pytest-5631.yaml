@@ -1,0 +1,61 @@
+metadata:
+  task_summary: Fix ValueError in num_mock_patch_args when @patch is used with new=np.array(...)
+    by replacing equality-based sentinel check with identity-based check.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the sentinel membership check inside the list comprehension
+      in num_mock_patch_args (in src/_pytest/compat.py) so it uses identity comparison
+      (e.g., any(p.new is s for s in sentinels)) instead of the equality-based 'p.new
+      in sentinels'.
+    weight: 3
+  - id: FC2
+    description: Confines changes to src/_pytest/compat.py and does not introduce
+      unrelated modifications to other source files.
+    weight: 2
+  - id: FC3
+    description: Adds or modifies a test (anywhere in the testing directory) that
+      exercises collection of a test function decorated with @patch(target=..., new=<multi-element
+      array-like>) to guard against regression.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause identified in the PR description: the ''p.new
+      in sentinels'' expression in _pytest/compat.py triggers __eq__ on array-like
+      new values, producing a non-scalar result that raises ValueError.'
+    weight: 3
+  - id: SA2
+    description: 'Preserves the intended semantics of num_mock_patch_args: a patching
+      is counted as consuming a mock argument only when p.new is the DEFAULT sentinel
+      object (identity check), so patches with an explicit new= value are excluded.'
+    weight: 3
+  - id: SA3
+    description: Ensures the fix handles the case where multiple mock modules are
+      loaded (both 'mock' and 'unittest.mock' providing their own DEFAULT sentinels)
+      without breaking the existing sentinel list logic.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public signature and name of num_mock_patch_args
+      remain unchanged so callers (e.g., getfuncargnames) are unaffected.
+    weight: 2
+  - id: I2
+    description: Confirms that existing tests covering @patch without a new= argument
+      (the DEFAULT sentinel case) are not weakened, removed, or skipped.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that pytest collection no longer raises ValueError when encountering
+      a test function decorated with @patch(target=..., new=np.array([...])) or any
+      other array-like object whose __eq__ returns a non-scalar.
+    weight: 3
+  - id: R2
+    description: 'Maintains backward-compatible behavior: @patch decorators without
+      an explicit new= argument (i.e., p.new is unittest.mock.DEFAULT) continue to
+      be counted by num_mock_patch_args so the correct fixture arguments are injected.'
+    weight: 3
+  - id: R3
+    description: Avoids introducing any new exception type or unexpected return value
+      from num_mock_patch_args when p.new is an arbitrary object (int, string, list,
+      custom class) with a non-standard __eq__.
+    weight: 2

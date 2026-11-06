@@ -1,0 +1,52 @@
+metadata:
+  task_summary: Fix catch_all_view() in django/contrib/admin/sites.py to use request.path
+    instead of request.path_info so that FORCE_SCRIPT_NAME script-name prefixes are
+    included in the redirect URL.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/contrib/admin/sites.py and only that production file,
+      without introducing unrelated file churn, to fix the catch_all_view redirect.
+    weight: 2
+  - id: FC2
+    description: Replaces the use of request.path_info with request.path inside the
+      catch_all_view method in django/contrib/admin/sites.py, so the redirect target
+      is built from the full path including any script-name prefix.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures the redirect path constructed in catch_all_view uses request.path
+      (which includes the SCRIPT_NAME / FORCE_SCRIPT_NAME prefix) rather than request.path_info
+      (which strips it), directly addressing the bug described in the PR.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior of constructing a redirect by appending
+      a trailing slash to the path, so the fix is narrowly scoped to the path source
+      (request.path vs request.path_info) and not the slash-appending logic.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing tests in tests/admin_views/tests.py covering
+      catch_all_view redirect behavior (e.g., test_missing_slash_append_slash_true)
+      are not weakened, skipped, or deleted.
+    weight: 2
+  - id: I2
+    description: Confirms that the public signature of catch_all_view(self, request,
+      url) is unchanged and no other public admin API methods are removed or renamed.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when FORCE_SCRIPT_NAME is set, the HttpResponsePermanentRedirect
+      returned by catch_all_view targets a URL that begins with the script-name prefix
+      (i.e., is derived from request.path and not just request.path_info).
+    weight: 3
+  - id: R2
+    description: Confirms that when FORCE_SCRIPT_NAME is not set (the common case),
+      catch_all_view still returns an HttpResponsePermanentRedirect to the slash-appended
+      URL, preserving backward compatibility.
+    weight: 2
+  - id: R3
+    description: Adds or updates a test that exercises catch_all_view with a FORCE_SCRIPT_NAME
+      or SCRIPT_NAME context, verifying the redirect Location header contains the
+      script-name prefix.
+    weight: 1

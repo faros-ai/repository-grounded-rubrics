@@ -1,0 +1,58 @@
+metadata:
+  task_summary: Fix parse_http_date in django/utils/http.py to implement RFC 7231's
+    rule that a two-digit year appearing more than 50 years in the future should be
+    interpreted as the most recent past year with the same last two digits, rather
+    than using hardcoded 0-69/70-99 cutoffs.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the two-digit year handling block inside the `parse_http_date`
+      function in `django/utils/http.py`, specifically replacing the hardcoded `if
+      year < 70` / `year += 2000` / `year += 1900` logic.
+    weight: 3
+  - id: FC2
+    description: Confines changes to `django/utils/http.py` and optionally its test
+      file `tests/utils_tests/test_http.py`, with no unrelated file modifications.
+    weight: 2
+  - id: FC3
+    description: Uses the current year (obtained via `datetime.datetime.now().year`
+      or equivalent) somewhere in the diff to anchor the two-digit year interpretation,
+      replacing the static threshold of 70.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements logic that treats a two-digit year as representing the
+      most recent past year with the same last two digits when the resulting year
+      would be more than 50 years in the future, matching RFC 7231's MUST requirement.
+    weight: 3
+  - id: SA2
+    description: Preserves correct handling of four-digit years (the `if year < 100`
+      guard or equivalent) so that RFC1123 and ASCTIME dates with full four-digit
+      years are unaffected by the two-digit year fix.
+    weight: 2
+  - id: SA3
+    description: Updates or adds a test case in `tests/utils_tests/test_http.py` that
+      exercises the two-digit year boundary relative to the current year (e.g., a
+      year that is more than 50 years in the future must map to the past century).
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the existing `test_parsing_rfc850` test case, which
+      asserts that `Sunday, 06-Nov-94 08:49:37 GMT` maps to `datetime(1994, 11, 6,
+      8, 49, 37)`, is not deleted or weakened.
+    weight: 2
+  - id: I2
+    description: Confirms that the public signatures of `parse_http_date` and `parse_http_date_safe`
+      in `django/utils/http.py` are unchanged (same parameter names, same return type).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a two-digit year value (from an RFC 850 date) that is
+      50 or fewer years ahead of the current year is interpreted as being in the current
+      century, while a value more than 50 years ahead is mapped to the previous century.
+    weight: 3
+  - id: R2
+    description: Avoids introducing any fixed integer constants such as 70, 2000,
+      or 1900 as the sole decision threshold for two-digit year resolution, ensuring
+      the behavior remains correct as the current year advances.
+    weight: 2

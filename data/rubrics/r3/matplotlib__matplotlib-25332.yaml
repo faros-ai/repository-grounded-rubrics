@@ -1,0 +1,56 @@
+metadata:
+  task_summary: Fix the inability to pickle a Figure after calling align_labels()
+    by making the Grouper class (whose _mapping dict uses weakref.ref keys) serializable.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies lib/matplotlib/cbook.py to add pickle support to the Grouper
+      class (e.g., adds __getstate__ and/or __setstate__ methods, or __reduce__).
+    weight: 3
+  - id: FC2
+    description: Confines changes to the minimal necessary files, without unrelated
+      file churn — the fix does not modify unrelated modules such as artist.py, pyplot.py,
+      or backend files.
+    weight: 2
+  - id: FC3
+    description: Adds a test (in test_figure.py or test_cbook.py) that exercises pickling
+      a Figure after calling align_labels(), or directly tests pickling a Grouper
+      with joined objects.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause: the Grouper._mapping dict stores weakref.ref
+      objects as keys/values, which are not picklable — the fix ensures these weakrefs
+      are not present in the serialized state.'
+    weight: 3
+  - id: SA2
+    description: Ensures that after unpickling, the Grouper's grouping information
+      (which axes are aligned together) is restored so that aligned labels remain
+      functional after a pickle round-trip.
+    weight: 2
+  - id: SA3
+    description: Preserves the Figure._align_label_groups dict (keyed by 'x' and 'y')
+      through pickling without requiring Figure.__getstate__ to drop or nullify it.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing Grouper public methods (join, joined, remove,
+      get_siblings, __iter__, __contains__, clean) are not removed or renamed in the
+      diff.
+    weight: 2
+  - id: I2
+    description: Confirms that no existing test assertions on Grouper or align_labels
+      behavior are weakened or removed (e.g., no @pytest.mark.skip added, no assert
+      removed).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that pickle.dumps(fig) no longer raises TypeError for a Figure
+      where align_labels() has been called, by eliminating weakref.ref objects from
+      the serialized Grouper state.
+    weight: 3
+  - id: R2
+    description: Ensures that a Grouper loaded from pickle retains the same group
+      memberships as before serialization, so that label alignment still functions
+      after a pickle round-trip.
+    weight: 2

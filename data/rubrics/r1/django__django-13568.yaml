@@ -1,0 +1,66 @@
+metadata:
+  task_summary: Extend the auth.E003/W004 system check to skip the error/warning when
+    the USERNAME_FIELD is covered by a total UniqueConstraint (one with no condition)
+    in Meta.constraints.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/contrib/auth/checks.py and only that production file,
+      with no unrelated files changed alongside it.
+    weight: 2
+  - id: FC2
+    description: Adds an import of UniqueConstraint (from django.db.models or django.db.models.constraints)
+      somewhere in the diff, making the constraint class available to the check logic.
+    weight: 2
+  - id: FC3
+    description: Adds a conditional check inside check_user_model that inspects cls._meta.constraints
+      to determine whether the USERNAME_FIELD is covered by a UniqueConstraint.
+    weight: 3
+  - id: FC4
+    description: Adds test coverage (in auth_tests or an equivalent location) for
+      a user model that has a UniqueConstraint on the USERNAME_FIELD but no unique=True
+      field-level attribute, asserting no auth.E003 or auth.W004 error is raised.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Skips auth.E003 (and auth.W004) only when the matching UniqueConstraint
+      is total, i.e., has no condition (condition is None), not for partial UniqueConstraints
+      that include a Q condition.
+    weight: 3
+  - id: SA2
+    description: Skips the error/warning only when the USERNAME_FIELD name appears
+      in the fields of the matching UniqueConstraint, not for constraints covering
+      other fields.
+    weight: 3
+  - id: SA3
+    description: Continues to raise auth.E003 (or auth.W004) when the USERNAME_FIELD
+      has neither unique=True on the field nor any total UniqueConstraint covering
+      it.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the auth.E003 and auth.W004 error IDs, their message
+      strings, and the branching on AUTHENTICATION_BACKENDS remain unchanged in the
+      diff.
+    weight: 2
+  - id: I2
+    description: Confirms that no existing test assertions for auth.E003 or auth.W004
+      are removed or weakened (e.g., no removal of assertEqual calls that verify those
+      error IDs).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a user model with UniqueConstraint(fields=['username'],
+      name='...') and no condition does not trigger auth.E003 at runtime, as the constraint
+      provides the required uniqueness guarantee.
+    weight: 3
+  - id: R2
+    description: Ensures that a user model with UniqueConstraint(fields=['username'],
+      condition=Q(...), name='...') (a partial constraint) still triggers auth.E003
+      or auth.W004 because a partial constraint does not guarantee total uniqueness.
+    weight: 2
+  - id: R3
+    description: Preserves the existing behavior where a user model with unique=True
+      on the USERNAME_FIELD does not raise auth.E003, so the new constraint path does
+      not interfere with the existing field-level uniqueness path.
+    weight: 2

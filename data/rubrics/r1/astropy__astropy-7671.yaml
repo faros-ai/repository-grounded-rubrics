@@ -1,0 +1,53 @@
+metadata:
+  task_summary: Fix minversion failures caused by a LooseVersion bug when comparing
+    version strings that mix integer and string components (e.g., '1.14.3' vs '1.14dev').
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies astropy/utils/introspection.py to address the LooseVersion
+      TypeError in the minversion function.
+    weight: 3
+  - id: FC2
+    description: Confines changes to the minversion-related comparison logic in astropy/utils/introspection.py
+      without modifying unrelated files.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test case in the introspection test file that covers
+      comparing a version like '1.14.3' against a dev version like '1.14dev', exercising
+      the previously failing mixed int/str LooseVersion scenario.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Resolves the TypeError that arises when LooseVersion compares version
+      strings containing both integer and string components, as described in the PR
+      (e.g., LooseVersion('1.14.3') >= LooseVersion('1.14dev')).
+    weight: 3
+  - id: SA2
+    description: Replaces or supplements the LooseVersion comparison with a mechanism
+      (such as pkg_resources.parse_version or a try/except fallback) that correctly
+      handles dev/pre-release suffixes mixed with multi-part numeric versions.
+    weight: 3
+  - id: SA3
+    description: Preserves the existing inclusive (>=) and non-inclusive (>) comparison
+      behavior controlled by the inclusive parameter of minversion.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the public signature of minversion(module, version, inclusive,
+      version_path) without removing or renaming any parameter.
+    weight: 3
+  - id: I2
+    description: Does not weaken existing test assertions in the test_minversion function
+      (e.g., does not remove or change good_versions or bad_versions checks).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures minversion('numpy', '1.14dev') returns a boolean without
+      raising TypeError when numpy's installed version has more numeric components
+      than '1.14' (e.g., '1.14.3'), matching the exact failure scenario in the PR.
+    weight: 3
+  - id: R2
+    description: Ensures minversion returns True when the installed version satisfies
+      the minimum (e.g., have_version '1.14.3' >= requested '1.14dev'), consistent
+      with the pkg_resources.parse_version behavior noted in the PR.
+    weight: 2

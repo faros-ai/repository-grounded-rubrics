@@ -1,0 +1,60 @@
+metadata:
+  task_summary: Add cls._clear_cached_lookups() call to RegisterLookupMixin._unregister_lookup()
+    in django/db/models/query_utils.py so the lru_cache on get_lookups() is invalidated
+    when a lookup is removed, mirroring the existing behavior of register_lookup().
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Adds a call to cls._clear_cached_lookups() inside the _unregister_lookup
+      classmethod body in django/db/models/query_utils.py, immediately after the del
+      cls.class_lookups[lookup_name] statement.
+    weight: 3
+  - id: FC2
+    description: Confines the production-code change exclusively to django/db/models/query_utils.py
+      and does not introduce unrelated edits to other production modules.
+    weight: 2
+  - id: FC3
+    description: 'Moves or ensures the sql = constraint.create_sql(Author, editor)
+      call in test_func_unique_constraint_lookups is placed inside the register_lookup
+      context manager block (i.e., inside the with register_lookup(...): suite) in
+      the schema tests file, so the lookup is still registered when create_sql is
+      invoked.'
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Mirrors the pattern of register_lookup() by calling cls._clear_cached_lookups()
+      in _unregister_lookup(), matching the symmetry described in the PR description
+      referencing django/db/models/query_utils.py lines 202 and 212.
+    weight: 3
+  - id: SA2
+    description: Ensures the _unregister_lookup method signature (cls, lookup, lookup_name=None)
+      is preserved unchanged, as only the body needs to gain the cache-clearing call.
+    weight: 2
+  - id: SA3
+    description: Applies the minor test adjustment to SchemaTests.test_func_unique_constraint_lookups
+      mentioned in the PR description so the test does not rely on a stale lru_cache
+      entry after the lookup context manager exits.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the _clear_cached_lookups method itself is not modified;
+      the fix solely calls the existing method rather than duplicating or inlining
+      its logic.
+    weight: 2
+  - id: I2
+    description: Confirms the test change does not skip or weaken any assertion in
+      test_func_unique_constraint_lookups (e.g., assertIn, assertIs, assertNotIn checks
+      remain present and structurally equivalent).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that after _unregister_lookup() is called, a subsequent call
+      to get_lookups() on the same class recomputes the lookup dict from class_lookups
+      rather than returning the previously cached (stale) value that still contained
+      the removed lookup.
+    weight: 3
+  - id: R2
+    description: Ensures the register_lookup context manager in django/test/utils.py
+      continues to behave correctly as a paired register/unregister mechanism, with
+      the cache cleared on both entry (via register_lookup) and exit (via _unregister_lookup).
+    weight: 2

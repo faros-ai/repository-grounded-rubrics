@@ -1,0 +1,52 @@
+metadata:
+  task_summary: Fix diophantine() returning incomplete results when syms order differs
+    from alphabetical order and permute=True is set, by ensuring the permute argument
+    is forwarded in the early-return recursive call path.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sympy/solvers/diophantine.py as the primary changed file,
+      with no unrelated module changes.
+    weight: 2
+  - id: FC2
+    description: Confines the fix to the diophantine() function's early-return branch
+      (the 'if syms != var:' block), leaving all other function logic unchanged.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Passes permute (as a keyword or positional argument) into the recursive
+      diophantine() call inside the 'if syms != var:' branch, so that sign permutation
+      is applied even when the requested syms order differs from the alphabetical
+      var order.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing dict_sym_index reordering logic that maps
+      each solution from the alphabetical var order to the user-requested syms order,
+      ensuring tuples are returned with positions matching the syms sequence.
+    weight: 2
+  - id: SA3
+    description: Adds a test or assertion covering diophantine() called with permute=True
+      and a syms argument whose order differs from the alphabetical order of the variables
+      (as demonstrated in the PR description with n**4 + m**4 - 2**4 - 3**4).
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing public API signature of diophantine(eq, param,
+      syms, permute) without altering parameter names, defaults, or return type (a
+      set of tuples).
+    weight: 3
+  - id: I2
+    description: Does not remove or weaken existing test assertions in the test file,
+      including those in test_diophantine_permute_sign and test_issue_9538.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: 'Returns the full set of signed permutations (all 8 tuples: positives/negatives
+      of (2,3) and (3,2)) for diophantine(n**4 + m**4 - 2**4 - 3**4, syms=(n, m),
+      permute=True), matching the behavior already exhibited when syms=(m, n) is used.'
+    weight: 3
+  - id: R2
+    description: Produces correct results when syms is None or matches alphabetical
+      var order with permute=True, confirming the fix does not regress the code path
+      that bypasses the early-return branch.
+    weight: 2

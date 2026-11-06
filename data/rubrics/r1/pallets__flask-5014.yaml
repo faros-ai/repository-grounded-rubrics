@@ -1,0 +1,45 @@
+metadata:
+  task_summary: Raise a ValueError when a Blueprint is instantiated with an empty
+    name string.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies src/flask/blueprints.py and no other production source files
+      to add the empty-name guard.
+    weight: 2
+  - id: FC2
+    description: Adds the empty-name validation inside Blueprint.__init__ in src/flask/blueprints.py,
+      co-located with the existing dot-check guard.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Raises ValueError (not any other exception type) when Blueprint is
+      constructed with an empty name.
+    weight: 3
+  - id: SA2
+    description: Triggers the error at Blueprint instantiation time (inside __init__)
+      rather than deferring it to registration or route-resolution time.
+    weight: 3
+  - id: SA3
+    description: Includes a test case (anywhere in the diff) that constructs a Blueprint
+      with an empty string name and asserts that ValueError is raised.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing ValueError raised for a dotted Blueprint name
+      (the check using '.' in name remains intact).
+    weight: 3
+  - id: I2
+    description: Avoids weakening or skipping any existing Blueprint test (no removal
+      of pytest.raises blocks or @pytest.mark.skip annotations on Blueprint tests).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Validates that a Blueprint constructed with a non-empty name (e.g.,
+      'frontend') continues to be accepted without raising any exception.
+    weight: 3
+  - id: R2
+    description: Produces an error message that references the empty or blank name
+      condition so callers can identify the cause (e.g., contains 'name' or 'empty'
+      in the ValueError message).
+    weight: 1

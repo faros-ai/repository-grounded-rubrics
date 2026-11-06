@@ -1,0 +1,66 @@
+metadata:
+  task_summary: Fix inconsistent world_to_pixel results in SlicedLowLevelWCS when
+    a non-trivial PCij matrix couples the sliced (dropped) dimension to the kept dimensions.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `world_to_pixel_values` method inside `astropy/wcs/wcsapi/wrappers/sliced_wcs.py`
+      to replace the hardcoded `1.` placeholder for dropped world dimensions with
+      the actual world coordinate value at the sliced pixel position.
+    weight: 3
+  - id: FC2
+    description: Adds a test (anywhere in the diff) that exercises `world_to_pixel_values`
+      (or the high-level `world_to_pixel`) on a `SlicedLowLevelWCS` built from a WCS
+      with a non-trivial PCij matrix that couples the sliced spectral axis to the
+      spatial axes, verifying the returned pixel values match those of the unsliced
+      WCS.
+    weight: 1
+  - id: FC3
+    description: Limits code changes to the `SlicedLowLevelWCS` implementation file
+      and its test file, introducing no unrelated file modifications or dependency
+      additions.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Replaces the `1.` literal passed for dropped world dimensions in
+      `world_to_pixel_values` with a world coordinate value derived from evaluating
+      `_pixel_to_world_values_all` (or equivalent) at the integer slice pixel positions,
+      so that the coupled WCS transformation receives the correct spectral (or other
+      dropped) world value.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior of `world_to_pixel_values` for WCSes
+      without axis coupling (i.e., where the dropped dimension does not influence
+      the kept dimensions), so tests on uncoupled WCS configurations (such as `WCS_SPECTRAL_CUBE`
+      with identity-like PCij) continue to pass.
+    weight: 2
+  - id: SA3
+    description: Does not change the `pixel_to_world_values` or `_pixel_to_world_values_all`
+      code paths, since the PR description confirms those already produce correct
+      results.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the public method signatures of `SlicedLowLevelWCS.world_to_pixel_values`
+      (accepts `*world_arrays`, returns pixel coordinates for kept dimensions only),
+      so existing callers are unaffected.
+    weight: 3
+  - id: I2
+    description: Avoids weakening existing tests for `world_to_pixel_values` in `test_sliced_wcs.py`
+      (e.g., does not alter expected values in `assert_allclose(wcs.world_to_pixel_values(...),
+      ...)` calls for uncoupled WCS test cases).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when `world_to_pixel_values` is called on a `SlicedLowLevelWCS`
+      with a non-zero off-diagonal PCij coupling the sliced pixel axis to kept axes,
+      the dropped world dimension is supplied to the underlying WCS as the actual
+      world coordinate at the integer slice index rather than the arbitrary constant
+      `1.0`, producing finite and correct pixel coordinates.
+    weight: 3
+  - id: R2
+    description: Ensures the fix does not introduce a circular dependency or infinite
+      recursion by using `_pixel_to_world_values_all` (or a direct call to the underlying
+      `_wcs.pixel_to_world_values`) with the fixed integer slice values to obtain
+      the dropped world coordinate, rather than calling `world_to_pixel_values` again.
+    weight: 2

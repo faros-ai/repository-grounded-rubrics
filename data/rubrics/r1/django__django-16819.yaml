@@ -1,0 +1,69 @@
+metadata:
+  task_summary: Add reduce() methods to AddIndex and RemoveIndex migration operations
+    so the optimizer can eliminate redundant or self-cancelling index operations.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Implements a reduce() method on AddIndex (in django/db/migrations/operations/models.py)
+      that handles the case where the subsequent operation is RemoveIndex on the same
+      model and same index name, returning an empty list [].
+    weight: 3
+  - id: FC2
+    description: Implements a reduce() method on RemoveIndex (in django/db/migrations/operations/models.py)
+      that handles the case where the subsequent operation is AddIndex on the same
+      model and the same index name (matching self.name to operation.index.name),
+      returning a list containing only the AddIndex.
+    weight: 3
+  - id: FC3
+    description: Confines production code changes to django/db/migrations/operations/models.py
+      (and possibly django/db/migrations/operations/__init__.py) without modifying
+      unrelated files such as autodetector.py, state.py, or postgres/operations.py.
+    weight: 2
+  - id: FC4
+    description: Adds test cases for the new AddIndex/RemoveIndex reduce behavior
+      somewhere in tests/migrations/test_optimizer.py, exercising at least the AddIndex+RemoveIndex-to-nothing
+      reduction and the RemoveIndex+AddIndex reduction.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures AddIndex.reduce() calls super().reduce() (falling through
+      to ModelOperation or Operation base) when no known reduction applies, preserving
+      existing optimizer fallback behavior.
+    weight: 2
+  - id: SA2
+    description: Ensures RemoveIndex.reduce() calls super().reduce() when no reduction
+      applies, preserving existing optimizer pass-through logic.
+    weight: 2
+  - id: SA3
+    description: Correctly matches index identity by comparing model_name_lower on
+      both sides and comparing the index name (self.index.name for AddIndex vs self.name
+      for RemoveIndex) so reductions only apply to the same named index on the same
+      model.
+    weight: 3
+  integrity_rubrics:
+  - id: I1
+    description: Avoids weakening or removing existing test assertions in test_optimizer.py
+      or test_operations.py (no deletions of existing test methods or assert calls
+      related to AddIndex/RemoveIndex).
+    weight: 2
+  - id: I2
+    description: Preserves the public signatures of AddIndex.__init__ and RemoveIndex.__init__
+      (model_name and index/name parameters) without adding, removing, or renaming
+      parameters.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that an AddIndex followed immediately by a RemoveIndex for
+      the same model and index name is fully eliminated by the optimizer, producing
+      an empty operation list rather than executing two DDL statements.
+    weight: 3
+  - id: R2
+    description: Ensures that a RemoveIndex followed by an AddIndex for the same model
+      and index name is reduced to just the AddIndex, so the optimizer replaces two
+      operations with one rather than dropping the new index definition.
+    weight: 3
+  - id: R3
+    description: Ensures that AddIndex/RemoveIndex pairs targeting different model
+      names or different index names are NOT incorrectly reduced (no false-positive
+      elimination when model_name_lower or index name differ).
+    weight: 2

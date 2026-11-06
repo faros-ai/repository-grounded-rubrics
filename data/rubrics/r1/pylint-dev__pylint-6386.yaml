@@ -1,0 +1,59 @@
+metadata:
+  task_summary: Fix the short verbose option `-v` so it does not require an argument,
+    matching the behavior of `--verbose`.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies `_DoNothingAction` in `pylint/config/callback_actions.py`
+      to add an `__init__` method that passes `nargs=0` to its superclass, so argparse
+      does not expect an argument after the flag.
+    weight: 3
+  - id: FC2
+    description: Adds `-v` (short verbose flag) to the `PREPROCESSABLE_OPTIONS` dict
+      or otherwise extends `_preprocess_options` in `pylint/config/utils.py` to recognise
+      and handle the short form before full argument parsing.
+    weight: 3
+  - id: FC3
+    description: Confines all changes to files directly related to argument parsing
+      or option preprocessing (e.g., `pylint/config/callback_actions.py`, `pylint/config/utils.py`,
+      `pylint/lint/base_options.py`), without modifying unrelated modules.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Ensures that invoking pylint with `-v` no longer triggers the argparse
+      error `argument --verbose/-v: expected one argument`, as described in the PR
+      bug report.'
+    weight: 3
+  - id: SA2
+    description: 'Ensures the fix is consistent with how `--verbose` (the long form)
+      already works: no value is consumed from the argument list, matching the `(False,
+      _set_verbose_mode)` entry in `PREPROCESSABLE_OPTIONS`.'
+    weight: 2
+  - id: SA3
+    description: Ensures the help text for the `verbose` option no longer suggests
+      a mandatory metavar value such as `VERBOSE`, aligning the displayed usage with
+      the flag-only behavior described in the PR.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: 'Confirms that the existing `--verbose` long-option preprocessing
+      path in `_preprocess_options` (the `"--verbose": (False, _set_verbose_mode)`
+      entry) is preserved and not removed or broken.'
+    weight: 3
+  - id: I2
+    description: Confirms that other `_DoNothingAction` usages (e.g., for `--enable-all-extensions`
+      and `--errors-only` in `pylint/lint/base_options.py`) continue to work correctly
+      after any changes to `_DoNothingAction`.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that after the fix, `run.verbose` is set to `True` when `-v`
+      is passed to `Run`, mirroring the behavior of `--verbose` which calls `_set_verbose_mode`
+      and sets `run.verbose = True`.
+    weight: 3
+  - id: R2
+    description: Ensures `-v` is treated as a no-argument boolean flag at the argparse
+      level so that the token immediately following `-v` on the command line is interpreted
+      as a positional argument (e.g., a file path) rather than the value of the verbose
+      flag.
+    weight: 2

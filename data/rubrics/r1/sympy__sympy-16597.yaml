@@ -1,0 +1,76 @@
+metadata:
+  task_summary: Add a fact rule so that even (and by extension integer) symbols imply
+    is_finite=True, fixing the case where Symbol('m', even=True).is_finite returns
+    None.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the _assume_rules FactRules list in sympy/core/assumptions.py
+      to add an implication that connects integer (or rational) to finite.
+    weight: 3
+  - id: FC2
+    description: Avoids changes to files unrelated to assumption rules or tests for
+      assumptions — no churn in unrelated modules such as sympy/core/mul.py, sympy/core/add.py,
+      or sympy/core/power.py.
+    weight: 2
+  - id: FC3
+    description: Restricts the scope of the added rule to the _assume_rules block
+      in sympy/core/assumptions.py rather than patching individual _eval_is_finite
+      methods across multiple classes.
+    weight: 2
+  - id: FC4
+    description: Adds or updates tests in the assumptions test file to assert that
+      Symbol('m', even=True).is_finite is True and/or that Symbol('n', integer=True).is_finite
+      is True.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements the logical implication that even (which is defined as
+      integer & !odd) entails finite, matching the PR description requirement that
+      a number must be finite before it can be even.
+    weight: 3
+  - id: SA2
+    description: Ensures that Symbol('m', even=True).is_finite evaluates to True (not
+      None) as required by the PR description example.
+    weight: 3
+  - id: SA3
+    description: Ensures that Symbol('n', odd=True).is_finite also evaluates to True,
+      consistent with the same reasoning that odd integers are finite.
+    weight: 2
+  - id: SA4
+    description: Ensures that Symbol('p', prime=True).is_finite also evaluates to
+      True, since prime implies integer which should imply finite.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing rule 'even == integer & !odd' in _assume_rules
+      without weakening or removing it.
+    weight: 3
+  - id: I2
+    description: Preserves the existing rule 'zero -> even & finite' in _assume_rules
+      without removing or altering it.
+    weight: 2
+  - id: I3
+    description: Confirms that no existing tests for even, odd, or integer assumptions
+      are removed or marked as skipped.
+    weight: 2
+  - id: I4
+    description: Confirms that Symbol('x', real=True).is_finite still returns None
+      (real numbers are not necessarily finite), so the new rule does not incorrectly
+      broaden finite to all real numbers.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Produces is_finite=True for a symbol declared with even=True by propagating
+      the new integer-to-finite (or equivalent) implication through the FactRules
+      inference engine.
+    weight: 3
+  - id: R2
+    description: Maintains that oo.is_even remains None (not True), so the new rule
+      does not incorrectly assign finiteness to infinite quantities.
+    weight: 2
+  - id: R3
+    description: Maintains backward compatibility so that Symbol('x', integer=True).is_integer
+      is still True and Symbol('x', even=True).is_integer is still True after the
+      change.
+    weight: 2

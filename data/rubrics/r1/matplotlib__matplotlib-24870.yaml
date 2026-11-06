@@ -1,0 +1,66 @@
+metadata:
+  task_summary: Auto-detect boolean 2D arrays passed to contour/contourf and default
+    levels to [0.5] instead of the standard 8 auto-computed levels.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies lib/matplotlib/contour.py as the sole production-code file
+      changed, with no unrelated file churn.
+    weight: 3
+  - id: FC2
+    description: Adds boolean dtype detection logic inside _contour_args or _process_contour_level_args
+      in lib/matplotlib/contour.py, specifically checking whether the input z array
+      has a boolean dtype (e.g., dtype.kind == 'b' or dtype == bool) before z is fully
+      cast to float64.
+    weight: 3
+  - id: FC3
+    description: Sets levels to [0.5] (or a list containing only 0.5) as the default
+      when a boolean input is detected and no explicit levels argument was provided
+      by the caller.
+    weight: 3
+  - id: FC4
+    description: Adds a test case in the contour test file that calls contour or contourf
+      with a boolean 2D array and no explicit levels, and verifies that the resulting
+      contour set has exactly one level equal to 0.5.
+    weight: 1
+  - id: FC5
+    description: Adds a what's-new or changelog entry describing the auto-detection
+      of boolean arrays by contour/contourf.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements the auto-detection only when the user has not explicitly
+      supplied a levels argument, so that an explicit levels kwarg or positional levels
+      arg overrides the boolean default.
+    weight: 3
+  - id: SA2
+    description: Applies the boolean auto-detection to both contour (line contours)
+      and contourf (filled contours), since both use the shared _contour_args or _process_contour_level_args
+      path in ContourSet.
+    weight: 2
+  - id: SA3
+    description: Preserves the existing default behavior for non-boolean numeric arrays,
+      keeping the default of 7 auto-computed levels when no explicit levels argument
+      is given.
+    weight: 3
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing tests are not weakened, skipped, or removed
+      to accommodate the new bool-detection behavior.
+    weight: 2
+  - id: I2
+    description: Confirms that the public signatures of ContourSet.__init__, QuadContourSet._process_args,
+      and the Axes.contour / Axes.contourf wrappers are unchanged (no new required
+      parameters added).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a boolean array input to contour with no levels argument
+      results in self.levels containing exactly [0.5] at runtime, distinguishing it
+      from the multi-level default that would arise with a numeric array.
+    weight: 3
+  - id: R2
+    description: Ensures that passing an explicit levels argument (e.g., levels=[0.3])
+      alongside a boolean array still uses those explicit levels, not the auto-detected
+      [0.5], so the override path remains functional.
+    weight: 2

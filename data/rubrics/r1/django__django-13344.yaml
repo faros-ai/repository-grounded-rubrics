@@ -1,0 +1,72 @@
+metadata:
+  task_summary: Fix the ASGI handler bug where the first middleware in MIDDLEWARE
+    receives an unawaited coroutine instead of an HttpResponse as the response argument
+    in its process_response() method.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/utils/deprecation.py or django/core/handlers/base.py
+      (or both) to address the async detection / coroutine-passing bug in the middleware
+      chain.
+    weight: 3
+  - id: FC2
+    description: Confines edits to the middleware dispatch logic (MiddlewareMixin.__call__,
+      MiddlewareMixin.__acall__, MiddlewareMixin._async_check, or load_middleware/adapt_method_mode)
+      without making unrelated changes to other files.
+    weight: 2
+  - id: FC3
+    description: Adds or modifies test coverage (in tests/asgi/, tests/deprecation/,
+      or tests/middleware_exceptions/) that exercises a MiddlewareMixin-based middleware
+      placed first in the MIDDLEWARE setting under an ASGI handler.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that when a MiddlewareMixin-based middleware is the first
+      entry in MIDDLEWARE and the application runs under ASGI, the response argument
+      passed to process_response() is an HttpResponse object rather than a coroutine.
+    weight: 3
+  - id: SA2
+    description: Preserves correct behaviour for middlewares that are NOT first in
+      MIDDLEWARE, so all other middlewares still receive an HttpResponse (not a coroutine)
+      in process_response().
+    weight: 2
+  - id: SA3
+    description: Addresses the root cause by ensuring that when MiddlewareMixin's
+      get_response callable is async-capable (either a native coroutine function or
+      a sync_to_async-wrapped callable), the middleware consistently enters its async
+      code path (__acall__) rather than the sync path in __call__.
+    weight: 3
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing public API of MiddlewareMixin, including sync_capable,
+      async_capable, __call__, __acall__, and _async_check, without removing or renaming
+      them.
+    weight: 2
+  - id: I2
+    description: Does not weaken existing tests (no added skip decorators, no relaxed
+      assertions, no removal of test cases) related to MiddlewareMixin, ASGI handling,
+      or middleware dispatch.
+    weight: 2
+  - id: I3
+    description: Avoids introducing new third-party dependencies or modifying package
+      requirements in requirements files.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that under an ASGI request cycle, the _middleware_chain callable
+      awaited in get_response_async ultimately delivers an HttpResponse (not a coroutine)
+      all the way up to the outermost middleware's process_response hook, regardless
+      of where that middleware sits in the MIDDLEWARE list.
+    weight: 3
+  - id: R2
+    description: 'Ensures backward compatibility for WSGI usage: MiddlewareMixin''s
+      synchronous __call__ path continues to function correctly when get_response
+      is a plain synchronous callable, so WSGI deployments are unaffected.'
+    weight: 2
+  - id: R3
+    description: Avoids introducing any code path where asyncio.iscoroutinefunction
+      or a similar async-detection check could misidentify a sync_to_async-wrapped
+      callable (e.g., from adapt_method_mode) as non-async, which would cause the
+      sync code path in MiddlewareMixin.__call__ to be taken when the handler is actually
+      async.
+    weight: 2

@@ -1,0 +1,55 @@
+metadata:
+  task_summary: Fix codegen.ast String to support argument invariance expr.func(*expr.args)
+    == expr, like all Basic subclasses.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Removes or eliminates the effect of the line `not_in_args = ['text']`
+      in the `String` class in `sympy/codegen/ast.py`, which previously caused `text`
+      to be excluded from `Basic` args.
+    weight: 3
+  - id: FC2
+    description: Modifies `_construct_text` or adds related logic in `sympy/codegen/ast.py`
+      so that the `text` attribute can be reconstructed from args (i.e., accepts input
+      that comes back from `expr.args` rather than only a raw Python `str`).
+    weight: 2
+  - id: FC3
+    description: Confines all changes to `sympy/codegen/ast.py` and/or the codegen
+      test file, without modifying unrelated modules.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that `expr.func(*expr.args) == expr` holds for `String` instances,
+      directly addressing the argument invariance requirement stated in the PR description.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing invariance `expr.func(**expr.kwargs()) ==
+      expr` for `String`, so both reconstruction paths remain valid.
+    weight: 2
+  - id: SA3
+    description: Adds or updates a test case in the codegen ast test file that asserts
+      `st.func(*st.args) == st` for a `String` instance, covering the previously missing
+      invariance.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the `String.text` attribute so that `String('foo').text`
+      still returns `'foo'` (the Python `str` value), keeping the existing public
+      API intact.
+    weight: 3
+  - id: I2
+    description: Confirms that `QuotedString` and `Comment`, which subclass `String`,
+      are not broken by the change (they inherit the corrected behavior without requiring
+      their own `not_in_args` override).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures `String('foo').args` is non-empty (contains the text value
+      wrapped appropriately) so that the `_test_args` utility in `sympy/core/tests/test_args.py`
+      passes for `String` and `QuotedString`.
+    weight: 3
+  - id: R2
+    description: Ensures all values in `String('foo').args` are instances of `Basic`,
+      satisfying the `_test_args` `all_basic` check that guards against non-Basic
+      args being stored.
+    weight: 2

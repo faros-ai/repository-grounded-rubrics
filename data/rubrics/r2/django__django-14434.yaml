@@ -1,0 +1,55 @@
+metadata:
+  task_summary: Fix _create_unique_sql in django/db/backends/base/schema.py to pass
+    a table name string instead of a Table instance to _index_columns, so that the
+    resulting Statement's references_column returns correct results.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/db/backends/base/schema.py and no other production
+      source files, confirming the fix is confined to the correct file.
+    weight: 2
+  - id: FC2
+    description: Changes the argument passed to _index_columns inside _create_unique_sql
+      so that a table name string (such as model._meta.db_table) is used instead of
+      the Table object named 'table'.
+    weight: 3
+  - id: FC3
+    description: Avoids altering the construction of the Table object (table = Table(model._meta.db_table,
+      self.quote_name)) inside _create_unique_sql, preserving it for use in the returned
+      Statement.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause stated in the PR description: an instance
+      of Table was being passed where a string was expected when constructing Columns
+      inside _create_unique_sql.'
+    weight: 3
+  - id: SA2
+    description: Ensures the Columns (or subclass) object produced by _index_columns
+      inside _create_unique_sql has its self.table attribute set to a plain string,
+      so that the equality check in TableColumns.references_column (self.table ==
+      table) can succeed against string table names.
+    weight: 3
+  integrity_rubrics:
+  - id: I1
+    description: 'Preserves the public signature of _create_unique_sql (parameters:
+      model, columns, name, condition, deferrable, include, opclasses, expressions)
+      without adding, removing, or renaming any parameters.'
+    weight: 2
+  - id: I2
+    description: Does not weaken any existing tests (no assertIs changed to assertTrue,
+      no test removed or skipped, no assertion loosened) in the diff.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Enables Statement.references_column to return True when called with
+      the correct table name string and a column referenced by the unique constraint,
+      because the Columns object produced by _create_unique_sql now stores a string
+      table name that compares equal to the passed table argument.
+    weight: 3
+  - id: R2
+    description: 'Preserves correct deferred SQL pruning behavior: when a column is
+      deleted (remove_field), the loop that calls sql.references_column(model._meta.db_table,
+      field.column) on deferred statements can now correctly identify and remove unique-constraint
+      statements created by _create_unique_sql.'
+    weight: 2

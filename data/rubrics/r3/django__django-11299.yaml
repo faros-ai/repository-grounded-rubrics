@@ -1,0 +1,55 @@
+metadata:
+  task_summary: Fix CheckConstraint with OR operator generating fully-qualified column
+    names (using Col instead of SimpleCol) in SQL for SQLite and Oracle by ensuring
+    simple_col=True is propagated through nested Q-object recursion in _add_q.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the recursive call to `_add_q` inside `_add_q` in `django/db/models/sql/query.py`
+      (the branch handling `isinstance(child, Node)`) to forward `simple_col=simple_col`
+      instead of omitting it.
+    weight: 3
+  - id: FC2
+    description: Confines changes to the minimal set of files required to fix the
+      propagation of `simple_col` through nested Q-object processing, avoiding unrelated
+      file modifications.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test (anywhere in the diff) that exercises `CheckConstraint`
+      with a Q-object combining OR and AND clauses (e.g., `Q(flag__exact=True, field_1__isnull=False)
+      | Q(flag__exact=False)`) to catch the regression.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that the generated CHECK constraint SQL uses unqualified
+      column names (via `SimpleCol`) rather than fully-qualified `table.column` references
+      for all branches of nested OR/AND Q-objects, matching the expected SQL from
+      the PR description.
+    weight: 3
+  - id: SA2
+    description: Preserves the call to `build_where` in `CheckConstraint._get_check_sql`
+      that passes `simple_col=True` to `_add_q`, so that `SimpleCol` is used as the
+      starting point for check constraint SQL generation.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the fix does not alter the public API of `CheckConstraint`,
+      `_add_q`, or `build_where` (e.g., all existing parameters and their default
+      values remain unchanged).
+    weight: 2
+  - id: I2
+    description: Confirms that the change does not weaken, skip, or remove any existing
+      tests related to `CheckConstraint` or `_add_q`.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when `build_where` recurses into a nested `Node` child
+      of a Q-object (e.g., the AND sub-clause of an OR-level Q), the `simple_col=True`
+      flag is carried into the recursive `_add_q` call so that `SimpleCol` (not `Col`)
+      is used for column expressions at all nesting levels.
+    weight: 3
+  - id: R2
+    description: Ensures that the fix does not regress single-level (non-nested) Q-object
+      `CheckConstraint` expressions, which already correctly produced unqualified
+      column names via `simple_col=True` passed from `build_where`.
+    weight: 2

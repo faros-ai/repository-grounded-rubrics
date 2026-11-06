@@ -1,0 +1,46 @@
+metadata:
+  task_summary: Make bulk_update() return the total number of rows matched (sum of
+    update() return values per batch), analogous to update().
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the bulk_update() method in django/db/models/query.py to
+      accumulate and return the total row count from per-batch update() calls.
+    weight: 3
+  - id: FC2
+    description: Avoids editing files unrelated to the django/db/models/query.py bulk_update()
+      implementation (i.e., no spurious file churn in unrelated modules).
+    weight: 2
+  - id: FC3
+    description: Handles the early-exit path for empty objs by returning 0 (an integer)
+      rather than None, consistent with the new integer return contract.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements accumulation of the integer returned by each self.filter(pk__in=pks).update(**update_kwargs)
+      call and returns the cumulative total from bulk_update().
+    weight: 3
+  - id: SA2
+    description: Ensures the return value of bulk_update() represents the sum of rows
+      matched across all batches, matching the PR description's stated goal of summing
+      update() return values.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the bulk_update.alters_data = True assignment and all existing
+      parameter signatures (objs, fields, batch_size) without removal or renaming.
+    weight: 2
+  - id: I2
+    description: Does not weaken or remove existing test assertions in tests/queries/test_bulk_update.py
+      (no test skips, no assertion deletions, no loosening of assertNumQueries calls).
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Guarantees that bulk_update() returns an integer (not None) in all
+      non-error code paths, including when the objects list is empty.
+    weight: 3
+  - id: R2
+    description: 'Confirms backward compatibility: callers that previously discarded
+      the return value of bulk_update() are unaffected because the change only adds
+      a non-None return value.'
+    weight: 2

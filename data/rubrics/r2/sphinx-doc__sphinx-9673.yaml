@@ -1,0 +1,57 @@
+metadata:
+  task_summary: 'Fix autodoc_typehints_description_target=''documented'' not injecting
+    return type when Napoleon generates :returns: (plural) fields instead of :return:
+    (singular).'
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sphinx/ext/autodoc/typehints.py and no unrelated files,
+      keeping the diff minimal and scoped to the typehint merging logic.
+    weight: 2
+  - id: FC2
+    description: Adds handling for 'returns' (plural) alongside 'return' (singular)
+      inside augment_descriptions_with_types so that has_description.add('return')
+      is triggered when parts[0] equals 'returns'.
+    weight: 3
+  - id: FC3
+    description: 'Adds handling for ''returns'' (plural) alongside ''return'' (singular)
+      inside modify_field_list so that Napoleon-generated :returns: fields are recognised
+      when autodoc_typehints_description_target is ''all''.'
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the stated root cause: the return type was missing because
+      augment_descriptions_with_types only matched ''return'' but Napoleon emits '':returns:''
+      (plural), so the fix ensures both spellings populate has_description.'
+    weight: 3
+  - id: SA2
+    description: 'Preserves the existing behavior for :return: (singular) fields so
+      that non-Napoleon RST docstrings using :return: continue to trigger rtype injection.'
+    weight: 2
+  - id: SA3
+    description: 'Adds a test (or extends an existing test) that exercises the combination
+      of Napoleon output (:returns: fields) with autodoc_typehints_description_target=''documented'',
+      verifying the return type is injected.'
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the existing augment_descriptions_with_types and modify_field_list
+      function signatures are unchanged, preserving the public/internal API used by
+      merge_typehints.
+    weight: 2
+  - id: I2
+    description: Confirms no existing passing test cases for autodoc_typehints_description_target
+      are weakened, skipped, or removed in the diff.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when a function has a return annotation and a Napoleon-processed
+      docstring emits ':returns:', the rtype field is appended to the field_list (i.e.,
+      'return' is found in has_description before the rtype-injection guard is evaluated).
+    weight: 3
+  - id: R2
+    description: Ensures that when the function has a return annotation but no return
+      description at all (neither ':return:' nor ':returns:'), the rtype field is
+      still NOT injected under autodoc_typehints_description_target='documented',
+      maintaining the documented-only contract.
+    weight: 2

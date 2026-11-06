@@ -1,0 +1,60 @@
+metadata:
+  task_summary: Fix get_child_arguments() in django/utils/autoreload.py to correctly
+    reconstruct the -m argument when a dotted non-package module (e.g., python -m
+    foo.bar.baz where baz.py is a plain module) is used, rather than incorrectly truncating
+    to __spec__.parent.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/utils/autoreload.py and only that production source
+      file (no unrelated file churn outside of tests).
+    weight: 2
+  - id: FC2
+    description: Replaces the use of __main__.__spec__.parent as the argument to '-m'
+      with logic that selects __spec__.name (or an equivalent correct dotted name)
+      when the module is not a package __main__ entry-point, inside get_child_arguments().
+    weight: 3
+  - id: FC3
+    description: Adds or updates a test in tests/utils_tests/test_autoreload.py that
+      exercises get_child_arguments() with a non-package dotted module (e.g., utils_tests.test_module.child_module.grandchild_module)
+      and expects the full dotted name as the -m argument.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the specific bug described in the PR: when python is invoked
+      as ''python -m foo.bar.baz'' where baz.py is a plain module (not a package with
+      __main__.py), the autoreloader reconstructs the command with ''-m foo.bar.baz''
+      rather than the incorrect ''-m foo.bar''.'
+    weight: 3
+  - id: SA2
+    description: 'Preserves correct behavior for the original package case: when python
+      is invoked as ''python -m foo.bar'' where foo/bar/__main__.py exists, the autoreloader
+      still reconstructs ''-m foo.bar'' (using __spec__.parent or equivalent, not
+      __spec__.name which would be ''foo.bar.__main__'').'
+    weight: 3
+  - id: SA3
+    description: 'Preserves the existing test_run_as_module behavior: invoking with
+      django.__main__ still produces [sys.executable, ''-m'', ''django'', ''runserver'']
+      (i.e., the fix does not break the django package case).'
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing tests in tests/utils_tests/test_autoreload.py
+      are removed, weakened (e.g., assertions loosened), or skipped.
+    weight: 2
+  - id: I2
+    description: Confirms that the public function signature of get_child_arguments()
+      is unchanged (no new required parameters added).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures the fix distinguishes a plain-module invocation (where __spec__.name
+      does not end with '.__main__') from a package invocation (where __spec__.name
+      ends with '.__main__') so that the correct module name token is passed to '-m'
+      in both cases.
+    weight: 3
+  - id: R2
+    description: Ensures the guard condition for the '-m' branch still short-circuits
+      correctly when __main__.__spec__ is None or absent (e.g., Conda env, test_module_no_spec
+      case), so the fallback path using sys.argv is taken.
+    weight: 2

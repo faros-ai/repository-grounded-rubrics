@@ -1,0 +1,61 @@
+metadata:
+  task_summary: Fix TextChoices/IntegerChoices so that str() on an enum member returns
+    the primitive value (e.g., 'first') instead of the enum representation (e.g.,
+    'MyChoice.FIRST_CHOICE').
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Confines changes to django/db/models/enums.py and does not modify
+      unrelated production files such as django/db/models/fields/__init__.py or any
+      migration-related file.
+    weight: 2
+  - id: FC2
+    description: Adds a __str__ method somewhere in the diff (within the Choices,
+      TextChoices, or IntegerChoices class, or in ChoicesMeta) that returns the primitive
+      value of the enum member rather than the enum's default string representation.
+    weight: 3
+  - id: FC3
+    description: Adds or updates at least one test (anywhere in the diff) that asserts
+      str() on a TextChoices member yields its raw string value (e.g., 'first' or
+      'FR') rather than the enum representation like 'MyChoice.FIRST_CHOICE'.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures the __str__ fix covers TextChoices members so that calling
+      str() on a freshly assigned enum value returns the underlying string value,
+      matching the behavior described in the PR where str(my_object.my_str_value)
+      should equal 'first'.
+    weight: 3
+  - id: SA2
+    description: Ensures the __str__ fix also applies to IntegerChoices members so
+      that str() returns the string form of the integer value rather than the enum
+      name representation.
+    weight: 2
+  - id: SA3
+    description: Preserves the .value, .label, and .name attributes of Choices enum
+      members, leaving those semantics unchanged from the PR description's expected
+      behavior.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: 'Confirms that the repr() output of enum members (e.g., ''<YearInSchool.FRESHMAN:
+      "FR">'' or ''<Suit.DIAMOND: 1>'') is not altered, keeping repr distinct from
+      str.'
+    weight: 2
+  - id: I2
+    description: Avoids weakening existing tests in tests/model_enums/tests.py by
+      removing or commenting out assertions that verify label, value, name, or choices
+      list behavior.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Guarantees that a TextChoices member used as a model field value
+      behaves as a plain str in string contexts (e.g., str(MyChoice.FIRST_CHOICE)
+      == 'first'), eliminating the discrepancy between a freshly created object and
+      one retrieved from the database.
+    weight: 3
+  - id: R2
+    description: Ensures IntegerChoices members behave as plain int values in numeric
+      contexts so that the str() result is the digit string (e.g., str(Suit.DIAMOND)
+      == '1'), consistent with the fix applied to TextChoices.
+    weight: 2

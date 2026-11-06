@@ -1,0 +1,53 @@
+metadata:
+  task_summary: Fix makemigrations/migrate crash caused by mixed-case app names in
+    ForeignKey lazy references, where make_model_tuple did not lowercase app_label
+    when parsing a string like 'DJ_RegLogin.Category'.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/db/models/utils.py to apply .lower() to the app_label
+      component (not just model_name) when parsing a dotted string in make_model_tuple.
+    weight: 3
+  - id: FC2
+    description: Confines the fix to the minimal necessary location (make_model_tuple
+      in django/db/models/utils.py or an equivalent call site that normalises the
+      app_label) without introducing unrelated file churn.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test exercising make_model_tuple or lazy ForeignKey
+      resolution with a mixed-case app_label string (e.g. 'DJ_RegLogin.Category')
+      to confirm the fix.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that a string model reference of the form 'MixedCaseApp.ModelName'
+      passed to make_model_tuple produces a tuple whose first element is the lowercased
+      app label, matching the key used by do_pending_operations and _pending_operations.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behaviour that make_model_tuple lowercases
+      model_name (the second component of the dotted string) in addition to the newly-lowercased
+      app_label.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public signature of make_model_tuple (accepting
+      a model class, a dotted string, or a tuple) is unchanged by the patch.
+    weight: 2
+  - id: I2
+    description: Confirms that no existing tests related to model lazy operations,
+      ForeignKey resolution, or migration state are weakened, skipped, or removed
+      by the patch.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when an app is installed with a mixed-case name (e.g.
+      'DJ_RegLogin'), a ForeignKey declared with a string reference such as 'DJ_RegLogin.Category'
+      no longer raises ValueError about app 'dj_reglogin' not being installed, because
+      the pending-operations key matches the key used by do_pending_operations.
+    weight: 3
+  - id: R2
+    description: Ensures that lowercase app_label strings (e.g. 'myapp.MyModel') continue
+      to be handled correctly by make_model_tuple without regression, since lowercasing
+      an already-lowercase string is idempotent.
+    weight: 2

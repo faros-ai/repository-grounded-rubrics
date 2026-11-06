@@ -1,0 +1,62 @@
+metadata:
+  task_summary: Fix replace_named_groups() (and replace_unnamed_groups()) in django/contrib/admindocs/utils.py
+    to correctly handle the final named/unnamed group when the URL pattern has no
+    trailing character after the closing parenthesis.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/contrib/admindocs/utils.py and no unrelated production
+      files, keeping the diff minimal and targeted to the reported bug.
+    weight: 2
+  - id: FC2
+    description: Fixes the inner for-loop in replace_named_groups() so that when the
+      loop exhausts pattern[end:] with unmatched_open_brackets equal to 0, the trailing
+      named group is still appended to group_pattern_and_name (e.g., via a for-else
+      clause or a post-loop check).
+    weight: 3
+  - id: FC3
+    description: Applies the same trailing-group fix to replace_unnamed_groups(),
+      because its inner for-loop over pattern[start + 1:] has the identical structural
+      flaw.
+    weight: 2
+  - id: FC4
+    description: Does not alter the named_group_matcher or unnamed_group_matcher regex
+      definitions, preserving existing group-detection behaviour.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the stated failure case: a pattern such as entries/(?P<pk>[^/.]+)/relationships/(?P<related_field>\w+)
+      (no trailing slash) now has its last named group replaced correctly by replace_named_groups().'
+    weight: 3
+  - id: SA2
+    description: Preserves correct behaviour for patterns that do have a trailing
+      slash or trailing character after the final group, so existing passing cases
+      are unaffected.
+    weight: 2
+  - id: SA3
+    description: Adds or updates at least one test case in tests/admin_docs/ that
+      exercises replace_named_groups() or replace_unnamed_groups() with a pattern
+      that ends without a trailing slash after the final group.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public signatures of replace_named_groups() and
+      replace_unnamed_groups() remain unchanged (same name, same single pattern argument,
+      same string return type).
+    weight: 3
+  - id: I2
+    description: Confirms that no existing test cases for replace_named_groups() or
+      replace_unnamed_groups() are removed, skipped, or weakened.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when unmatched_open_brackets reaches 0 at the very end
+      of the scanned substring (i.e., the for-loop ends naturally), the last group
+      is still recorded, so replace_named_groups() returns a string where every named
+      group token is substituted.
+    weight: 3
+  - id: R2
+    description: Ensures that replace_named_groups() still correctly handles nested
+      parentheses inside a named group (e.g., (?P<a>(x|y))) regardless of whether
+      the group appears at the end of the pattern or in the middle.
+    weight: 2

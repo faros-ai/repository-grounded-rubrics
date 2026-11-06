@@ -1,0 +1,64 @@
+metadata:
+  task_summary: 'Fix napoleon extension to correctly render multiple comma-separated
+    parameter names (e.g., ''x1, x2 : array_like'') when napoleon_use_param=True,
+    emitting individual :param: and :type: directives for each name.'
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sphinx/ext/napoleon/docstring.py and limits changes to that
+      file (or closely related napoleon extension files), avoiding unrelated file
+      churn.
+    weight: 3
+  - id: FC2
+    description: Modifies the _format_docutils_params method (or the _parse_parameters_section
+      code path that invokes it) in sphinx/ext/napoleon/docstring.py to handle multi-name
+      fields.
+    weight: 3
+  - id: FC3
+    description: Adds logic somewhere in the diff that splits a comma-separated parameter
+      name (e.g., 'x1, x2') into individual names before constructing ':param:' directives.
+    weight: 3
+  - id: FC4
+    description: 'Adds or updates at least one test case in tests/test_ext_napoleon_docstring.py
+      that exercises comma-separated parameter names such as ''x1, x2 : array_like''
+      or ''x1, x2 : array_like, optional''.'
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that when napoleon_use_param=True, a field with a comma-separated
+      name like 'x1, x2' generates individual ':param x1:' and ':param x2:' directives
+      rather than a single ':param x1, x2:' directive.
+    weight: 3
+  - id: SA2
+    description: 'Ensures that when napoleon_use_param=True and the type annotation
+      includes ''optional'' (e.g., ''x1, x2 : array_like, optional''), both '':type
+      x1:'' and '':type x2:'' directives are emitted so ''optional'' is visible in
+      the rendered output.'
+    weight: 3
+  - id: SA3
+    description: Preserves the existing behavior for single-name parameters (non-comma-separated)
+      when napoleon_use_param=True, so that ':param name:' and ':type name:' are still
+      generated correctly.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing tests in test_ext_napoleon_docstring.py
+      or test_ext_napoleon.py are deleted, skipped, or weakened (e.g., assertions
+      are not removed or replaced with weaker checks).
+    weight: 2
+  - id: I2
+    description: Confirms that the _format_fields code path (used when napoleon_use_param=False)
+      is not modified, preserving the bold-name rendering for users not using napoleon_use_param.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: 'Ensures that when a docstring parameter line has the form ''x1,
+      x2 : type'', the rendered output contains separate :param: entries for each
+      of x1 and x2 individually, not a combined '':param x1, x2:'' entry that Sphinx
+      cannot resolve.'
+    weight: 3
+  - id: R2
+    description: Ensures that the description text associated with 'x1, x2' (the indented
+      block) is attached to the first or each generated ':param:' directive, not silently
+      dropped.
+    weight: 2

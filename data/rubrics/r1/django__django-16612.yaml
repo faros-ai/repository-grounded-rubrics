@@ -1,0 +1,56 @@
+metadata:
+  task_summary: Fix AdminSite.catch_all_view() to preserve the query string when issuing
+    APPEND_SLASH permanent redirects.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the redirect line inside catch_all_view in django/contrib/admin/sites.py
+      so it appends the query string to the redirect URL instead of using only request.path.
+    weight: 3
+  - id: FC2
+    description: Confines the code change to django/contrib/admin/sites.py (i.e.,
+      the diff does not introduce unrelated file edits outside of tests and sites.py).
+    weight: 2
+  - id: FC3
+    description: Adds a test case (anywhere in the test suite for admin views) that
+      exercises catch_all_view with a query string present, verifying the redirect
+      target includes the query string.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Replaces the bare 'HttpResponsePermanentRedirect("%s/" % request.path)'
+      expression with one that incorporates request.META['QUERY_STRING'] (or an equivalent
+      query-string source such as request.GET.urlencode()) so the redirect URL includes
+      the query string when one is present.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing redirect behavior when no query string is
+      present (i.e., the redirect still appends a trailing slash to request.path when
+      APPEND_SLASH=True and the URL resolves with the slash).
+    weight: 2
+  - id: SA3
+    description: Does not alter the logic that checks settings.APPEND_SLASH, the Resolver404
+      exception handling, or the should_append_slash attribute guard in catch_all_view.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing tests for catch_all_view are removed or
+      weakened (e.g., no assertions replaced with pass, no @skip decorators added,
+      no expected status codes changed from 301).
+    weight: 3
+  - id: I2
+    description: Confirms that the public signature of catch_all_view(self, request,
+      url) is unchanged.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when a request arrives at catch_all_view with a non-empty
+      QUERY_STRING (e.g., 'id=123'), the returned HttpResponsePermanentRedirect location
+      includes both the trailing slash appended to request.path and the original query
+      string (e.g., '/admin/auth/foo/?id=123').
+    weight: 3
+  - id: R2
+    description: Ensures that when request.META['QUERY_STRING'] is empty or absent,
+      the redirect location is exactly request.path with a trailing slash appended,
+      with no spurious '?' character appended.
+    weight: 2

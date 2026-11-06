@@ -1,0 +1,75 @@
+metadata:
+  task_summary: Fix bad-names-rgxs mangling regular expressions that contain commas
+    by changing how the comma-separated regex list is parsed in _regexp_csv_transfomer.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `_regexp_csv_transfomer` function in `pylint/config/argument.py`
+      to no longer use naive comma-splitting (via `_csv_transformer`) when tokenising
+      regex patterns.
+    weight: 3
+  - id: FC2
+    description: Confines the core logic change to `pylint/config/argument.py` (and
+      optionally related test files), without introducing unrelated file churn across
+      the repo.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test (anywhere in the diff) that exercises `_regexp_csv_transfomer`
+      or the `--bad-names-rgxs` / `--bad-name-rgxs` option with a regex pattern containing
+      a comma, such as `(foo{1,3})`.
+    weight: 1
+  - id: FC4
+    description: Does not modify `_csv_transformer` or `_splitstrip` in a way that
+      would affect other CSV options that do not involve regex patterns (i.e., the
+      fix is scoped to the regex-CSV transformer, not to generic CSV parsing).
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements parsing logic in `_regexp_csv_transfomer` that correctly
+      handles commas appearing inside regex quantifiers such as `{1,3}` or inside
+      groups, so that a pattern like `(foo{1,3})` is treated as a single regex, not
+      split into two broken fragments.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behaviour of `_regexp_csv_transfomer` for
+      comma-separated lists of simple regexes that contain no commas (e.g., `foo,bar`
+      still produces two compiled patterns).
+    weight: 3
+  - id: SA3
+    description: Ensures that an invalid regex passed to `_regexp_csv_transfomer`
+      still raises an `argparse.ArgumentTypeError` with an error message containing
+      the text `Error in provided regular expression`, consistent with the error handling
+      in `_regex_transformer`.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the existing `test_csv_regex_error` test (which checks
+      that a split-mangled pattern raises a descriptive error) is either updated to
+      reflect the new correct behaviour or replaced by a test that validates the same
+      error-handling path for a genuinely invalid regex.
+    weight: 2
+  - id: I2
+    description: Preserves the public `_TYPE_TRANSFORMERS` dictionary entry `regexp_csv`
+      pointing to `_regexp_csv_transfomer`, keeping the external configuration interface
+      unchanged.
+    weight: 2
+  - id: I3
+    description: Avoids weakening tests by removing assertions or replacing them with
+      unconditional passes; any changed test must still assert a meaningful outcome.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that pylint does not crash (no unhandled `re.error` traceback)
+      when `bad-names-rgxs` is configured with a regex containing a comma inside a
+      quantifier such as `{1,3}`.
+    weight: 3
+  - id: R2
+    description: Ensures that when multiple regex patterns are provided as a comma-separated
+      list and each pattern is independently valid, all patterns are compiled and
+      returned as separate `Pattern[str]` objects.
+    weight: 2
+  - id: R3
+    description: Ensures that a genuinely invalid regex (one that is invalid regardless
+      of comma-splitting) still results in an `argparse.ArgumentTypeError` being raised
+      rather than silently ignored, preserving error-surface clarity.
+    weight: 2

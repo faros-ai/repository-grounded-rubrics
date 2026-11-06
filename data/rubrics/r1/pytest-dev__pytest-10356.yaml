@@ -1,0 +1,67 @@
+metadata:
+  task_summary: Fix pytest marker inheritance when a test class inherits from multiple
+    base classes with distinct markers, by considering MRO when collecting pytestmark
+    attributes.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `get_unpacked_marks` function in `src/_pytest/mark/structures.py`
+      to handle classes differently from non-class objects by walking the MRO.
+    weight: 3
+  - id: FC2
+    description: Reads `pytestmark` from each class in `__mro__` individually via
+      `__dict__` (or equivalent own-dict access) rather than relying on a single `getattr(obj,
+      'pytestmark', [])` call that follows Python's normal attribute lookup.
+    weight: 3
+  - id: FC3
+    description: Avoids modifying unrelated files outside of the mark-handling or
+      Python-collection code paths (i.e., no churn in unrelated modules such as terminal,
+      config, or fixtures).
+    weight: 2
+  - id: FC4
+    description: Adds a test case (anywhere in the test suite) that exercises marker
+      collection when a test class inherits from multiple base classes each decorated
+      with a distinct `pytest.mark`.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures marks from all classes in the MRO are accumulated rather
+      than only the first `pytestmark` found by normal attribute lookup, addressing
+      the described loss of markers from sibling base classes.
+    weight: 3
+  - id: SA2
+    description: Preserves existing linear-inheritance behavior where marks from a
+      chain of base classes (e.g., `Test1(Base2)` where `Base2(Base)`) continue to
+      be merged correctly.
+    weight: 2
+  - id: SA3
+    description: Uses `inspect.isclass` (already imported in `structures.py`) or an
+      equivalent isinstance/type check to gate the MRO-walking logic so it only applies
+      to class objects.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the public signature of `get_unpacked_marks(obj)` unchanged
+      so callers in `python.py` and elsewhere do not require updates.
+    weight: 3
+  - id: I2
+    description: Confirms existing tests for `test_mark_decorator_baseclasses_merged`,
+      `test_mark_should_not_pass_to_siebling_class`, and `test_mark_decorator_subclass_does_not_propagate_to_base`
+      are not weakened or deleted.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Guarantees that a test method on a class inheriting from two separately
+      marked base classes receives markers from both base classes (e.g., both `foo`
+      and `bar` appear on `test_dings` in the PR repro scenario).
+    weight: 3
+  - id: R2
+    description: Avoids duplicate marker entries when the same `pytestmark` is reachable
+      via multiple MRO paths (e.g., a shared base class appearing more than once in
+      the MRO linearization).
+    weight: 2
+  - id: R3
+    description: Maintains backward-compatible behavior for non-class objects (plain
+      functions, modules) where `get_unpacked_marks` continues to use a simple `getattr`-based
+      lookup without MRO traversal.
+    weight: 2

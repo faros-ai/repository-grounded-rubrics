@@ -1,0 +1,70 @@
+metadata:
+  task_summary: Fix `_check_homomorphism` incorrectly raising `ValueError` for valid
+    `PermutationGroup` homomorphisms when relator elements include inverted generators.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies `_check_homomorphism` (or its inner `_image` function) in
+      `sympy/combinatorics/homomorphisms.py` to fix the bug, and only that function.
+    weight: 3
+  - id: FC2
+    description: Removes or replaces the specific buggy guard `if isinstance(domain,
+      PermutationGroup) and r[i] in gens` that fails for inverted generators in the
+      `_image` inner function.
+    weight: 3
+  - id: FC3
+    description: Avoids changes to unrelated files or functions outside `_check_homomorphism`
+      and its helpers in `sympy/combinatorics/homomorphisms.py`.
+    weight: 2
+  - id: FC4
+    description: Adds a test case (anywhere in the test suite) that exercises `homomorphism(D3,
+      D3, D3.generators, D3.generators)` on `DihedralGroup(3)` without raising `ValueError`,
+      as demonstrated in the PR description.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Fixes the root cause identified in the PR description: the `in gens`
+      membership test failing for inverted generators when `domain` is a `PermutationGroup`.'
+    weight: 3
+  - id: SA2
+    description: Ensures the fix handles both forward generators and their inverses
+      (e.g., `r[i]` that is an inverted generator) when computing `_image` for `PermutationGroup`
+      relators.
+    weight: 3
+  - id: SA3
+    description: Simplifies or removes the dual-index (`i` and `j`) traversal logic
+      in `_image` if the approach no longer requires separately tracking `r[i]` and
+      `r_arr[j]`, consistent with the PR description's hint that the function can
+      be greatly simplified.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: 'Preserves the `_check_homomorphism` public behavior: returns `True`
+      for valid homomorphisms and `False` (or raises) for invalid ones, without weakening
+      or skipping existing assertions.'
+    weight: 3
+  - id: I2
+    description: Preserves the existing `FpGroup` and `FreeGroup` code paths in `_check_homomorphism`,
+      not removing or altering the `codomain.equals` branch or the non-`PermutationGroup`
+      domain handling.
+    weight: 2
+  - id: I3
+    description: Does not change the public signature of `homomorphism`, `_check_homomorphism`,
+      or `GroupHomomorphism` in ways not required by the fix.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Enables `homomorphism(D3, D3, D3.generators, D3.generators)` for
+      `DihedralGroup(3)` to return a valid `GroupHomomorphism` rather than raising
+      `ValueError`.
+    weight: 3
+  - id: R2
+    description: Correctly handles relator elements that are inverted generators (negative
+      power) in the `_image` function for `PermutationGroup` domains, so that `images[s**-1]**-1`
+      or equivalent is applied instead of wrongly looking up `s` directly.
+    weight: 3
+  - id: R3
+    description: 'Preserves correct rejection of invalid homomorphisms: a `PermutationGroup`-domain
+      call with images that do not satisfy the group relations still returns `False`
+      from `_check_homomorphism` and raises `ValueError` from `homomorphism`.'
+    weight: 2

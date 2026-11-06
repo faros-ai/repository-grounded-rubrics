@@ -1,0 +1,82 @@
+metadata:
+  task_summary: 'Allow :private-members: to accept a comma-separated list of specific
+    private member names, analogous to how :members: and :special-members: already
+    work.'
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Changes the option parser for 'private-members' from bool_option
+      to members_option (or an equivalent that returns ALL when given no argument
+      and a list of strings when given a comma-separated argument) in ModuleDocumenter.option_spec
+      inside sphinx/ext/autodoc/__init__.py.
+    weight: 3
+  - id: FC2
+    description: Changes the option parser for 'private-members' from bool_option
+      to members_option (or an equivalent) in ClassDocumenter.option_spec inside sphinx/ext/autodoc/__init__.py.
+    weight: 3
+  - id: FC3
+    description: Updates the filter_members method in sphinx/ext/autodoc/__init__.py
+      to check whether private_members is ALL (include all private members) versus
+      a specific list (include only named members), mirroring the existing special_members
+      branching pattern that uses 'is ALL' and 'in self.options.special_members'.
+    weight: 3
+  - id: FC4
+    description: Confines all changes to sphinx/ext/autodoc/__init__.py and optionally
+      sphinx/ext/autodoc/directive.py or documentation files, without modifying unrelated
+      modules or adding new top-level dependency packages.
+    weight: 2
+  - id: FC5
+    description: 'Updates documentation (e.g., doc/usage/extensions/autodoc.rst) to
+      describe that :private-members: can now accept an optional comma-separated list
+      of member names, analogous to the existing :special-members: versionchanged
+      note.'
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Implements support for :private-members: with no argument to retain
+      the existing all-private-members behavior (backward compatibility with the flag-only
+      form).'
+    weight: 3
+  - id: SA2
+    description: 'Implements support for :private-members: with a comma-separated
+      argument list so that only the explicitly named private members are included
+      in the output, mirroring the behavior of :members: with an explicit list.'
+    weight: 3
+  - id: SA3
+    description: 'Adds or updates tests that exercise :private-members: with a specific
+      list of member names, verifying that only the named members appear in the generated
+      output.'
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: 'Confirms that existing uses of :private-members: without arguments
+      (the boolean flag form) continue to work and include all private members, preserving
+      the pre-patch public API contract.'
+    weight: 3
+  - id: I2
+    description: Avoids weakening or skipping any existing tests for private-members
+      behavior (no @pytest.mark.skip, no removal of existing assertions relating to
+      private-members).
+    weight: 2
+  - id: I3
+    description: 'Avoids introducing a merge_private_members_option that changes the
+      semantics of :members: or any other unrelated option, ensuring the scope of
+      the change is limited to private-members handling.'
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: 'Ensures that when :private-members: is given a list (e.g., ''_foo,
+      _bar''), members not in that list are excluded even if they are private, so
+      the filtering logic differentiates between ALL and a specific list at runtime.'
+    weight: 3
+  - id: R2
+    description: 'Ensures that the members_option (or equivalent) parsing of :private-members:
+      returns the sentinel ALL object when no argument is provided, so existing flag-only
+      usage does not raise an error or return an empty list.'
+    weight: 3
+  - id: R3
+    description: Ensures both attr_docs-backed private members (the '(namespace, membername)
+      in attr_docs' branch) and non-attr_docs private members (the 'want_all and isprivate'
+      branch) in filter_members respect the new specific-list filtering, so neither
+      code path silently ignores the named-member restriction.
+    weight: 2

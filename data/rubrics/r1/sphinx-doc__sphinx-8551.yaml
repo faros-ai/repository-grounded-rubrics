@@ -1,0 +1,61 @@
+metadata:
+  task_summary: 'Fix false ambiguous cross-reference warnings for :type: and :rtype:
+    info fields in the Python domain by propagating the current py:module and py:class
+    context onto the pending xref nodes created by those fields.'
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Adds a `process_field_xref` method to `PythonDomain` in `sphinx/domains/python.py`,
+      overriding the no-op base implementation from `Domain.process_field_xref`.
+    weight: 3
+  - id: FC2
+    description: Confirms that the `process_field_xref` implementation in `PythonDomain`
+      sets both `py:module` and `py:class` on the pnode using values from `env.ref_context`,
+      mirroring the assignments in `PyXRefRole.process_link`.
+    weight: 3
+  - id: FC3
+    description: Confirms that changes are confined to `sphinx/domains/python.py`
+      (and optionally test files), without modifying unrelated files such as `sphinx/util/docfields.py`,
+      `sphinx/domains/__init__.py`, or other domain files.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Ensures that unqualified type names in `:param type name:`, `:type:`,
+      and `:rtype:` fields are resolved under the current `py:currentmodule` context,
+      so that `A` under `.. py:currentmodule:: mod.submod` is scoped to `mod.submod`
+      rather than searched across all modules.'
+    weight: 3
+  - id: SA2
+    description: Ensures the fix removes the false 'more than one target found for
+      cross-reference' warning that arises when both `mod.A` and `mod.submod.A` exist
+      and an unqualified `A` appears in an info field while `py:currentmodule` is
+      active.
+    weight: 3
+  - id: SA3
+    description: Confirms that fully qualified names (e.g., `mod.A`, `mod.submod.A`)
+      in `:param:` and `:rtype:` fields continue to resolve correctly regardless of
+      the `py:currentmodule` setting.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the existing `PyXRefRole.process_link` method is not
+      modified or removed, preserving the behavior of explicit `:py:class:` and similar
+      cross-reference roles.
+    weight: 2
+  - id: I2
+    description: Confirms that no existing tests are weakened, deleted, or have their
+      assertions relaxed to accommodate the new behavior.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that pending xref nodes emitted from `TypedField.make_field`
+      and `Field.make_field` for the Python domain carry the `py:module` attribute
+      from `env.ref_context`, so `PythonDomain.find_obj` receives a non-None `modname`
+      and skips the fuzzy suffix-match that causes multi-match results.
+    weight: 3
+  - id: R2
+    description: Ensures that when no `py:currentmodule` is active (i.e., `env.ref_context`
+      has no `py:module` key), the `process_field_xref` implementation returns `None`
+      (via `dict.get`) rather than raising `KeyError`, preserving backward-compatible
+      behavior for unscoped documents.
+    weight: 2

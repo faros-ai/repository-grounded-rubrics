@@ -1,0 +1,52 @@
+metadata:
+  task_summary: Fix S(0.0) == S.false returning True by correcting the ordering of
+    checks in Float.__eq__ so that Boolean instances are excluded before the zero-shortcut
+    path.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies Float.__eq__ in sympy/core/numbers.py so that the Boolean
+      isinstance guard appears before the 'if not self' early-return branch.
+    weight: 3
+  - id: FC2
+    description: Confines the production-code change to sympy/core/numbers.py without
+      modifying unrelated files or symbols outside the Float.__eq__ method or nearby
+      equality helpers.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test (anywhere in the diff) that asserts S(0.0)
+      != S.false and S.false != S(0.0), covering the exact asymmetry reported in the
+      PR description.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures Float(0.0).__eq__(S.false) returns False, matching the symmetric
+      S(0) == S.false == False behavior described in the PR.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior that S(0.0) == False (plain Python
+      bool) still returns True, since the PR only targets S.false (BooleanFalse),
+      not Python's False.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the fix does not weaken any pre-existing assertions
+      in test_bool_eq or test_Float_eq (e.g., does not remove or relax 'S(0) != S.false',
+      'S.One != S.true', or 'Float(.5) == Float(.5)' style checks).
+    weight: 2
+  - id: I2
+    description: Avoids altering the public signature or return type of Float.__eq__;
+      the method still returns a plain Python bool (True/False) or NotImplemented,
+      not a SymPy Boolean expression.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that Float.__eq__ checks isinstance(other, Boolean) before
+      evaluating 'if not self', so that S(0.0).__eq__(S.false) cannot short-circuit
+      to 'not S.false' (which would yield True).
+    weight: 3
+  - id: R2
+    description: 'Maintains symmetric equality: S.false == S(0.0) and S(0.0) == S.false
+      both return False, eliminating the order-dependent discrepancy described in
+      the PR.'
+    weight: 3

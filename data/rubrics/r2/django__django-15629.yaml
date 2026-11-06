@@ -1,0 +1,76 @@
+metadata:
+  task_summary: Propagate db_collation from a primary key CharField/TextField to referencing
+    ForeignKey columns so that MySQL ALTER TABLE statements include the correct COLLATE
+    clause on FK columns.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/db/models/fields/__init__.py to add collation propagation
+      logic for CharField or TextField (e.g., overriding rel_db_type or adding a rel_db_parameters
+      method that includes the collation key).
+    weight: 3
+  - id: FC2
+    description: Modifies django/db/backends/base/schema.py in the rels_to_update
+      loop (within alter_field) to retrieve and apply the collation of the target
+      field when altering related FK columns, e.g., by calling _alter_column_collation_sql
+      or passing collation through to the ALTER COLUMN statement.
+    weight: 3
+  - id: FC3
+    description: Limits file changes to the schema editor and/or field definition
+      files directly involved in collation propagation, without modifying unrelated
+      files (e.g., no changes to ORM query layer, admin, or form fields).
+    weight: 2
+  - id: FC4
+    description: Adds or updates tests in tests/schema/tests.py that exercise altering
+      a primary key CharField with db_collation when ForeignKey or OneToOneField columns
+      reference it, verifying the FK column collation is updated.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that when a CharField or TextField primary key with db_collation
+      is altered, the SQL emitted for related FK columns includes the COLLATE clause
+      (matching the PR description's required ALTER TABLE output for account_id columns).
+    weight: 3
+  - id: SA2
+    description: Handles both ForeignKey and OneToOneField referencing columns (as
+      shown in the PR description with Address.account and Profile.account) by propagating
+      collation through the rels_to_update loop.
+    weight: 2
+  - id: SA3
+    description: Propagates the collation from the referenced primary key field (e.g.,
+      Account.id with db_collation='utf8_bin') to the FK column (e.g., Address.account_id)
+      rather than only altering the PK column's type.
+    weight: 3
+  integrity_rubrics:
+  - id: I1
+    description: Preserves existing behavior for FK columns that reference integer
+      or other non-collated primary keys (the collation key is absent or None, so
+      those paths are unaffected by the change).
+    weight: 2
+  - id: I2
+    description: Preserves the public API of rel_db_type (if overridden) by still
+      returning the correct type string, and does not remove or rename any existing
+      public method on CharField, TextField, or ForeignKey.
+    weight: 2
+  - id: I3
+    description: Does not weaken any existing collation-related tests (no skips, xfails,
+      or condition removals on tests such as test_db_collation_charfield, test_alter_field_db_collation,
+      or test_alter_primary_key_db_collation).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: When altering a CharField primary key that has db_collation set,
+      the schema editor emits a separate COLLATE clause in the ALTER COLUMN statement
+      for each referencing FK column (via _alter_column_collation_sql or equivalent),
+      not just a bare type-change statement.
+    weight: 3
+  - id: R2
+    description: When the referenced primary key has no db_collation (collation is
+      None), the rels_to_update loop falls back to the existing type-only ALTER COLUMN
+      path, preserving backward-compatible behavior for non-collated references.
+    weight: 2
+  - id: R3
+    description: The fix does not introduce collation into FK columns that reference
+      non-text primary keys (e.g., IntegerField, BigAutoField), so those FK column
+      ALTER TABLE statements remain unchanged.
+    weight: 2

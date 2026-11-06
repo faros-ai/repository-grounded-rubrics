@@ -1,0 +1,64 @@
+metadata:
+  task_summary: Fix StratifiedKFold so that shuffle=True actually shuffles samples
+    within each stratum rather than only reordering the folds, by using check_random_state
+    in _make_test_folds.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the _make_test_folds method of StratifiedKFold in sklearn/model_selection/_split.py
+      to replace the raw assignment 'rng = self.random_state' with a call to check_random_state
+      (e.g., 'rng = check_random_state(self.random_state)') so that rng is a proper
+      RandomState object.
+    weight: 3
+  - id: FC2
+    description: Confines changes to the StratifiedKFold-related code in sklearn/model_selection/_split.py
+      without modifying unrelated splitter classes (such as KFold, GroupKFold, ShuffleSplit,
+      or StratifiedShuffleSplit).
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test in sklearn/model_selection/tests/test_split.py
+      that exercises StratifiedKFold with shuffle=True and two different random_state
+      seeds, verifying that the resulting test-fold memberships differ between seeds.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that when shuffle=True, the samples within each stratum (class)
+      are shuffled before fold assignment, so that different random_state seeds produce
+      structurally different fold compositions (not merely the same folds in a different
+      order).
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior of StratifiedKFold when shuffle=False
+      by not applying any shuffling logic in _make_test_folds when self.shuffle is
+      False.
+    weight: 2
+  - id: SA3
+    description: Passes the initialized RandomState object (rng) into each per-class
+      KFold constructor call so that successive classes consume different parts of
+      the random stream, producing independent shuffles per stratum.
+    weight: 3
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public API of StratifiedKFold (constructor signature
+      with n_splits, shuffle, random_state parameters and the split method) is not
+      changed.
+    weight: 2
+  - id: I2
+    description: Confirms that existing tests for StratifiedKFold (such as test_stratified_kfold_no_shuffle
+      and test_shuffle_stratifiedkfold) are not weakened, skipped, or removed.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that two StratifiedKFold instances with shuffle=True and
+      different integer random_state seeds produce test fold index sets that differ
+      in membership, not just in order, when split on the same data.
+    weight: 3
+  - id: R2
+    description: Ensures that StratifiedKFold with shuffle=True and the same random_state
+      seed produces identical splits across multiple calls to split, preserving reproducibility.
+    weight: 2
+  - id: R3
+    description: Ensures that StratifiedKFold with shuffle=False produces the same
+      fold assignments regardless of what value random_state is set to, maintaining
+      deterministic non-shuffled behavior.
+    weight: 2

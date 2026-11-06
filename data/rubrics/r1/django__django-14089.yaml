@@ -1,0 +1,48 @@
+metadata:
+  task_summary: Add a __reversed__() method to the OrderedSet class in django/utils/datastructures.py
+    so that reversed() can be called on OrderedSet instances.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Implements the change exclusively within django/utils/datastructures.py
+      (i.e., the diff does not modify unrelated production files).
+    weight: 2
+  - id: FC2
+    description: Adds a def __reversed__( method definition inside the OrderedSet
+      class in django/utils/datastructures.py.
+    weight: 3
+  - id: FC3
+    description: Delegates __reversed__ to the reversed() or keys() iterator of self.dict,
+      using the underlying dict's natural reverse iteration support.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements __reversed__ as an instance method on OrderedSet (not
+      a standalone function or mixin), matching the PR description's requirement to
+      add __reversed__() to OrderedSet.
+    weight: 3
+  - id: SA2
+    description: Adds a test or assertion (anywhere in the diff) exercising reversed()
+      on an OrderedSet instance, covering the newly supported behavior described in
+      the PR.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the existing OrderedSet public methods (__iter__, __contains__,
+      __bool__, __len__, add, remove, discard) remain present and unmodified in the
+      diff.
+    weight: 3
+  - id: I2
+    description: Avoids introducing new imports or dependencies into django/utils/datastructures.py
+      beyond what is already present (the fix should require no new import).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that calling reversed() on an OrderedSet returns items in
+      insertion-order reversed (last inserted first), consistent with how reversed(self.dict)
+      behaves on Python 3.8+ dicts.
+    weight: 3
+  - id: R2
+    description: Confirms that __reversed__ returns an iterator (not a list or tuple),
+      preserving lazy evaluation semantics consistent with __iter__ returning iter(self.dict).
+    weight: 2

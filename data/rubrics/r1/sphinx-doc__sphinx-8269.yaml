@@ -1,0 +1,52 @@
+metadata:
+  task_summary: When linkcheck_anchors is True and a URL with an anchor returns an
+    HTTP error (e.g. 404), report the HTTP error instead of 'Anchor not found'.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sphinx/builders/linkcheck.py and no unrelated files are
+      touched (no mass renames, no dependency churn outside this single builder file).
+    weight: 3
+  - id: FC2
+    description: 'Adds a call to response.raise_for_status() in the anchor-checking
+      branch (the if anchor and self.app.config.linkcheck_anchors: block) in sphinx/builders/linkcheck.py,
+      so HTTP errors surface before the anchor search.'
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that an HTTP error response (such as 404) from the server
+      is reported as a broken link with the HTTP error message rather than 'Anchor
+      not found' when linkcheck_anchors is True.
+    weight: 3
+  - id: SA2
+    description: 'Preserves the existing behavior for non-error responses: when the
+      server responds with 2xx and the anchor is missing, still reports ''Anchor not
+      found''.'
+    weight: 2
+  - id: SA3
+    description: Preserves the existing HTTPError handling (the except HTTPError as
+      err block that distinguishes 401, 503, and other errors) so that the HTTP error
+      raised by raise_for_status() is caught and classified correctly.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms the public API and configuration values (linkcheck_anchors,
+      linkcheck_anchors_ignore, linkcheck_workers, etc.) remain unchanged in the setup()
+      function.
+    weight: 2
+  - id: I2
+    description: Confirms no existing test assertions are weakened or removed (no
+      test marked skip, no assert replaced with a weaker check, no test deleted).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when the server returns a 4xx or 5xx status for a URL
+      that contains an anchor fragment, the broken link info string contains the HTTP
+      error description (not the string 'Anchor') so the output matches what linkcheck_anchors=False
+      would produce.
+    weight: 3
+  - id: R2
+    description: Ensures that 401 Unauthorized responses for anchor URLs are still
+      classified as 'working' (returned as 'working', ' - unauthorized', 0) rather
+      than 'broken', preserving the existing special-case handling.
+    weight: 2

@@ -1,0 +1,61 @@
+metadata:
+  task_summary: Expose the existing skip_checks stealth option as a --skip-checks
+    CLI argument on management commands so users can bypass system checks from the
+    command line.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Adds a '--skip-checks' argument via parser.add_argument in the create_parser
+      method of BaseCommand in django/core/management/base.py, using action='store_true'
+      or equivalent boolean flag.
+    weight: 3
+  - id: FC2
+    description: Removes 'skip_checks' from the base_stealth_options tuple in BaseCommand
+      in django/core/management/base.py, since it is no longer a stealth option but
+      a declared argument.
+    weight: 3
+  - id: FC3
+    description: Adds '--skip-checks' to the DjangoHelpFormatter.show_last set in
+      django/core/management/base.py so that the new flag is grouped with other common
+      options in the help output.
+    weight: 2
+  - id: FC4
+    description: 'Removes or replaces the call_command block ''if skip_checks not
+      in options: defaults[skip_checks] = True'' in django/core/management/__init__.py,
+      since skip_checks is now a proper parser argument with a default value rather
+      than a stealth option that must be manually injected.'
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements --skip-checks as a command-line option that, when passed,
+      causes execute() to skip calling self.check() even when requires_system_checks
+      is True, matching the PR description's goal of bypassing system checks from
+      the command line.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior of call_command so that programmatic
+      callers that pass skip_checks=True still bypass system checks (backward-compatible
+      behavior for the programmatic API).
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the execute() method in BaseCommand still reads skip_checks
+      from options (via options.get('skip_checks') or equivalent) without restructuring
+      the check-skipping logic, preserving the existing conditional guard.
+    weight: 2
+  - id: I2
+    description: Confirms that no unrelated files are modified beyond django/core/management/base.py
+      and django/core/management/__init__.py (and any accompanying test/doc files),
+      avoiding unnecessary code churn.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when --skip-checks is not passed on the command line,
+      system checks still run as before (the default value of the new argument is
+      False, not True), preserving the existing default behavior.
+    weight: 3
+  - id: R2
+    description: Ensures the --skip-checks flag appears in the --help output of management
+      commands (i.e., it is added to the argument parser rather than remaining a stealth
+      option), giving users discoverability of the option.
+    weight: 2

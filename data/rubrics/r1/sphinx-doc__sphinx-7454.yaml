@@ -1,0 +1,58 @@
+metadata:
+  task_summary: Fix _parse_annotation in sphinx/domains/python.py to handle ast.Constant/ast.NameConstant
+    nodes so that None in type-hint signatures generates a cross-reference link just
+    as it does in description mode.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the _parse_annotation function (or its inner unparse helper)
+      in sphinx/domains/python.py to add a branch handling ast.Constant or ast.NameConstant
+      AST node types.
+    weight: 3
+  - id: FC2
+    description: Avoids unrelated file churn — changes are confined to the files directly
+      involved in annotation parsing or xref resolution (e.g. sphinx/domains/python.py
+      and optionally its test file), and do not modify unrelated modules.
+    weight: 2
+  - id: FC3
+    description: Introduces or adjusts make_xref logic (either inside _parse_annotation
+      or in builtin_resolver) so that a pending_xref with reftarget='None' uses reftype='obj'
+      rather than reftype='class', mirroring the behavior of PyXrefMixin.make_xref.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the stated asymmetry: after the fix, None in a return
+      annotation produces a clickable cross-reference in signature mode, consistent
+      with the link already generated in description mode.'
+    weight: 3
+  - id: SA2
+    description: Handles the None literal specifically (not just generically improving
+      the AST parser), matching the PR description's focus on None as the broken case.
+    weight: 2
+  - id: SA3
+    description: Preserves the existing behavior for non-None type annotations such
+      as int, str, and List[int], which already produced cross-references correctly
+      in signature mode.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing test cases for _parse_annotation (test_parse_annotation
+      in tests/test_domain_py.py) are not removed or weakened — no assert statements
+      are deleted or made less specific.
+    weight: 2
+  - id: I2
+    description: Confirms that the public API of _parse_annotation (its signature
+      and return type List[Node]) remains unchanged.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that None annotated as a return type (e.g. def f1() -> None:)
+      produces a pending_xref node with reftarget='None' in the parsed signature doctree,
+      so intersphinx can resolve it to docs.python.org/3/library/constants.html#None.
+    weight: 3
+  - id: R2
+    description: Ensures that True and False literals (ast.Constant/ast.NameConstant
+      with bool values), if they appear in annotations, are also handled by the new
+      branch rather than raising SyntaxError, preventing silent fallback failures
+      for those cases.
+    weight: 1

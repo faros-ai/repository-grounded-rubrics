@@ -1,0 +1,62 @@
+metadata:
+  task_summary: Fix VotingClassifier/VotingRegressor fit to skip None estimators when
+    checking sample_weight support, so that fit does not raise AttributeError when
+    an estimator has been set to None via set_params and sample_weight is passed.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the sample_weight support check inside the fit method of
+      _BaseVoting (in sklearn/ensemble/voting.py) to skip estimators whose value is
+      None.
+    weight: 3
+  - id: FC2
+    description: Confines the fix to sklearn/ensemble/voting.py without modifying
+      unrelated files such as sklearn/utils/validation.py or other ensemble modules.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test in the voting test file that exercises fit
+      with sample_weight after an estimator has been set to None via set_params, matching
+      the reproduction scenario from the PR description.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause described in the PR: the loop over self.estimators
+      that calls has_fit_parameter now guards against step being None (e.g., via an
+      ''if step is not None'' condition or equivalent filter).'
+    weight: 3
+  - id: SA2
+    description: Ensures the fix applies to the sample_weight check block that iterates
+      over self.estimators name/step pairs, not just to the parallel fit call (which
+      already filters None via 'if clf is not None').
+    weight: 2
+  - id: SA3
+    description: Preserves the existing ValueError raised when a non-None estimator
+      does not support sample_weight, so that the error message containing 'does not
+      support sample weights' is still triggered for non-None estimators lacking the
+      parameter.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing test for VotingClassifier or VotingRegressor
+      is weakened, removed, or marked as skipped in the patch.
+    weight: 2
+  - id: I2
+    description: Confirms that the public API signatures of VotingClassifier.fit and
+      VotingRegressor.fit (including the sample_weight parameter) remain unchanged.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that calling fit with sample_weight after voter.set_params(lr=None)
+      no longer raises AttributeError caused by invoking has_fit_parameter on a None
+      estimator.
+    weight: 3
+  - id: R2
+    description: Ensures that VotingClassifier and VotingRegressor still successfully
+      fit when weights are provided together with sample_weight and one estimator
+      is None, by only checking sample_weight support for non-None estimators.
+    weight: 2
+  - id: R3
+    description: 'Confirms backward-compatible behavior: when no estimator is None,
+      fit with sample_weight continues to raise ValueError for estimators lacking
+      sample_weight support, preserving the original validation path.'
+    weight: 2

@@ -1,0 +1,53 @@
+metadata:
+  task_summary: Fix postgresql DatabaseClient.settings_to_cmd_args_env returning an
+    empty dict instead of None, causing subprocess.run to receive an empty environment
+    and ignore os.environ.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/db/backends/postgresql/client.py or django/db/backends/base/client.py
+      (the files named in the bug commit reference) to address the empty-dict vs None
+      env distinction.
+    weight: 3
+  - id: FC2
+    description: Avoids modifying unrelated backend client files (e.g., mysql/client.py,
+      oracle/client.py, sqlite3/client.py) that already correctly return None when
+      no env vars are needed.
+    weight: 2
+  - id: FC3
+    description: Keeps changes minimal and confined to the env-handling logic, without
+      restructuring unrelated argument-building code in settings_to_cmd_args_env.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that when postgresql's settings_to_cmd_args_env sets no environment
+      variables, it returns None (or the base runshell treats an empty dict the same
+      as None) so that os.environ is not ignored.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior where a non-empty env dict from settings_to_cmd_args_env
+      is merged with os.environ via the pattern like dict unpacking before being passed
+      to subprocess.run.
+    weight: 3
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public contract of settings_to_cmd_args_env (returning
+      a (args, env) tuple) is preserved, and env is either None or a dict of environment
+      variable overrides.
+    weight: 2
+  - id: I2
+    description: Confirms that test cases for the empty-env scenario (such as test_nopass
+      or test_parameters in the postgresql dbshell tests) are not removed or weakened
+      to paper over the bug.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when subprocess.run is called in BaseDatabaseClient.runshell
+      with env=None (no pg env vars configured), the child process inherits the full
+      os.environ rather than receiving an empty environment.
+    weight: 3
+  - id: R2
+    description: Ensures that when postgresql settings include variables like PASSWORD
+      or sslmode, the returned env dict is merged with os.environ before being passed
+      to subprocess.run, so existing environment variables are not lost.
+    weight: 2

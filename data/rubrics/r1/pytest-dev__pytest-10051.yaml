@@ -1,0 +1,55 @@
+metadata:
+  task_summary: Fix caplog.get_records() becoming stale after caplog.clear() is called,
+    by ensuring that clearing records does not decouple the list stored in caplog_records_key
+    from the handler's records list.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies only src/_pytest/logging.py to fix the divergence between
+      caplog.get_records() and caplog.records after caplog.clear() — no unrelated
+      files are changed.
+    weight: 2
+  - id: FC2
+    description: Changes the reset() or clear() logic in LogCaptureHandler or LogCaptureFixture
+      so that the records list is mutated in-place (e.g., using self.records.clear()
+      or del self.records[:]) rather than replaced with a new list object (self.records
+      = []).
+    weight: 3
+  - id: FC3
+    description: Leaves the caplog_records_key assignment in _runtest_for (the line
+      item.stash[caplog_records_key][when] = caplog_handler.records) unchanged, relying
+      on in-place mutation to keep the stash entry consistent.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause described in the PR: after caplog.clear()
+      is called, caplog.get_records(''call'') should reflect the same (now-empty)
+      state as caplog.records rather than remaining frozen with pre-clear records.'
+    weight: 3
+  - id: SA2
+    description: Preserves the behaviour that new records logged after caplog.clear()
+      appear in both caplog.records and caplog.get_records() for the current phase,
+      i.e., the two remain coupled after clearing.
+    weight: 3
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public API of LogCaptureFixture (records, get_records,
+      clear, text, messages, record_tuples) retains its existing signatures with no
+      parameters added or removed.
+    weight: 2
+  - id: I2
+    description: Confirms that the existing test_clear test in testing/logging/test_fixture.py
+      is not weakened (e.g., assertions are not removed or loosened) and that no test
+      asserting caplog.clear() or caplog.get_records() behaviour is deleted or skipped.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that calling caplog.clear() empties both caplog.records and
+      caplog.get_records(when) for the active phase simultaneously, so the two views
+      remain consistent at all times during a test.
+    weight: 3
+  - id: R2
+    description: Ensures that caplog.text is also reset when caplog.clear() is called
+      (the stream is still replaced or cleared), preserving backward-compatible behaviour
+      of the clear() method for the text property.
+    weight: 2

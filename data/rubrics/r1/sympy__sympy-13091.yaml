@@ -1,0 +1,98 @@
+metadata:
+  task_summary: Replace `return False` with `return NotImplemented` in `Basic.__eq__`
+    (and related rich-comparison methods) when the other object cannot be sympified,
+    so that Python can delegate to the reflected method on the unknown type.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Replaces the `return False` inside the `except SympifyError` block
+      in `Basic.__eq__` in `sympy/core/basic.py` with `return NotImplemented`.
+    weight: 3
+  - id: FC2
+    description: Replaces the `return False` on the line immediately after the `except
+      SympifyError` block in `Float.__eq__` in `sympy/core/numbers.py` (the line commenting
+      `sympy != other --> not ==`) with `return NotImplemented`.
+    weight: 2
+  - id: FC3
+    description: Replaces the `return False` on the line immediately after the `except
+      SympifyError` block in `Rational.__eq__` (or `Integer.__eq__`) in `sympy/core/numbers.py`
+      (the line commenting `sympy != other --> not ==`) with `return NotImplemented`.
+    weight: 2
+  - id: FC4
+    description: 'Updates `__ne__` in `Basic` (or any subclass whose `__ne__` calls
+      `self.__eq__(other)` via `not self.__eq__(other)`) to avoid treating `NotImplemented`
+      as `False` by using `result = self.__eq__(other); if result is NotImplemented:
+      return result` or equivalent, so that `not NotImplemented` is never returned.'
+    weight: 2
+  - id: FC5
+    description: Avoids modifying files unrelated to rich-comparison logic (e.g.,
+      geometry, physics, or printing modules), keeping the diff minimal and confined
+      to core comparison code.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Implements the change described in the PR: when `_sympify(other)`
+      raises `SympifyError` inside `Basic.__eq__`, the method returns `NotImplemented`
+      instead of `False`, enabling Python to delegate to the reflected `__eq__` on
+      the unknown-type object.'
+    weight: 3
+  - id: SA2
+    description: Ensures that when both sides return `NotImplemented` (i.e., neither
+      side can handle the comparison), Python's default behavior of returning `False`
+      for `==` is preserved, consistent with the PR description stating 'If both sides
+      return NotImplemented, the final return value is False'.
+    weight: 2
+  - id: SA3
+    description: 'Applies the same `NotImplemented`-on-`SympifyError` pattern consistently
+      to other `__eq__` overrides in `sympy/core/` that share the same `return False  #
+      sympy != other` comment pattern, rather than fixing only the one site mentioned
+      in the PR.'
+    weight: 2
+  - id: SA4
+    description: Does not change behavior for cases where `_sympify` succeeds but
+      the types still differ (the existing `return False` paths for type mismatches
+      after successful sympification must remain `return False`, not `return NotImplemented`).
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing equality tests between sympy objects of the
+      same type (e.g., `Symbol('x') == Symbol('x')` returning `True`, `Symbol('x')
+      == Symbol('y')` returning `False`) are not broken by the change, i.e., the `return
+      False` paths for same-type mismatches are preserved.
+    weight: 3
+  - id: I2
+    description: Confirms that no existing tests in the test suite are weakened or
+      removed as part of this patch (e.g., no `xfail`, `skip`, or deletion of assertions
+      that previously verified `False` was returned).
+    weight: 2
+  - id: I3
+    description: Confirms that the public API signatures of `Basic.__eq__`, `Basic.__ne__`,
+      `Float.__eq__`, and `Integer.__eq__` are preserved (same method names, same
+      parameter lists), with only the return value in the `SympifyError` branch changed.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: 'Ensures that a custom class whose `__eq__` checks `isinstance(other,
+      sympy.Basic)` can now achieve symmetric equality with a sympy symbol: `custom_instance
+      == sympy_symbol` and `sympy_symbol == custom_instance` both delegate to the
+      custom class''s `__eq__` rather than short-circuiting to `False` from the sympy
+      side.'
+    weight: 3
+  - id: R2
+    description: Ensures that comparing a sympy `Basic` instance to a plain Python
+      object that is not sympifiable (e.g., a raw object with no `__eq__` override
+      that supports sympy types) still ultimately evaluates to `False` (via Python's
+      NotImplemented fallback chain), rather than raising an exception.
+    weight: 2
+  - id: R3
+    description: Ensures that `__ne__` still returns a correct boolean (not `NotImplemented`
+      in a context that would cause a `DeprecationWarning` from `not NotImplemented`)
+      by correctly propagating `NotImplemented` from `__eq__` rather than negating
+      it directly.
+    weight: 2
+  - id: R4
+    description: 'Adds a test (anywhere in the test suite) that exercises the symmetric-equality
+      scenario from the PR description: a custom class with `__eq__` referencing `sympy.Basic`,
+      verifying that `sympy_obj == custom_obj` now delegates to the custom class rather
+      than returning `False` unconditionally.'
+    weight: 1

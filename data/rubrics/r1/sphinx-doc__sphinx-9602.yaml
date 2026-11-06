@@ -1,0 +1,58 @@
+metadata:
+  task_summary: Fix nitpick mode falsely flagging Literal annotation values (e.g.,
+    Literal[True]) as missing py:class cross-references in sphinx/domains/python.py.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sphinx/domains/python.py and no unrelated files, keeping
+      the diff minimal and scoped to the Literal annotation handling in _parse_annotation.
+    weight: 2
+  - id: FC2
+    description: Adds a conditional branch inside the unparse() helper within _parse_annotation
+      that detects when the ast.Subscript node's value is a Literal type (i.e., ast.Name
+      with id 'Literal' or an ast.Attribute ending in 'Literal') and handles its arguments
+      specially.
+    weight: 3
+  - id: FC3
+    description: Ensures that the post-processing loop in _parse_annotation (the loop
+      that converts nodes.Text to type_to_xref) no longer converts Literal argument
+      nodes — either by marking them with a sentinel, using a different node type,
+      or by tracking which text nodes correspond to Literal arguments.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements the fix such that literal values like True, False, None,
+      integers, and strings appearing as arguments inside Literal[...] are rendered
+      as plain text or non-cross-reference nodes rather than pending_xref nodes.
+    weight: 3
+  - id: SA2
+    description: Preserves correct cross-reference generation for the Literal type
+      name itself (e.g., Literal remains a pending_xref to the py:class or py:obj
+      for typing.Literal), only suppressing xrefs for the values inside the brackets.
+    weight: 2
+  - id: SA3
+    description: Adds a test case in the test suite exercising _parse_annotation with
+      a Literal annotation (such as Literal[True], Literal[0], Literal['a'], or similar)
+      and asserting that the arguments are not rendered as pending_xref nodes.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing test assertions for non-Literal annotations
+      (such as List[int], Tuple[int, int], Callable, Union, None) remain unchanged
+      and no tests are skipped, weakened, or removed.
+    weight: 3
+  - id: I2
+    description: Confirms that the public API of _parse_annotation (its signature
+      and return type of List[Node]) is preserved without alteration.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Produces nodes.Text or a non-pending_xref node for Literal argument
+      values at runtime, so that nitpick mode (-n -W) does not emit a missing py:class
+      warning for values like True, False, or integer literals inside Literal[...].
+    weight: 3
+  - id: R2
+    description: Maintains correct behavior for annotations like Literal[True, False],
+      Literal[0, 1], and string literals where multiple values appear inside the Literal
+      brackets — none of the argument values trigger a pending_xref resolution.
+    weight: 2

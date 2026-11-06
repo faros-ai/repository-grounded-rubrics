@@ -1,0 +1,73 @@
+metadata:
+  task_summary: Fix has_key, has_keys, and has_any_keys JSONField lookups so that
+    numeric string keys (e.g., '1111') are treated as JSON object keys rather than
+    array indices on SQLite, MySQL, and Oracle backends.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/db/models/fields/json.py and confines all changes
+      to that file, with no unrelated files altered.
+    weight: 3
+  - id: FC2
+    description: Modifies the HasKeyLookup class or the compile_json_path function
+      (or introduces a helper near them) in django/db/models/fields/json.py to fix
+      the numeric key path generation.
+    weight: 3
+  - id: FC3
+    description: Does not change the compile_json_path behavior for KeyTransform (array
+      index path generation via [N] notation) so that existing numeric list-index
+      traversal still works.
+    weight: 2
+  - id: FC4
+    description: Adds or modifies tests in tests/model_fields/test_jsonfield.py to
+      cover has_key, has_keys, or has_any_keys lookups with numeric string keys stored
+      as object keys.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that a numeric string key passed to has_key (e.g., '1111')
+      produces a quoted JSON path segment like ."1111" rather than an array-index
+      segment like [1111] when constructing the SQL path expression for SQLite, MySQL,
+      and Oracle.
+    weight: 3
+  - id: SA2
+    description: 'Applies the numeric-key fix uniformly to all three affected lookups:
+      has_key, has_keys, and has_any_keys (i.e., the fix is in shared code such as
+      HasKeyLookup.as_sql or compile_json_path, not restricted to only one lookup
+      class).'
+    weight: 2
+  - id: SA3
+    description: Leaves the PostgreSQL path (as_postgresql) unmodified, since PostgreSQL
+      handles numeric string keys correctly via the ? operator and does not use compile_json_path
+      for the RHS key.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing test cases for has_key_list (which use numeric
+      indices like value__1__has_key to traverse JSON arrays) are not broken by the
+      fix, preserving array-index semantics for KeyTransform-based LHS traversal.
+    weight: 3
+  - id: I2
+    description: Confirms that the public API signatures for HasKey, HasKeys, and
+      HasAnyKeys (lookup_name, postgres_operator, logical_operator, prepare_rhs) are
+      unchanged.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a has_key lookup on a JSONField with a purely numeric
+      string key (e.g., data__has_key='1111') generates a JSON path that contains
+      a quoted key accessor (such as ."1111") rather than a bracket array accessor
+      ([1111]), so the database correctly locates the object key at runtime on SQLite,
+      MySQL, and Oracle.
+    weight: 3
+  - id: R2
+    description: Ensures that has_key with a non-numeric string key (e.g., 'foo')
+      continues to generate the same quoted-key JSON path (such as ."foo") as before,
+      confirming no regression in the common non-numeric case.
+    weight: 2
+  - id: R3
+    description: Ensures that has_keys and has_any_keys with a mix of numeric and
+      non-numeric string keys each generate individually quoted JSON path segments
+      for the numeric entries, so the AND/OR logical combination of conditions is
+      correct at runtime.
+    weight: 2

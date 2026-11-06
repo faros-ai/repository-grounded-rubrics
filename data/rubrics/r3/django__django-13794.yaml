@@ -1,0 +1,50 @@
+metadata:
+  task_summary: Fix the `add` template filter in `django/template/defaultfilters.py`
+    so that concatenating a plain string with a lazy string (Django's `__proxy__`)
+    produces the correct concatenated result instead of returning an empty string.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `add` function inside `django/template/defaultfilters.py`
+      and no other unrelated production files to fix the lazy-string concatenation
+      bug.
+    weight: 3
+  - id: FC2
+    description: Introduces string coercion (such as `str()` or `force_str()`) on
+      `value` or `arg` (or both) within the string-concatenation fallback path of
+      the `add` function, so that lazy-string proxies are resolved before concatenation.
+    weight: 3
+  - id: FC3
+    description: Adds or updates a test exercising `add` filter concatenation when
+      at least one operand is a lazy string (e.g., produced by `gettext_lazy` or `django.utils.functional.lazy`).
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause described in the PR: the `TypeError: can
+      only concatenate str (not "__proxy__") to str` that previously caused the `add`
+      filter to silently return an empty string when one operand is a lazy string.'
+    weight: 3
+  - id: SA2
+    description: Preserves the existing numeric-addition fast path (`int(value) +
+      int(arg)`) unchanged, ensuring integer addition still works as before.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing `add` filter test cases (add01 through add07,
+      and `test_add`) are not removed, weakened, or skipped in the patch.
+    weight: 2
+  - id: I2
+    description: Avoids broadening the outer `except Exception` catch to swallow legitimate
+      errors that were previously raised (e.g., the patch should not suppress non-concatenation
+      exceptions inside the string-fallback branch).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when `value` is a plain `str` and `arg` is a lazy string
+      (a `Promise`/`__proxy__` instance), the `add` filter returns the concatenated
+      plain string result instead of an empty string.
+    weight: 3
+  - id: R2
+    description: Ensures that when both `value` and `arg` are lazy strings, the `add`
+      filter produces the correct concatenated string result instead of an empty string.
+    weight: 2

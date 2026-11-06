@@ -1,0 +1,54 @@
+metadata:
+  task_summary: Simplify `DatabaseOperations.execute_sql_flush()` by dropping the
+    `using` argument and inferring the database alias from `self.connection.alias`
+    instead.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Updates the `execute_sql_flush` method signature in `django/db/backends/base/operations.py`
+      to remove the `using` parameter, leaving only `sql_list`.
+    weight: 3
+  - id: FC2
+    description: Replaces the `using` argument in the `transaction.atomic(using=using,
+      ...)` call inside `execute_sql_flush` with `self.connection.alias`.
+    weight: 3
+  - id: FC3
+    description: Updates the call site in `django/core/management/commands/flush.py`
+      to drop the `database` argument, calling `connection.ops.execute_sql_flush(sql_list)`
+      instead of `connection.ops.execute_sql_flush(database, sql_list)`.
+    weight: 2
+  - id: FC4
+    description: Updates test call sites (in `tests/backends/tests.py` and `tests/backends/base/test_operations.py`)
+      to use the new one-argument form `execute_sql_flush(sql_list)` instead of `execute_sql_flush(connection.alias,
+      sql_list)`.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Confirms that the `using` parameter is fully removed from `def execute_sql_flush(`
+      so the new public signature is `execute_sql_flush(self, sql_list)`.
+    weight: 3
+  - id: SA2
+    description: Confirms that every internal call site that previously passed `connection.alias`
+      or a `database` variable as the first positional argument to `execute_sql_flush`
+      is updated to omit that argument.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no unrelated files (outside of `operations.py`, `flush.py`,
+      and test files for `execute_sql_flush`) are modified as part of this change.
+    weight: 2
+  - id: I2
+    description: Confirms that the `savepoint=self.connection.features.can_rollback_ddl`
+      argument to `transaction.atomic` is preserved after the signature change.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that `execute_sql_flush` still uses `transaction.atomic`
+      wrapping with the correct database alias (`self.connection.alias`) so flushing
+      remains atomic on the right connection.
+    weight: 3
+  - id: R2
+    description: Ensures that the flush command (`flush.py`) still correctly targets
+      the user-specified database by relying on the `connection` object whose alias
+      is already set, rather than passing the alias explicitly.
+    weight: 2

@@ -1,0 +1,57 @@
+metadata:
+  task_summary: Remove the ValueError raised for non-disjoint cycles in the Permutation
+    constructor so that repeated elements across cycles are applied left-to-right
+    and the resulting permutation is returned.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Removes or bypasses the `has_dups(temp)` branch in `Permutation.__new__`
+      that raises a `ValueError` when `is_cycle` is True and repeated elements are
+      found across cycles.
+    weight: 3
+  - id: FC2
+    description: Confines edits to `sympy/combinatorics/permutations.py` (or its test
+      file), with no unrelated file churn outside the combinatorics module.
+    weight: 2
+  - id: FC3
+    description: Leaves the array-form duplicate check (`raise ValueError('there were
+      repeated elements.')` for non-cycle input) intact, so duplicate elements in
+      flat array form still raise a ValueError.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements the left-to-right cycle composition for non-disjoint cycles
+      by using the `Cycle` accumulator loop (iterating `c = c(*ci)` for each cycle
+      in `args`) without an early exit due to duplicate detection.
+    weight: 3
+  - id: SA2
+    description: Ensures `Permutation([[0, 1], [0, 1]])` no longer raises and instead
+      constructs the identity permutation (i.e., `[0, 1]` applied twice returns each
+      element to its original position).
+    weight: 3
+  - id: SA3
+    description: 'Updates or removes the existing test assertion `raises(ValueError,
+      lambda: Permutation([[1], [1, 2]]))` that previously verified the now-removed
+      restriction on non-disjoint cycles.'
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the public `Permutation` constructor signature and does
+      not remove or rename any existing parameters or class attributes.
+    weight: 2
+  - id: I2
+    description: Confirms that `Permutation([1, 1, 0])` (flat array form with duplicates)
+      still raises a `ValueError`, keeping the flat-array-form duplicate guard intact.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Produces the correct permutation for non-disjoint cycles by composing
+      them in left-to-right order, so that `Permutation([[0, 1], [0, 1]])` yields
+      the identity and `Permutation([[0, 1], [1, 2]])` yields the same result as `Cycle(0,
+      1)(1, 2)`.
+    weight: 3
+  - id: R2
+    description: Maintains that disjoint multi-cycle input such as `Permutation([[1,
+      2], [3, 4]])` still produces the same permutation as before, confirming no regression
+      in the previously working cycle-composition path.
+    weight: 2

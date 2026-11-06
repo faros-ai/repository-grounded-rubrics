@@ -1,0 +1,58 @@
+metadata:
+  task_summary: Fix MultiValueField.clean() to raise a validation error when all sub-field
+    values are empty but a sub-field has required=True and require_all_fields=False.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies only django/forms/fields.py (specifically the MultiValueField.clean()
+      method or __init__) to fix the bug, without unrelated file changes.
+    weight: 2
+  - id: FC2
+    description: Adds or modifies logic in the early-exit block of MultiValueField.clean()
+      that currently returns self.compress([]) when all sub-field values are empty,
+      so that it no longer short-circuits when a required sub-field exists under require_all_fields=False.
+    weight: 3
+  - id: FC3
+    description: Adds a test case that exercises MultiValueField with require_all_fields=False,
+      required=False on the MultiValueField, and at least one sub-field with required=True,
+      verifying that submitting all empty values raises a ValidationError.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that when require_all_fields=False and the MultiValueField
+      is required=False, submitting all empty values still raises a validation error
+      (e.g., 'incomplete') if any sub-field has required=True.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior where require_all_fields=False and
+      required=False on the MultiValueField causes is_valid() to return False when
+      one sub-field has a non-empty value and another required sub-field is empty.
+    weight: 2
+  - id: SA3
+    description: Preserves the existing behavior where require_all_fields=True delegates
+      required-field checking to the MultiValueField level rather than sub-field level
+      (the require_all_fields=True branch in clean() is unchanged or functionally
+      equivalent).
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing test cases for MultiValueField (such as test_clean,
+      test_bad_choice, test_no_value) are not weakened, removed, or skipped.
+    weight: 2
+  - id: I2
+    description: Confirms that the public signature of MultiValueField.__init__ and
+      MultiValueField.clean() is preserved (no removal of parameters like require_all_fields
+      or fields).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Raises a ValidationError containing an 'incomplete' message for the
+      required sub-field when require_all_fields=False, required=False on the outer
+      MultiValueField, and all submitted sub-field values are empty but a sub-field
+      has required=True.
+    weight: 3
+  - id: R2
+    description: Returns a valid compressed value (via compress([])) without raising
+      an error when require_all_fields=False, required=False, and ALL sub-fields have
+      required=False and all submitted values are empty.
+    weight: 2

@@ -1,0 +1,66 @@
+metadata:
+  task_summary: Allow 'genindex', 'modindex', and 'search' to be listed in a toctree
+    directive without producing 'toctree contains reference to nonexisting document'
+    warnings.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sphinx/directives/other.py to add a guard in the TocTree.parse_content
+      method that bypasses the 'nonexisting document' warning branch for special built-in
+      page names ('genindex', 'modindex', 'search').
+    weight: 3
+  - id: FC2
+    description: Modifies sphinx/environment/adapters/toctree.py to handle special
+      built-in page names ('genindex', 'modindex', 'search') in _entries_from_toctree
+      so they are resolved as internal references rather than raising a KeyError.
+    weight: 3
+  - id: FC3
+    description: Confines changes to toctree-related files (e.g., sphinx/directives/other.py
+      and/or sphinx/environment/adapters/toctree.py) without modifying unrelated modules,
+      preserving minimal diff scope.
+    weight: 2
+  - id: FC4
+    description: Adds the special page names as entries in toctree['entries'] (but
+      not in toctree['includefiles']) in sphinx/directives/other.py, consistent with
+      how 'self' and URL entries are treated.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that listing 'genindex', 'modindex', or 'search' in a toctree
+      directive does not trigger the 'toctree contains reference to nonexisting document'
+      warning, as required by the PR description.
+    weight: 3
+  - id: SA2
+    description: Treats all three special page names ('genindex', 'modindex', 'search')
+      symmetrically, not just one or two of them.
+    weight: 2
+  - id: SA3
+    description: Generates a navigable link for each special page in the resolved
+      toctree output, so users visiting the sidebar see a clickable entry for the
+      index, module index, or search page.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing warning for genuinely nonexisting documents
+      that are not one of the three special page names ('genindex', 'modindex', 'search'),
+      so the guard is narrowly scoped.
+    weight: 3
+  - id: I2
+    description: Does not weaken or skip any pre-existing test assertions about toctree
+      warning behavior for non-special missing documents.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Produces a toctree link whose refuri resolves to the builder's relative
+      URI for each special page (e.g., 'genindex.html', 'py-modindex.html', 'search.html')
+      rather than an empty or broken URI.
+    weight: 2
+  - id: R2
+    description: Falls back to using the document title from the standard domain labels
+      ('Index', 'Module Index', 'Search Page') when no explicit title is given for
+      the special page in the toctree entry.
+    weight: 1
+  - id: R3
+    description: Does not add special page names to toctree['includefiles'] or self.env.toctree_includes,
+      preventing them from being treated as source documents to be rebuilt.
+    weight: 2

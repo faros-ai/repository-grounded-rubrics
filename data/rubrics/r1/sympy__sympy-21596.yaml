@@ -1,0 +1,81 @@
+metadata:
+  task_summary: Fix the bug in ImageSet intersection with Reals where FiniteSet(xis)
+    incorrectly wraps a tuple instead of unpacking it, and the set operation removes
+    real-valued indices instead of keeping them, causing incorrect results such as
+    2 being found in S1.intersect(Reals) when it should not be.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `intersection_sets` handler for `ImageSet, Set` in `sympy/sets/handlers/intersection.py`,
+      specifically inside the `if other == S.Reals:` branch.
+    weight: 3
+  - id: FC2
+    description: Changes `FiniteSet(xis)` to `FiniteSet(*xis)` (or an equivalent unpacking)
+      in the `else` branch that handles the univariate imaginary part, so that individual
+      zero-values are added as separate elements rather than as a single tuple element.
+    weight: 3
+  - id: FC3
+    description: Changes the set operation on `base_set` in the `else` branch from
+      subtraction (`-=`) to intersection (`&=` or `.intersect(...)`) so that `base_set`
+      is restricted to only the indices where the imaginary part is zero, rather than
+      removing those indices.
+    weight: 3
+  - id: FC4
+    description: Updates the existing test in `test_imageset_intersect_real` that
+      previously asserted the buggy result `Complement(S.Integers, FiniteSet((-1,
+      1)))`, replacing it with the correct expected result `FiniteSet(-1, 1)` (or
+      equivalent).
+    weight: 2
+  - id: FC5
+    description: Confines changes to the sets-related source and test files (`sympy/sets/handlers/intersection.py`
+      and/or `sympy/sets/tests/test_fancysets.py`) without unrelated file modifications.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that `imageset(Lambda(n, n + (n - 1)*(n + 1)*I), S.Integers).intersect(S.Reals)`
+      produces `FiniteSet(-1, 1)` (the two integer values where the imaginary part
+      vanishes), matching the correct output stated in the PR description.
+    weight: 3
+  - id: SA2
+    description: Ensures that `2 in S1.intersect(S.Reals)` evaluates to `False` for
+      `S1 = imageset(Lambda(n, n + (n - 1)*(n + 1)*I), S.Integers)`, correcting the
+      incorrect `True` outcome reported in the PR description.
+    weight: 3
+  - id: SA3
+    description: 'Adds or updates a test case that exercises the scenario from the
+      PR description: `imageset` with a complex-valued lambda whose imaginary part
+      has multiple linear factors, intersected with `S.Reals`, yielding a finite set
+      of integers.'
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing `im.is_zero` branch (returns the imageset
+      unchanged) and the `im.is_zero is False` branch (returns `S.EmptySet`), leaving
+      those code paths unmodified.
+    weight: 2
+  - id: I2
+    description: Preserves the denominator-exclusion loop (`for i in denoms(f)`) and
+      its subtraction logic (`base_set -= ...`) so that indices making a denominator
+      zero are still excluded from the result.
+    weight: 2
+  - id: I3
+    description: Does not weaken any previously passing assertions in the test suite
+      (no existing `assert` statements are deleted or commented out, except the one
+      correcting the known-buggy assertion for `FiniteSet((-1, 1))`).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: After the fix, the `else` branch computes `base_set` as the intersection
+      of the original base set with `FiniteSet(*xis)`, so `imageset(Lambda(n, re),
+      base_set)` yields only elements whose pre-images make the imaginary part zero.
+    weight: 3
+  - id: R2
+    description: Maintains correct behavior for the single-zero-imaginary case (e.g.,
+      `imageset(Lambda(n, n + I*n), S.Integers).intersect(S.Reals)`) by correctly
+      unpacking a single-element `xis` tuple via `FiniteSet(*xis)` instead of `FiniteSet(xis)`.
+    weight: 2
+  - id: R3
+    description: Preserves correct behavior for the `im.is_zero` case such as `imageset(Lambda(n,
+      -I*(I*(2*pi*n - pi/4) + log(Abs(sqrt(-I))))), S.Integers).intersect(S.Reals)`,
+      which should continue to return a canonical real imageset.
+    weight: 2

@@ -1,0 +1,60 @@
+metadata:
+  task_summary: Fix unstripped leading-zero DMP produced by clear_denoms() on a zero
+    polynomial in the EX domain, causing is_zero to return False and downstream methods
+    to crash.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies dup_clear_denoms or dmp_clear_denoms in sympy/polys/densetools.py
+      to strip leading zeros from the result after multiplying by the common denominator.
+    weight: 3
+  - id: FC2
+    description: Confines changes to the polynomial dense-tools layer (e.g., sympy/polys/densetools.py)
+      or the DMP class layer (e.g., sympy/polys/polyclasses.py), without unrelated
+      file churn.
+    weight: 2
+  - id: FC3
+    description: Adds or extends a test for dup_clear_denoms or dmp_clear_denoms (or
+      Poly.clear_denoms) covering the case where all coefficients evaluate to zero
+      in the EX domain, asserting the returned polynomial representation is properly
+      stripped (e.g., DMP([], EX, None) rather than DMP([EX(0)], EX, None)).
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that after clear_denoms() on a zero constant polynomial in
+      the EX domain, the returned DMP list representation is the canonical empty list
+      (i.e., DMP([], EX, None)) rather than a list containing a zero EX element (DMP([EX(0)],
+      EX, None)).
+    weight: 3
+  - id: SA2
+    description: Ensures the fix applies to the univariate path (dup_clear_denoms)
+      and/or the multivariate path (dmp_clear_denoms), matching the code paths described
+      in the PR as producing the unstripped DMP.
+    weight: 2
+  - id: SA3
+    description: Preserves the existing behavior of dup_clear_denoms and dmp_clear_denoms
+      for non-zero polynomial inputs, including the convert=True path, without altering
+      their return values.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Avoids weakening, skipping, or deleting any existing tests for dup_clear_denoms,
+      dmp_clear_denoms, or Poly.clear_denoms.
+    weight: 2
+  - id: I2
+    description: 'Preserves the public signatures of dup_clear_denoms, dmp_clear_denoms,
+      and Poly.clear_denoms (argument names, return-value shape: a (common, poly)
+      tuple) without introducing new required parameters.'
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that after the fix, calling is_zero on the Poly returned
+      by clear_denoms() on a zero-valued EX polynomial returns True, consistent with
+      the DMP list being properly stripped to the canonical zero representation.
+    weight: 3
+  - id: R2
+    description: Ensures that downstream methods such as terms_gcd() and primitive()
+      no longer encounter an IndexError or ZeroDivisionError when called on the Poly
+      returned by clear_denoms() for a zero EX polynomial, because the root cause
+      (unstripped DMP) is eliminated.
+    weight: 2

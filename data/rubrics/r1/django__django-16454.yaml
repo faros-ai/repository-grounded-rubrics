@@ -1,0 +1,62 @@
+metadata:
+  task_summary: Ensure that subparsers created via CommandParser.add_subparsers().add_parser()
+    inherit the called_from_command_line and missing_args_message arguments from the
+    parent CommandParser, so that missing-argument errors produce human-readable usage
+    messages instead of stack traces.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/core/management/base.py and only django/core/management/base.py
+      as the primary production change (no unrelated file churn in production code).
+    weight: 3
+  - id: FC2
+    description: Adds new code (a subclass of argparse._SubParsersAction or an override
+      of add_subparsers) inside or alongside the CommandParser class in django/core/management/base.py.
+    weight: 3
+  - id: FC3
+    description: Ensures that the new or overridden add_parser method (or equivalent
+      mechanism) passes called_from_command_line and missing_args_message from the
+      parent CommandParser into each constructed subparser.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the stated root cause: subparsers created via CommandParser.add_subparsers().add_parser()
+      now use CommandParser (or a subclass thereof) with the parent''s called_from_command_line
+      and missing_args_message values, rather than a plain ArgumentParser with default
+      values.'
+    weight: 3
+  - id: SA2
+    description: Preserves the existing CommandParser.__init__ signature accepting
+      missing_args_message and called_from_command_line keyword arguments without
+      modification.
+    weight: 2
+  - id: SA3
+    description: Adds or updates a test that exercises the case where a required argument
+      to a subparser command (e.g., a positional argument under a subparser) is omitted,
+      verifying that a CommandError (not an unhandled exception traceback) is raised.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing tests for subparser behavior (test_subparser,
+      test_subparser_invalid_option, test_subparser_dest_args, test_subparser_dest_required_args)
+      are not weakened, removed, or skipped.
+    weight: 2
+  - id: I2
+    description: Confirms that the CommandParser.error() method is unchanged, preserving
+      the existing behavior of raising CommandError when called_from_command_line
+      is falsy and calling super().error() otherwise.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when a management command with a subparser is invoked
+      from the command line (called_from_command_line=True) and a required subparser
+      argument is missing, the error() path on the subparser produces a formatted
+      usage message (via super().error()) rather than raising an unhandled CommandError
+      traceback.
+    weight: 3
+  - id: R2
+    description: Ensures that when a management command with a subparser is called
+      programmatically (called_from_command_line=False or None) and a required subparser
+      argument is missing, the subparser's error() raises CommandError rather than
+      calling sys.exit(), preserving programmatic safety.
+    weight: 2

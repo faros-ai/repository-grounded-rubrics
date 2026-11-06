@@ -1,0 +1,51 @@
+metadata:
+  task_summary: Fix visit_Tuple in sphinx/pycode/ast.py so that a 1-element tuple
+    like (1,) retains its trailing comma instead of being rendered as (1).
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sphinx/pycode/ast.py and no other production source files,
+      keeping the change local to the tuple-rendering logic.
+    weight: 2
+  - id: FC2
+    description: Changes the visit_Tuple method in sphinx/pycode/ast.py to include
+      a trailing comma when the tuple has exactly one element (len(node.elts) == 1).
+    weight: 3
+  - id: FC3
+    description: Adds a test case pairing '(1,)' with expected output '(1,)' (single-element
+      tuple) to the parametrize list in the test file for pycode ast.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures the trailing comma is appended only when there is exactly
+      one element in node.elts, not for multi-element tuples or the empty tuple.
+    weight: 3
+  - id: SA2
+    description: Preserves existing rendering for multi-element tuples such as '(1,
+      2, 3)' and the empty tuple '()', as already exercised in the test_unparse parametrize
+      list.
+    weight: 2
+  - id: SA3
+    description: Targets the visit_Tuple method specifically (the code path previously
+      producing '(1)' for a 1-element input) rather than unrelated AST visitor methods.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing parametrized test cases in test_pycode_ast.py
+      are removed or weakened (no test skips, xfail markers, or deleted entries).
+    weight: 2
+  - id: I2
+    description: Confirms that the public unparse function signature and its None-handling
+      overload in sphinx/pycode/ast.py remain unchanged.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that calling unparse on a parsed '(1,)' expression returns
+      the string '(1,)' with the trailing comma, distinguishing a 1-element tuple
+      from a parenthesized expression '(1)'.
+    weight: 3
+  - id: R2
+    description: Ensures that calling unparse on a parsed '()' expression still returns
+      '()' (empty tuple) and on '(1, 2, 3)' still returns '(1, 2, 3)', confirming
+      the fix does not introduce regressions for other tuple arities.
+    weight: 2

@@ -1,0 +1,57 @@
+metadata:
+  task_summary: Fix SpanSelector with interactive=True incorrectly forcing axes limits
+    to include 0 by preventing ToolLineHandles initialization from triggering autoscale
+    outside existing data bounds.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies code in lib/matplotlib/widgets.py and nowhere else for the
+      core fix (no unrelated file churn).
+    weight: 2
+  - id: FC2
+    description: Changes the initialization of ToolLineHandles (in _setup_edge_handle
+      or ToolLineHandles.__init__) so that the positions passed to axvline or axhline
+      do not fall outside the current axes bounds.
+    weight: 3
+  - id: FC3
+    description: Avoids modifying the public signature of SpanSelector.__init__ or
+      ToolLineHandles.__init__ in a backward-incompatible way (no removal of existing
+      parameters).
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the reported regression where constructing a SpanSelector
+      with interactive=True on an axes whose bounds exclude 0 (e.g., ax.plot([10,
+      20], [10, 20])) no longer expands those bounds to include 0.
+    weight: 3
+  - id: SA2
+    description: Ensures the fix applies to both horizontal and vertical SpanSelector
+      directions (both axvline and axhline paths in ToolLineHandles.__init__ are covered).
+    weight: 2
+  - id: SA3
+    description: Preserves the deprecated span_stays parameter alias (renamed to interactive
+      in 3.5) so that existing code using span_stays still functions correctly.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms no existing tests for SpanSelector, ToolLineHandles, or
+      related widgets are deleted or weakened (no removal of assert statements or
+      pytest.mark.skip decorators added).
+    weight: 2
+  - id: I2
+    description: Adds a test case (anywhere in the diff) that exercises SpanSelector
+      with interactive=True on axes whose bounds do not include 0, and verifies axes
+      limits are not expanded to include 0.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that after construction, the SpanSelector handle lines (created
+      via axvline or axhline in ToolLineHandles) are initialized with positions within
+      or at the current axes bounds, preventing _request_autoscale_view from expanding
+      axes limits to include the origin.
+    weight: 3
+  - id: R2
+    description: Maintains that ToolLineHandles.positions still returns the correct
+      positions after set_data is called with valid span extents during interactive
+      use (i.e., the fix does not break subsequent position updates).
+    weight: 2

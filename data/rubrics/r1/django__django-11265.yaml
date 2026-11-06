@@ -1,0 +1,56 @@
+metadata:
+  task_summary: Fix FieldError raised when using exclude() on a queryset with an annotated
+    FilteredRelation, caused by split_exclude() creating an inner Query that lacks
+    the outer query's _filtered_relations mapping.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the split_exclude method (or the surrounding code that constructs
+      the inner query) in django/db/models/sql/query.py to propagate _filtered_relations
+      from the outer query to the inner query.
+    weight: 3
+  - id: FC2
+    description: Confines the fix to django/db/models/sql/query.py (and optionally
+      the filtered_relation test file) without introducing unrelated file changes.
+    weight: 2
+  - id: FC3
+    description: Adds at least one test case in the filtered_relation test suite (tests/filtered_relation/tests.py)
+      that exercises exclude() (or filter(~Q(...))) on a queryset annotated with FilteredRelation.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause identified in the PR description: the inner
+      Query created by split_exclude() does not inherit the outer query''s _filtered_relations,
+      making the annotation alias (e.g., book_alice) unresolvable in names_to_path.'
+    weight: 3
+  - id: SA2
+    description: Ensures the fix applies at the point where the bare Query(self.model)
+      is instantiated inside split_exclude, so the inner query can resolve FilteredRelation
+      aliases via _filtered_relations before calling add_filter(filter_expr).
+    weight: 2
+  - id: SA3
+    description: Preserves the existing filter() behavior for annotated FilteredRelation
+      (the non-negated path) by not altering the logic that already works correctly.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing passing tests for FilteredRelation (e.g.,
+      test_with_join, test_exclude_relation_with_join) are not weakened, removed,
+      or skipped in the patch.
+    weight: 2
+  - id: I2
+    description: Avoids changing the public API of split_exclude (its signature and
+      return type) or the public API of Query, preserving backward compatibility.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: 'Ensures that calling exclude() on a queryset annotated with FilteredRelation
+      (e.g., annotate(book_alice=FilteredRelation(...)).exclude(book_alice__isnull=False))
+      no longer raises FieldError: Cannot resolve keyword into field for the annotation
+      alias.'
+    weight: 3
+  - id: R2
+    description: Ensures that the inner subquery produced by split_exclude can resolve
+      the FilteredRelation alias (e.g., book_alice) through _filtered_relations when
+      names_to_path is called on the inner query.
+    weight: 2

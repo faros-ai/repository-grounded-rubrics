@@ -1,0 +1,48 @@
+metadata:
+  task_summary: Replace the regex anchors ^ and $ with \A and \Z in ASCIIUsernameValidator
+    and UnicodeUsernameValidator to reject usernames ending with a trailing newline.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the regex attribute of ASCIIUsernameValidator in django/contrib/auth/validators.py,
+      replacing the ^ start anchor and $ end anchor with \A and \Z respectively.
+    weight: 3
+  - id: FC2
+    description: Modifies the regex attribute of UnicodeUsernameValidator in django/contrib/auth/validators.py,
+      replacing the ^ start anchor and $ end anchor with \A and \Z respectively.
+    weight: 3
+  - id: FC3
+    description: Confines changes to django/contrib/auth/validators.py (and optionally
+      the auth tests file) without introducing unrelated file edits or dependency
+      changes.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Replaces the $ end anchor with \Z in both validators so that a username
+      ending with a newline character is no longer accepted, as described in the PR.
+    weight: 3
+  - id: SA2
+    description: Replaces the ^ start anchor with \A in both validators, completing
+      the switch to the non-newline-permissive anchors suggested in the PR description.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the character class [\w.@+-] unchanged in both validators
+      so that valid usernames (letters, digits, and @/./+/-/_) continue to be accepted.
+    weight: 3
+  - id: I2
+    description: Retains the flags attribute of ASCIIUsernameValidator (re.ASCII)
+      and UnicodeUsernameValidator (0 or unset) without alteration, keeping the ASCII
+      vs. Unicode distinction intact.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a username ending with a newline (e.g., 'user\n') is
+      rejected by both ASCIIUsernameValidator and UnicodeUsernameValidator, because
+      \Z does not match a trailing newline unlike $.
+    weight: 3
+  - id: R2
+    description: Ensures that usernames without trailing newlines that contain only
+      word characters and @/./+/-/_ continue to pass both validators without raising
+      ValidationError.
+    weight: 2

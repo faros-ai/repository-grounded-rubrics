@@ -1,0 +1,57 @@
+metadata:
+  task_summary: 'Fix UnboundLocalError in evalf() when reprec/imprec are not assigned
+    because re or im is neither zero nor a number, by adding an else: raise NotImplementedError
+    clause.'
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sympy/core/evalf.py and no other production source files,
+      keeping the change local to the identified root cause.
+    weight: 2
+  - id: FC2
+    description: Adds an else branch (raising NotImplementedError) after the 'elif
+      re.is_number:' block inside the KeyError handler of the evalf() function, so
+      that reprec is always assigned before line 'r = re, im, reprec, imprec'.
+    weight: 3
+  - id: FC3
+    description: Adds an else branch (raising NotImplementedError) after the 'elif
+      im.is_number:' block inside the KeyError handler of the evalf() function, so
+      that imprec is always assigned before line 'r = re, im, reprec, imprec'.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the UnboundLocalError that was triggered when evalf() fell
+      into the KeyError except branch and neither the 're == 0' nor 're.is_number'
+      condition was satisfied, leaving reprec uninitialized.
+    weight: 3
+  - id: SA2
+    description: Ensures the fix propagates a NotImplementedError (not a different
+      exception type) when re or im is non-zero and non-numeric, consistent with the
+      handling pattern already used in the same evalf() function and expected by callers.
+    weight: 2
+  - id: SA3
+    description: Adds or updates a test exercising Mul(Max(0, y), x, evaluate=False).evalf()
+      (i.e., Max as a leading Mul argument) without raising UnboundLocalError or any
+      other unexpected exception.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing behavior of the evalf() function for all cases
+      already handled (re == 0, re.is_number, im == 0, im.is_number), without altering
+      those branches.
+    weight: 3
+  - id: I2
+    description: Does not weaken, skip, or remove any existing tests in sympy/core/tests/test_evalf.py.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that evaluating Mul(Max(0, y), x, evaluate=False).evalf()
+      with symbolic x and y does not raise an UnboundLocalError, because the new else
+      branch raises NotImplementedError which is caught by the outer evalf caller
+      and handled gracefully.
+    weight: 3
+  - id: R2
+    description: Confirms that the symmetric case Mul(x, Max(0, y), evaluate=False).evalf()
+      continues to return the unevaluated expression (as it did before), so the fix
+      does not regress the previously working arg order.
+    weight: 2

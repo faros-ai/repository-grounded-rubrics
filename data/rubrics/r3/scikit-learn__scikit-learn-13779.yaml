@@ -1,0 +1,51 @@
+metadata:
+  task_summary: Fix VotingClassifier/VotingRegressor failing with AttributeError when
+    sample_weight is passed and one or more estimators have been set to None via set_params.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the sample_weight support check loop inside `_BaseVoting.fit`
+      in `sklearn/ensemble/voting.py` to skip estimators that are None.
+    weight: 3
+  - id: FC2
+    description: Confines changes to the voting ensemble code (e.g., `sklearn/ensemble/voting.py`
+      and/or the associated test file), without modifying unrelated modules.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test in the voting test file that exercises `fit`
+      with `sample_weight` after calling `set_params` to set an estimator to None.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Ensures that the fix addresses the exact scenario from the PR description:
+      calling `voter.fit(X, y, sample_weight=...)` after `voter.set_params(lr=None)`
+      no longer raises an AttributeError.'
+    weight: 3
+  - id: SA2
+    description: Preserves the existing ValueError raised when a non-None estimator
+      does not support `sample_weight`, so that the fix only skips None estimators
+      rather than removing the check entirely.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing behavior for None estimators without sample_weight
+      (i.e., `voter.fit(X, y)` after `set_params(lr=None)`) is preserved and not broken
+      by the patch.
+    weight: 2
+  - id: I2
+    description: Confirms that no test is deleted or weakened (e.g., no removal of
+      `assert_raise_message` calls or `pytest.mark.skip` additions) in the voting
+      test file.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: 'When `sample_weight` is passed to `fit` and some estimators are
+      None, the None estimators are silently skipped during `sample_weight` support
+      validation so that the method completes without raising `AttributeError: ''NoneType''
+      object has no attribute ''fit''`.'
+    weight: 3
+  - id: R2
+    description: When `sample_weight` is passed to `fit` and a non-None estimator
+      lacks a `sample_weight` parameter, a `ValueError` with a message referencing
+      the estimator name is still raised, preserving the existing error-surface behavior.
+    weight: 2

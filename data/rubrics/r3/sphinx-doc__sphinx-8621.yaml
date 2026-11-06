@@ -1,0 +1,64 @@
+metadata:
+  task_summary: 'Fix the :kbd: role in KeyboardTransform so that compound-key separator
+    characters (-, +, ^) used as standalone keystrokes or as keystroke tokens within
+    a compound sequence no longer produce empty kbd elements.'
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sphinx/builders/html/transforms.py and confines all changes
+      to the KeyboardTransform class, with no unrelated files altered.
+    weight: 3
+  - id: FC2
+    description: Replaces or updates the pattern attribute (currently 'r(-|\+|\^|\s+)')
+      in KeyboardTransform with a revised regex or parsing strategy that avoids splitting
+      on separator characters that are themselves lone keystrokes or that follow another
+      separator position.
+    weight: 3
+  - id: FC3
+    description: 'Adds or updates test cases in the test markup or test build HTML
+      files that cover the three bug-report scenarios: standalone ''-'', standalone
+      ''+'', and compound ''Shift-+'' (or equivalent keystroke sequences using separator
+      characters).'
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that a lone keystroke input consisting of exactly '-', '+',
+      or '^' produces a single non-compound kbd node (no nested empty-text kbd children),
+      matching the PR description's expected behavior for standalone separator-character
+      keystrokes.
+    weight: 3
+  - id: SA2
+    description: Ensures that a compound keystroke like 'Shift-+' (where '+' is a
+      keystroke, not a separator) produces exactly two nested kbd elements ('Shift'
+      and '+') separated by '-', rather than three or more elements with empty text,
+      matching the PR description's example for compound keystrokes containing separator
+      characters.
+    weight: 3
+  - id: SA3
+    description: Preserves the existing behavior for standard compound keystrokes
+      such as 'Control+X' and 'M-x M-s', so that these continue to be split into nested
+      kbd elements as before the fix.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing test assertions for kbd role output (e.g.,
+      'Control+X' split into 'Control' and 'X' nodes, 'M-x M-s' split into 'M', 'x',
+      'M', 's' nodes) are not removed or weakened.
+    weight: 2
+  - id: I2
+    description: Confirms that the public API of KeyboardTransform (class name, builders
+      tuple, default_priority, and the run method signature) is preserved unchanged.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Ensures the revised splitting logic does not produce kbd child nodes
+      with empty text content (empty string '') when processing inputs like '-', '+',
+      '^', or 'Shift-+', by structurally guarding against empty parts after splitting
+      or by using a regex that never yields empty tokens between two separators.
+    weight: 3
+  - id: R2
+    description: 'Ensures that the single-key fast-path (the ''if len(parts) == 1:
+      continue'' guard or equivalent) still correctly bypasses transformation for
+      inputs that do not contain any compound structure, avoiding unnecessary node
+      manipulation.'
+    weight: 2

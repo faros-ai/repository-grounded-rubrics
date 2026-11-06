@@ -1,0 +1,50 @@
+metadata:
+  task_summary: Make bulk_update() return the total number of rows matched (an integer),
+    accumulated by summing the return values of each internal update() call, mirroring
+    the behavior of update().
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the bulk_update method in django/db/models/query.py and
+      no other unrelated production files.
+    weight: 3
+  - id: FC2
+    description: Accumulates the integer return value of each self.filter(pk__in=pks).update(**update_kwargs)
+      call inside the for-loop in bulk_update, rather than discarding it.
+    weight: 3
+  - id: FC3
+    description: Returns the accumulated row count at the end of bulk_update, replacing
+      the implicit None return (or the early bare return for the empty-objs case).
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Handles the early-exit path (when objs is empty) by returning 0 instead
+      of bare return/None, so the return type is consistently an integer in all code
+      paths.
+    weight: 2
+  - id: SA2
+    description: Sums contributions across all batches so that bulk_update with multiple
+      batches (batch_size parameter used) returns the total rows matched across all
+      batches, not just the last one.
+    weight: 3
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the bulk_update.alters_data = True attribute assignment
+      after the method definition, ensuring Django's ORM safety marker is not removed.
+    weight: 2
+  - id: I2
+    description: Does not alter the existing validation logic (ValueError raises for
+      missing fields, primary key fields, many-to-many fields, negative batch_size,
+      or missing primary keys on objects) inside bulk_update.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures bulk_update returns an integer (not None) when called with
+      a non-empty objs list and valid fields, matching the documented return-value
+      contract of update().
+    weight: 3
+  - id: R2
+    description: 'Confirms backward compatibility: existing callers that ignore the
+      return value of bulk_update are unaffected, since the change only adds a return
+      value without modifying any parameter or exception behavior.'
+    weight: 2

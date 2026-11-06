@@ -1,0 +1,60 @@
+metadata:
+  task_summary: Fix HistGradientBoostingClassifier so that string (or other non-integer)
+    class targets are correctly decoded back to original labels before computing the
+    early-stopping scorer, preventing a TypeError when y_true is integer-encoded but
+    y_pred is in original class space.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Confines all changes to sklearn/ensemble/_hist_gradient_boosting/gradient_boosting.py
+      (or its test file), without touching unrelated files.
+    weight: 2
+  - id: FC2
+    description: Modifies the _check_early_stopping_scorer method (or code immediately
+      surrounding its two scorer_ calls) to apply the label decoding, rather than
+      patching unrelated methods.
+    weight: 3
+  - id: FC3
+    description: Adds a test (anywhere in the diff) that exercises HistGradientBoostingClassifier
+      with a string target array and n_iter_no_change enabled, verifying fit completes
+      without error.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Decodes y_small_train from integer-encoded labels back to original
+      class labels (using classes_ or an equivalent LabelEncoder inverse transform)
+      before passing it to scorer_ for the training score.
+    weight: 3
+  - id: SA2
+    description: Decodes y_val from integer-encoded labels back to original class
+      labels (using classes_ or an equivalent LabelEncoder inverse transform) before
+      passing it to scorer_ for the validation score.
+    weight: 3
+  - id: SA3
+    description: Guards the decoding logic so it applies only when the estimator has
+      a classes_ attribute (or equivalently, only for classifier instances), leaving
+      the regressor code path unaffected.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that HistGradientBoostingRegressor's _check_early_stopping_scorer
+      path (which has no classes_ attribute) is not altered in a way that would change
+      its existing behavior.
+    weight: 2
+  - id: I2
+    description: Confirms that no existing tests in the test suite are weakened, skipped,
+      or removed as part of this fix.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when HistGradientBoostingClassifier.fit is called with
+      a string-dtype y array and n_iter_no_change set, the scorer receives y_true
+      values from the same domain as predict's output (original class strings), eliminating
+      the TypeError from np.union1d comparing str and float.
+    weight: 3
+  - id: R2
+    description: 'Preserves correct early-stopping behavior for integer or numeric
+      class targets: the decoding step must be a no-op or identity transformation
+      when classes_ already maps 0..n-1 to 0..n-1, so existing numeric-target classification
+      tests still pass.'
+    weight: 2

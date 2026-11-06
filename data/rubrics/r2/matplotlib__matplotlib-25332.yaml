@@ -1,0 +1,60 @@
+metadata:
+  task_summary: Fix the inability to pickle a Figure after calling align_labels()
+    by making the Grouper class in cbook.py pickle-safe, since its _mapping dict stores
+    weakref.ref objects which cannot be pickled.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies lib/matplotlib/cbook.py to add pickle support to the Grouper
+      class, which is the root cause of the 'cannot pickle weakref.ReferenceType object'
+      TypeError.
+    weight: 3
+  - id: FC2
+    description: Adds __getstate__ or equivalent serialization method (such as __reduce__)
+      inside the Grouper class body that converts the weakref-keyed _mapping to a
+      pickle-safe representation.
+    weight: 3
+  - id: FC3
+    description: Adds __setstate__ or equivalent deserialization method inside the
+      Grouper class body that rebuilds _mapping with fresh weakref.ref keys from the
+      unpickled objects.
+    weight: 3
+  - id: FC4
+    description: Avoids modifying unrelated files — the diff does not introduce changes
+      to figure.py or axis.py beyond what is strictly necessary for pickling support.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Resolves the TypeError ('cannot pickle weakref.ReferenceType object')
+      that occurs when pickle.dumps() is called on a Figure whose _align_label_groups
+      Grouper contains axes references after fig.align_labels() is invoked.
+    weight: 3
+  - id: SA2
+    description: Preserves the sibling-grouping relationships among Axes objects stored
+      in Grouper._mapping across a pickle-then-unpickle round-trip, so that label
+      alignment behavior is restored after unpickling.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public interface of Grouper (join, joined, remove,
+      get_siblings, __iter__, __contains__) is not removed or renamed, preserving
+      backward compatibility with existing callers in figure.py and axis.py.
+    weight: 2
+  - id: I2
+    description: Confirms that the fix does not weaken or skip existing Grouper tests
+      (test_grouper, test_grouper_private in test_cbook.py) by removing assertions
+      or adding skip/xfail markers.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Implements serialization such that the pickle byte stream produced
+      from a Grouper instance contains no weakref.ref objects — verified structurally
+      by the __getstate__ or __reduce__ implementation dereferencing each key/value
+      before returning.
+    weight: 3
+  - id: R2
+    description: Adds a test (anywhere in the test suite) that constructs a Figure,
+      calls fig.align_labels(), performs pickle.dumps() followed by pickle.loads(),
+      and does not raise a TypeError, exercising the exact reproduction scenario from
+      the PR description.
+    weight: 1

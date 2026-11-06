@@ -1,0 +1,63 @@
+metadata:
+  task_summary: Fix 'Bases' section showing 'torch.nn.' instead of 'torch.nn.Module'
+    when documenting classes that inherit from mocked modules via autodoc_mock_imports.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sphinx/util/typing.py or sphinx/ext/autodoc/mock.py (and
+      not unrelated files) to address the mis-rendered base class name for mocked
+      parents.
+    weight: 3
+  - id: FC2
+    description: Adds a conditional branch (in restify(), _restify_py37(), _restify_py36(),
+      or _MockObject) that detects a _MockObject instance — identified by the presence
+      of __sphinx_mock__ or __display_name__ attribute — and handles it distinctly
+      from ordinary classes.
+    weight: 3
+  - id: FC3
+    description: Avoids modifying unrelated files (e.g., files outside sphinx/util/typing.py,
+      sphinx/ext/autodoc/mock.py, and their test counterparts) — no churn in setup
+      files, docs, or unrelated modules.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that the fix prevents restify() from producing a string of
+      the form 'module.' (module name with trailing dot and empty class name) when
+      the input is a _MockObject instance whose __qualname__ instance attribute is
+      the empty string.
+    weight: 3
+  - id: SA2
+    description: 'Produces a reST reference that includes the full qualified class
+      name (e.g., ''torch.nn.Module'') for a mocked base class, matching the expected
+      output described in the PR (''Bases: torch.nn.Module'' not ''Bases: torch.nn.'').'
+    weight: 3
+  - id: SA3
+    description: Addresses the case where __orig_bases__ (PEP-560 generic bases) is
+      used by autodoc ClassDocumenter and contains a _MockObject instance, not just
+      the case where __bases__ contains a proper class.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves all existing restify() behavior for non-mock types (builtins,
+      typing generics, ForwardRef, NewType, normal classes) — the diff does not remove
+      or weaken existing branches in restify() for these cases.
+    weight: 3
+  - id: I2
+    description: Does not weaken or skip existing tests in test_ext_autodoc_mock.py
+      or test_util_typing.py (no added pytest.mark.skip, no removed assertions, no
+      loosened assert conditions).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when restify() is called with a _MockObject instance
+      (e.g., the result of accessing an attribute on a _MockModule, such as mock_torch_nn.Module),
+      the returned string contains the full display name such as 'torch.nn.Module'
+      rather than 'torch.nn.' — verifiable by the structural presence of a code path
+      that reads __display_name__ or reconstructs the name from __module__ and __name__
+      for mock objects.
+    weight: 3
+  - id: R2
+    description: Confirms that non-mocked base classes continue to produce correct
+      reST references (the fix is gated on a mock-object check, so ordinary classes
+      are unaffected by the new branch).
+    weight: 2

@@ -1,0 +1,55 @@
+metadata:
+  task_summary: Fix inability to pickle a figure containing a draggable legend or
+    draggable annotation by preventing the non-picklable canvas from being serialized
+    through DraggableBase.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies lib/matplotlib/offsetbox.py (the file containing DraggableBase)
+      to address the pickling failure.
+    weight: 3
+  - id: FC2
+    description: Adds a __getstate__ method (or equivalent pickle-exclusion mechanism)
+      to DraggableBase or one of its subclasses (DraggableOffsetBox, DraggableAnnotation)
+      that excludes the self.canvas attribute from the pickled state.
+    weight: 3
+  - id: FC3
+    description: Adds a __setstate__ method (or equivalent restoration logic) to DraggableBase
+      or one of its subclasses that restores self.canvas from self.ref_artist.figure.canvas
+      after unpickling.
+    weight: 3
+  - id: FC4
+    description: Adds a test case (in test_pickle.py or test_legend.py) that exercises
+      pickling a figure with a draggable legend created via set_draggable(True) or
+      DraggableLegend.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures the fix applies to DraggableAnnotation in addition to DraggableLegend,
+      as the PR description states 'Same error comes for draggable annotations'.
+    weight: 2
+  - id: SA2
+    description: Preserves the draggable state after unpickling so the legend or annotation
+      remains draggable (i.e., self.canvas and self.cids are properly restored, not
+      just set to None).
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public API of set_draggable, DraggableLegend, and
+      DraggableAnnotation (their __init__ signatures and return values) is unchanged.
+    weight: 2
+  - id: I2
+    description: Confirms that no unrelated files outside of the draggable or legend
+      pickling concern are modified (avoids unnecessary churn in other modules).
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Maintains that calling pickle.dumps(fig) on a figure where leg.set_draggable(True)
+      has been called no longer raises TypeError referencing a non-picklable canvas
+      object (structurally ensured by excluding self.canvas from __getstate__).
+    weight: 3
+  - id: R2
+    description: Maintains backward-compatibility such that pickling a figure with
+      a non-draggable legend (the original working case) continues to succeed without
+      modification.
+    weight: 2

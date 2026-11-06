@@ -1,0 +1,64 @@
+metadata:
+  task_summary: Fix EnumSerializer in django/db/migrations/serializer.py to use the
+    enum member's name (bracket-access syntax) instead of its value (constructor-call
+    syntax) when generating migration code.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the EnumSerializer.serialize() method in django/db/migrations/serializer.py
+      to replace the value-based serialization (self.value.value) with name-based
+      serialization (self.value.name).
+    weight: 3
+  - id: FC2
+    description: Changes the generated string format in EnumSerializer from the constructor-call
+      pattern (e.g., 'module.ClassName(value)') to the bracket-access pattern (e.g.,
+      'module.ClassName[name]').
+    weight: 3
+  - id: FC3
+    description: Avoids unnecessary modifications to unrelated serializer classes
+      (e.g., ChoicesSerializer, DateTimeSerializer, FunctionTypeSerializer) or other
+      files outside the enum serialization logic.
+    weight: 2
+  - id: FC4
+    description: Updates existing test assertions in the enum serialization tests
+      (e.g., in tests/migrations/test_writer.py) to reflect the new name-based bracket-access
+      format instead of value-based constructor-call format.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements serialization using the enum member's .name attribute
+      so that the generated migration uses the member name (e.g., 'GOOD') rather than
+      the potentially translatable value (e.g., 'Good').
+    weight: 3
+  - id: SA2
+    description: Produces generated migration code that accesses the enum member via
+      bracket notation (e.g., Status['GOOD']) as specified in the PR description,
+      so that migrations remain valid after translation of enum values.
+    weight: 3
+  - id: SA3
+    description: Ensures that the import statement for the enum's module is still
+      included in the serialized output, since the generated code still references
+      the enum class by qualified name.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the ChoicesSerializer (handling models.Choices subclasses)
+      is either left unchanged or updated independently, without conflating Django's
+      built-in Choices serialization with the generic Enum serialization fix.
+    weight: 2
+  - id: I2
+    description: Confirms that no existing tests in tests/migrations/test_writer.py
+      are deleted or skipped — only their expected-value strings are updated to match
+      the new bracket-access format.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that serializing an enum member with a translatable string
+      value (e.g., Status.GOOD where GOOD = _('Good')) no longer embeds the translated
+      string in the output, avoiding ValueError when the translation changes.
+    weight: 3
+  - id: R2
+    description: Ensures that the bracket-access expression generated for enum members
+      (e.g., module.EnumClass['NAME']) is valid Python that correctly reconstructs
+      the original enum member at migration runtime.
+    weight: 2

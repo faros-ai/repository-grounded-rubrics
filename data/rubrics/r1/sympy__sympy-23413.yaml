@@ -1,0 +1,67 @@
+metadata:
+  task_summary: Fix _hermite_normal_form in sympy/polys/matrices/normalforms.py where
+    the loop iterates only min(m,n) times, causing b==0 rows to waste iterations and
+    prevent upper rows from receiving their pivot columns when m > n.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the loop structure inside `_hermite_normal_form` in `sympy/polys/matrices/normalforms.py`
+      so that rows above the current bottom `min(m, n)` window are not silently skipped
+      when intermediate rows produce a zero pivot (b == 0).
+    weight: 3
+  - id: FC2
+    description: Confines all substantive logic changes to `_hermite_normal_form`
+      (or its immediate call sites in `hermite_normal_form`) in `sympy/polys/matrices/normalforms.py`,
+      without modifying unrelated functions such as `_hermite_normal_form_modulo_D`,
+      `smith_normal_form`, or `invariant_factors`.
+    weight: 2
+  - id: FC3
+    description: Updates or removes the existing test assertion that `hermite_normal_form(DM([[2,
+      7], [0, 0], [0, 0]], ZZ))` equals an empty `DM([[], [], []], ZZ)` matrix, since
+      the corrected algorithm may now produce a non-empty result for this rank-1 input.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the scenario from the PR description where a matrix with
+      a zero entry in the leftmost unassigned column for one row (e.g., the middle
+      row `[0, 8]` in `[[1, 12], [0, 8], [0, 5]]`) causes the algorithm to incorrectly
+      identify the matrix as rank-deficient and return fewer columns than expected.
+    weight: 3
+  - id: SA2
+    description: Adds a test case (in `sympy/polys/matrices/tests/test_normalforms.py`
+      or `sympy/matrices/tests/test_normalforms.py`) that exercises `hermite_normal_form`
+      on a matrix derived from the PR example `[[5, 8, 12], [0, 0, 1]]` using the
+      flip-transpose technique, verifying the correct two-row output is produced.
+    weight: 1
+  - id: SA3
+    description: Ensures the fix handles the case where `m > n` (more rows than columns)
+      and not all of the bottom `n` rows successfully claim a pivot column, so that
+      rows further up the matrix that should contribute a pivot are still processed.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the public API of `hermite_normal_form`, `_hermite_normal_form`,
+      and `_hermite_normal_form_modulo_D` (parameter names, return type `DomainMatrix`,
+      and `DMDomainError`/`DMShapeError` exceptions) without removing or renaming
+      any of these.
+    weight: 2
+  - id: I2
+    description: Does not weaken or skip existing passing tests for `hermite_normal_form`
+      (e.g., the full-rank square and rectangular cases such as `DM([[2, 7, 17, 29,
+      41], [3, 11, 19, 31, 43], [5, 13, 23, 37, 47]], ZZ)`) by adding `@pytest.mark.skip`,
+      `@pytest.mark.xfail`, or by deleting those assertions.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Produces the correct full-width HNF result (same number of columns
+      as the input matrix) for a full-rank m-by-n input where m > n and an intermediate
+      row has a zero entry in its target pivot column, rather than returning a matrix
+      with fewer columns.
+    weight: 3
+  - id: R2
+    description: Continues to return a matrix with no columns (empty) for an input
+      like `[[2, 7], [0, 0], [0, 0]]` if the algorithm's design intent is that only
+      the bottom `min(m, n)` rows are candidates for pivots and all of those rows
+      are zero, OR consistently updates the expected result to reflect the corrected
+      algorithm's output for this case.
+    weight: 2

@@ -1,0 +1,57 @@
+metadata:
+  task_summary: Modify get_resolver in django/urls/resolvers.py to resolve settings.ROOT_URLCONF
+    before the lru_cache lookup, preventing duplicate URLResolver instances when called
+    with None vs. the explicit urlconf name.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/urls/resolvers.py and no other production files unrelated
+      to the stated task, keeping the diff minimal and focused on get_resolver.
+    weight: 2
+  - id: FC2
+    description: Restructures get_resolver so that the settings.ROOT_URLCONF lookup
+      occurs outside (before) the lru_cache boundary, such that a caller passing None
+      and a caller passing the explicit ROOT_URLCONF value both hit the same cache
+      entry.
+    weight: 3
+  - id: FC3
+    description: 'Removes or relocates the ''if urlconf is None: urlconf = settings.ROOT_URLCONF''
+      branch that previously appeared inside the lru_cache-decorated body of get_resolver,
+      so it no longer runs after the cache key has been fixed.'
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that get_resolver called with urlconf=None and get_resolver
+      called with the explicit ROOT_URLCONF string share a single lru_cache entry,
+      matching the optimization described in the PR.
+    weight: 3
+  - id: SA2
+    description: Preserves the public signature of get_resolver(urlconf=None) so existing
+      call-sites such as reverse and resolve that pass get_urlconf() without changes
+      continue to work.
+    weight: 2
+  - id: SA3
+    description: Keeps the clear_url_caches function (in django/urls/base.py) calling
+      get_resolver.cache_clear() so the lru_cache remains clearable after the restructuring.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Avoids weakening or deleting existing test assertions related to
+      get_resolver, URLResolver construction, or lru_cache behaviour.
+    weight: 2
+  - id: I2
+    description: Confirms that get_ns_resolver and other cached resolver helpers in
+      django/urls/resolvers.py are not unintentionally modified or removed.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that at runtime a single URLResolver instance is reused whether
+      get_resolver is first called with None (before set_urlconf) or later called
+      with settings.ROOT_URLCONF (after BaseHandler.get_response triggers set_urlconf),
+      preventing redundant URLResolver._populate executions.
+    weight: 3
+  - id: R2
+    description: Maintains backward compatibility so that explicit non-None urlconf
+      arguments (e.g., a custom urlconf module path) still produce a distinct cached
+      URLResolver separate from the ROOT_URLCONF resolver.
+    weight: 2

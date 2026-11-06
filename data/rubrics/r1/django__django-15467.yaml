@@ -1,0 +1,57 @@
+metadata:
+  task_summary: Fix formfield_for_foreignkey in ModelAdmin to respect a caller-supplied
+    empty_label kwarg when radio_fields is configured, instead of always overwriting
+    it with the default 'None' label.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the assignment of kwargs["empty_label"] inside the radio_fields
+      branch of formfield_for_foreignkey in django/contrib/admin/options.py so that
+      a pre-existing value in kwargs is preserved.
+    weight: 3
+  - id: FC2
+    description: Confines edits to only the radio_fields-related block inside formfield_for_foreignkey
+      in django/contrib/admin/options.py, without touching unrelated methods or files.
+    weight: 2
+  - id: FC3
+    description: Adds a test or assertion in the modeladmin test suite that exercises
+      formfield_for_foreignkey with a custom empty_label kwarg when radio_fields is
+      set, verifying the custom label is not overwritten.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements the fix so that when empty_label is already present in
+      kwargs, the existing value takes precedence over the default _('None') string,
+      matching the PR description's requirement to use kwargs.get('empty_label') before
+      falling back.
+    weight: 3
+  - id: SA2
+    description: Preserves the fallback behavior so that when no empty_label is supplied
+      in kwargs and db_field.blank is True, the empty_label is still set to _('None'),
+      keeping existing behavior intact.
+    weight: 3
+  - id: SA3
+    description: Preserves the behavior that when db_field.blank is False, empty_label
+      is set to None regardless of any caller-supplied value, matching the PR description's
+      conditional logic.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms no existing tests are weakened, deleted, or skipped to accommodate
+      the fix.
+    weight: 2
+  - id: I2
+    description: Confirms the public signature of formfield_for_foreignkey (accepting
+      db_field, request, **kwargs) is unchanged.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a subclass overriding formfield_for_foreignkey and setting
+      kwargs['empty_label'] before calling super() will see its custom label used
+      in the rendered radio-select widget when the field is listed in radio_fields.
+    weight: 3
+  - id: R2
+    description: Ensures backward compatibility so that existing ModelAdmin subclasses
+      using radio_fields without setting empty_label continue to display 'None' as
+      the blank choice for blank=True fields.
+    weight: 2

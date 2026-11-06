@@ -1,0 +1,55 @@
+metadata:
+  task_summary: Fix autodoc_typehints_description_target='documented' not injecting
+    rtype when Napoleon converts 'Returns:' to ':returns:' (with an 's').
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the 'augment_descriptions_with_types' function in 'sphinx/ext/autodoc/typehints.py'
+      to handle the ':returns:' field name (with a trailing 's') in addition to ':return:'.
+    weight: 3
+  - id: FC2
+    description: Confines changes to 'sphinx/ext/autodoc/typehints.py' without introducing
+      unrelated edits to other source files (e.g., napoleon/docstring.py, autodoc/__init__.py).
+    weight: 2
+  - id: FC3
+    description: Adds a conditional branch (anywhere in 'augment_descriptions_with_types')
+      that checks 'parts[0] == "returns"' and adds 'return' to 'has_description',
+      mirroring the existing 'parts[0] == "return"' branch.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that when 'autodoc_typehints_description_target' is set to
+      'documented' and Napoleon emits a ':returns:' field, the 'augment_descriptions_with_types'
+      function recognises that a return description exists and proceeds to inject
+      an ':rtype:' field.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing ':return:' (without 's') detection in 'augment_descriptions_with_types'
+      so non-Napoleon docstrings that use ':return:' continue to work.
+    weight: 2
+  - id: SA3
+    description: Adds or updates a test case exercising 'autodoc_typehints_description_target="documented"'
+      together with a docstring that Napoleon converts to ':returns:' output, verifying
+      that 'rtype' is present in the rendered result.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing tests related to 'augment_descriptions_with_types'
+      or 'autodoc_typehints_description_target' are removed, weakened, or skipped.
+    weight: 2
+  - id: I2
+    description: Confirms that the public signatures of 'merge_typehints', 'augment_descriptions_with_types',
+      and 'modify_field_list' remain unchanged (no new required parameters added).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that with 'autodoc_typehints_description_target="documented"'
+      and a Google-style Napoleon docstring containing only a 'Returns:' section (no
+      explicit ':rtype:'), the generated field list gains an ':rtype:' node from the
+      type annotation, instead of silently omitting it.
+    weight: 3
+  - id: R2
+    description: Ensures that parameters and return annotations are still omitted
+      (not injected as ':type:' or ':rtype:') when the corresponding description is
+      absent from the docstring, preserving the 'documented'-only semantics.
+    weight: 2

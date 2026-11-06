@@ -1,0 +1,61 @@
+metadata:
+  task_summary: Fix Query.resolve_lookup_value to preserve the input iterable type
+    (list vs tuple) instead of always coercing to tuple.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `resolve_lookup_value` method inside `django/db/models/sql/query.py`
+      and no other production files.
+    weight: 3
+  - id: FC2
+    description: Replaces the unconditional `value = tuple(resolved_values)` assignment
+      inside `resolve_lookup_value` with logic that preserves the original iterable
+      type (list or tuple).
+    weight: 3
+  - id: FC3
+    description: Avoids changing any other method or function signatures in `django/db/models/sql/query.py`
+      beyond the type-preservation fix inside `resolve_lookup_value`.
+    weight: 2
+  - id: FC4
+    description: Adds or updates a test (in any test file) that exercises `resolve_lookup_value`
+      or a queryset filter with a list value to verify the returned type matches the
+      input type.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures the fix addresses the case where the input `value` is a `list`,
+      producing a `list` output from `resolve_lookup_value` rather than a `tuple`.
+    weight: 3
+  - id: SA2
+    description: Ensures the fix preserves the existing behavior for `tuple` inputs,
+      still returning a `tuple` from `resolve_lookup_value`.
+    weight: 3
+  - id: SA3
+    description: Ensures the fix does not alter the handling of non-iterable values
+      (those with `resolve_expression`) in `resolve_lookup_value`.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms the public signature of `resolve_lookup_value(self, value,
+      can_reuse, allow_joins, simple_col)` remains unchanged.
+    weight: 2
+  - id: I2
+    description: Confirms no existing tests in the patch are weakened, skipped, or
+      deleted to accommodate the change.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Confirms that when a `list` is passed as `value` to `resolve_lookup_value`,
+      the returned value is an instance of `list` and not `tuple`, preserving exact-match
+      semantics for fields like PickledField.
+    weight: 3
+  - id: R2
+    description: Confirms that when a `tuple` is passed as `value` to `resolve_lookup_value`,
+      the returned value remains an instance of `tuple`, so existing tuple-based query
+      behavior is not regressed.
+    weight: 2
+  - id: R3
+    description: Confirms that sub-values within the iterable that have `resolve_expression`
+      (such as `F` expressions) are still resolved correctly regardless of whether
+      the outer container is a list or tuple.
+    weight: 2

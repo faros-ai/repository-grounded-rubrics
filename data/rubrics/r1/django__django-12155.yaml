@@ -1,0 +1,65 @@
+metadata:
+  task_summary: Fix trim_docstring in admindocs utils to correctly handle docstrings
+    where the first line is not empty, by skipping the first line when computing minimum
+    indentation.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the indentation calculation in `trim_docstring` inside `django/contrib/admindocs/utils.py`
+      to skip the first line (e.g., uses `lines[1:]` instead of `lines` in the `min(...)`
+      expression).
+    weight: 3
+  - id: FC2
+    description: Confines the change to `django/contrib/admindocs/utils.py` without
+      modifying unrelated files or introducing extraneous edits outside the `trim_docstring`
+      function.
+    weight: 2
+  - id: FC3
+    description: 'Leaves the rest of the `trim_docstring` function body intact: the
+      `lines[0].lstrip()` handling of the first line and the `line[indent:]` slicing
+      for subsequent lines remain unchanged.'
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Implements exactly the fix described in the PR: the minimum indentation
+      is computed over `lines[1:]` (all lines except the first) rather than over all
+      `lines`, so that a first line with zero indentation no longer forces `indent`
+      to 0.'
+    weight: 3
+  - id: SA2
+    description: Preserves the guard condition `if line.lstrip()` in the `indent`
+      calculation so that fully blank lines are still excluded from the minimum-indentation
+      computation.
+    weight: 2
+  - id: SA3
+    description: Adds or updates at least one test case exercising `trim_docstring`
+      (or a function that calls it) with a docstring whose text begins on the first
+      line (e.g., `"""test tests something.\n\t"""`).
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the existing `test_trim_docstring` test case in `tests/admin_docs/test_utils.py`
+      is not weakened, removed, or skipped.
+    weight: 2
+  - id: I2
+    description: Confirms that the public signatures of `trim_docstring`, `parse_docstring`,
+      and `parse_rst` in `django/contrib/admindocs/utils.py` are unchanged.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a docstring beginning with text on its first line (e.g.,
+      `"""test tests something.\n    More detail.\n    """`) is trimmed to the correct
+      indentation level rather than producing indent=0 that collapses all subsequent
+      indentation.
+    weight: 3
+  - id: R2
+    description: Ensures that docstrings whose first line is empty (the previously
+      working case) continue to be trimmed correctly, maintaining backward compatibility
+      with the existing Django docstring style.
+    weight: 3
+  - id: R3
+    description: Ensures that a docstring consisting of only a single non-empty first
+      line (no subsequent lines) does not cause a ValueError from an empty sequence
+      passed to `min()` due to `lines[1:]` being an empty list with no items satisfying
+      `if line.lstrip()`.
+    weight: 2

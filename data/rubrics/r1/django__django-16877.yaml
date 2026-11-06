@@ -1,0 +1,63 @@
+metadata:
+  task_summary: Implement a new `escapeseq` template filter in django/template/defaultfilters.py
+    that applies HTML escaping to each element of a sequence, analogous to how `safeseq`
+    applies `safe` to each element.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Implements the `escapeseq` function (e.g., `def escapeseq(`) in `django/template/defaultfilters.py`,
+      applying `conditional_escape` or `escape` to each element of the input sequence.
+    weight: 3
+  - id: FC2
+    description: Registers `escapeseq` as a template filter via `@register.filter`
+      in `django/template/defaultfilters.py`, so it is discoverable as a built-in
+      Django template filter.
+    weight: 3
+  - id: FC3
+    description: 'Adds documentation for `escapeseq` in `docs/ref/templates/builtins.txt`,
+      including a `.. templatefilter:: escapeseq` directive and usage example such
+      as `{{ some_list|escapeseq|join:"," }}`.'
+    weight: 2
+  - id: FC4
+    description: Adds a test file or test cases for `escapeseq` (e.g., covering both
+      autoescape-on and autoescape-off contexts) without modifying or deleting existing
+      tests for `safeseq` or other filters.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements `escapeseq` so it applies HTML escaping to each individual
+      element of a sequence (not the sequence as a whole), paralleling how `safeseq`
+      applies `mark_safe` to each element.
+    weight: 3
+  - id: SA2
+    description: 'Returns a list of escaped strings from `escapeseq`, matching the
+      design goal stated in the PR description: `escapeseq` is to `escape` what `safeseq`
+      is to `safe`.'
+    weight: 2
+  - id: SA3
+    description: Ensures the `escapeseq` filter uses `conditional_escape` (not bare
+      `escape`) so that already-safe strings are not double-escaped when used in conjunction
+      with other filters.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the existing `safeseq` function definition and its
+      `@register.filter` decorator in `django/template/defaultfilters.py` are not
+      removed or altered.
+    weight: 3
+  - id: I2
+    description: Confirms that no existing test cases for other template filters (such
+      as `escape`, `safeseq`, or `join`) are weakened, removed, or have their assertions
+      loosened.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when autoescape is off, `escapeseq` still explicitly
+      escapes HTML special characters (e.g., `&`, `<`, `>`) in each sequence element,
+      making it safe for use in templates where automatic escaping is disabled.
+    weight: 3
+  - id: R2
+    description: Ensures that each element returned by `escapeseq` is marked as safe
+      (via `mark_safe` or `conditional_escape` which returns a `SafeData` instance),
+      so downstream filters like `join` do not double-escape already-escaped output.
+    weight: 2

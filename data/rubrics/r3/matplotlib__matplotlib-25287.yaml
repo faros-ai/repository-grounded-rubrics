@@ -1,0 +1,55 @@
+metadata:
+  task_summary: Fix offsetText (exponent label) color to respect xtick.labelcolor/ytick.labelcolor
+    rcParams instead of always using xtick.color/ytick.color.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the color assignment for offsetText in XAxis._init() in
+      lib/matplotlib/axis.py so it no longer unconditionally uses mpl.rcParams['xtick.color'].
+    weight: 3
+  - id: FC2
+    description: Modifies the color assignment for offsetText in YAxis._init() in
+      lib/matplotlib/axis.py so it no longer unconditionally uses mpl.rcParams['ytick.color'].
+    weight: 3
+  - id: FC3
+    description: Confines all changes to lib/matplotlib/axis.py (and optionally a
+      test file), with no unrelated file modifications.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Implements the ''inherit'' fallback logic: uses mpl.rcParams[''xtick.color'']
+      when mpl.rcParams[''xtick.labelcolor''] equals ''inherit'', and mpl.rcParams[''xtick.labelcolor'']
+      otherwise, matching the patch described in the PR description.'
+    weight: 3
+  - id: SA2
+    description: 'Implements the same ''inherit'' fallback logic for the y-axis: uses
+      mpl.rcParams[''ytick.color''] when mpl.rcParams[''ytick.labelcolor''] equals
+      ''inherit'', and mpl.rcParams[''ytick.labelcolor''] otherwise.'
+    weight: 3
+  - id: SA3
+    description: Adds a test (anywhere in the diff) that exercises the rcParams-based
+      offsetText color fix, such as setting ytick.labelcolor or xtick.labelcolor via
+      rcParams and asserting get_offset_text().get_color() returns the expected non-inherited
+      color.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: 'Preserves the existing behavior when xtick.labelcolor and ytick.labelcolor
+      are set to ''inherit'': offsetText color continues to fall back to xtick.color/ytick.color
+      respectively.'
+    weight: 3
+  - id: I2
+    description: Does not weaken or skip any existing tests in the patch, such as
+      test_offset_label_color or test_offset_text_visible.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when a user sets mpl.rcParams['ytick.labelcolor'] to
+      a non-'inherit' value (e.g., 'red'), the offsetText on the y-axis reflects that
+      color rather than ytick.color, consistent with how tick labels are colored.
+    weight: 3
+  - id: R2
+    description: Ensures that when a user sets mpl.rcParams['xtick.labelcolor'] to
+      a non-'inherit' value, the offsetText on the x-axis reflects that color rather
+      than xtick.color.
+    weight: 2

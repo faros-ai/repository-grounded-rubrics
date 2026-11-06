@@ -1,0 +1,57 @@
+metadata:
+  task_summary: Fix Identity._entry to return KroneckerDelta(i, j) for symbolic indices
+    so that Sum(Sum(e[i,j], (i,0,n-1)), (j,0,n-1)) evaluates to n for an identity
+    matrix.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the Identity._entry method in sympy/matrices/expressions/matexpr.py
+      to no longer unconditionally return S.Zero for off-diagonal symbolic indices.
+    weight: 3
+  - id: FC2
+    description: Introduces KroneckerDelta into Identity._entry (by importing or using
+      the already-imported KroneckerDelta) so that the return value for symbolic indices
+      i, j is KroneckerDelta(i, j) rather than a hard-coded S.Zero.
+    weight: 3
+  - id: FC3
+    description: Confines changes to the Identity matrix expression code path (e.g.,
+      sympy/matrices/expressions/matexpr.py or nearby matrix-expression files) and
+      does not introduce unrelated file churn.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that accessing element (i, j) of an Identity matrix with
+      symbolic integer indices i, j returns an expression involving KroneckerDelta(i,
+      j) rather than returning S.Zero unconditionally.
+    weight: 3
+  - id: SA2
+    description: Preserves the concrete-index behavior of Identity._entry so that
+      accessing element (0, 0) still returns S.One and element (0, 1) still returns
+      S.Zero when indices are concrete integers.
+    weight: 2
+  - id: SA3
+    description: 'Addresses the root cause reported in the PR description: the double
+      sum Sum(Sum(e[i, j], (i, 0, n-1)), (j, 0, n-1)) over an identity matrix e now
+      has a path to evaluate to n via the deltasummation machinery.'
+    weight: 3
+  integrity_rubrics:
+  - id: I1
+    description: Avoids weakening or removing any existing tests for Identity matrix
+      properties (e.g., test_Identity, test_Identity_doit, test_identity_powers) in
+      the test suite.
+    weight: 2
+  - id: I2
+    description: Preserves the public API of Identity, including is_Identity, _eval_transpose,
+      _eval_inverse, _eval_trace, and _eval_determinant, leaving them unchanged.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that Identity(n)[i, i] with a symbolic integer i yields an
+      expression that simplifies to 1 (via KroneckerDelta(i, i) == 1 or an equivalent
+      simplification path), maintaining correctness of diagonal access.
+    weight: 2
+  - id: R2
+    description: Ensures that Identity(n)[i, j] with distinct symbolic integer indices
+      i and j yields KroneckerDelta(i, j) so that the deltasummation mechanism in
+      sympy/concrete/delta.py can handle nested sums and produce n rather than 0.
+    weight: 3

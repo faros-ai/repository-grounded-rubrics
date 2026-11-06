@@ -1,0 +1,47 @@
+metadata:
+  task_summary: Fix UnicodeDecodeError caused by unicode HTTP method names (e.g. u'POST')
+    by encoding the method to a native byte string in PreparedRequest.prepare_method.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the prepare_method function in requests/models.py to address
+      the unicode method name issue.
+    weight: 3
+  - id: FC2
+    description: Avoids modifying files outside requests/models.py for the core fix
+      (no unrelated file churn).
+    weight: 2
+  - id: FC3
+    description: Uses builtin_str (already imported from .compat in requests/models.py)
+      or an equivalent encoding call within prepare_method to convert the method value.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that a unicode method string (e.g. u'POST') is converted
+      to a native byte string before being stored as self.method, so it does not infect
+      headers with unicode in Python 2.
+    weight: 3
+  - id: SA2
+    description: Preserves the .upper() call on the method value so that method names
+      are still uppercased after the fix.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that prepare_method still accepts and correctly handles
+      plain byte-string method names (e.g. 'POST') in addition to unicode strings,
+      preserving backward compatibility.
+    weight: 3
+  - id: I2
+    description: Confirms that no existing public API signatures (such as PreparedRequest.prepare_method
+      or Session.request) are removed or renamed.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that self.method after prepare_method is a native str (builtin_str)
+      type in Python 2 rather than a unicode object, preventing the ascii codec UnicodeDecodeError
+      when the method string is concatenated with a binary body in httplib.
+    weight: 3
+  - id: R2
+    description: Ensures the fix does not break Python 3 behaviour, where builtin_str
+      is already str and the conversion is a no-op.
+    weight: 2

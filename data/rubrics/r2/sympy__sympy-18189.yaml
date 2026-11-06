@@ -1,0 +1,47 @@
+metadata:
+  task_summary: Fix diophantine() to pass permute=True through the recursive call
+    when syms order differs from the default alphabetical order, so that sign/value
+    permutations are generated regardless of the syms argument order.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sympy/solvers/diophantine.py and no other unrelated production
+      files, keeping the change local to the diophantine solver.
+    weight: 2
+  - id: FC2
+    description: Changes the recursive call to diophantine() inside the 'if syms !=
+      var' branch (lines near 'return {tuple([t[dict_sym_index[i]] for i in var])
+      for t in diophantine(eq, param)}') to forward the permute argument.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that diophantine() with syms=(n,m) and permute=True produces
+      the same set of solutions (all 8 signed permutations) as diophantine() with
+      syms=(m,n) and permute=True, addressing the asymmetry described in the PR.
+    weight: 3
+  - id: SA2
+    description: Preserves correct reordering of result tuples according to the caller-supplied
+      syms order after applying permutations, so that each returned tuple's positions
+      correspond to the variables in the order given by syms.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that diophantine() without permute=True (default permute=False)
+      still returns only the base solution when syms are supplied in non-alphabetical
+      order, preserving existing behavior for the non-permute path.
+    weight: 2
+  - id: I2
+    description: Avoids weakening or removing any existing assertions in sympy/solvers/tests/test_diophantine.py,
+      such as those in test_diophantine_permute_sign or test_issue_9538.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that calling diophantine(n**4 + m**4 - 2**4 - 3**4, syms=(n,m),
+      permute=True) produces 8 results (all signed permutations), matching the complete_soln
+      returned by diophantine() with syms=(m,n) and permute=True.
+    weight: 3
+  - id: R2
+    description: Adds a test case (or extends an existing one) that explicitly calls
+      diophantine with syms in non-alphabetical order and permute=True, asserting
+      that the result matches the full set of signed permutations.
+    weight: 1

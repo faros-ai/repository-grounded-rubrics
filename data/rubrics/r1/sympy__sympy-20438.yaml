@@ -1,0 +1,73 @@
+metadata:
+  task_summary: Fix `is_subset` returning None (instead of True) for `ProductSet`
+    vs `FiniteSet`, fix `Eq(b, c).simplify()` raising AttributeError on Complement,
+    and make `ProductSet.rewrite(FiniteSet)` expand finite ProductSets.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Adds a `_eval_is_subset` method to the `ProductSet` class in `sympy/sets/sets.py`
+      that handles subset checking when the ProductSet is iterable (finite), delegating
+      element membership checks to the target set.
+    weight: 3
+  - id: FC2
+    description: Adds a `_eval_rewrite_as_FiniteSet` method to the `ProductSet` class
+      in `sympy/sets/sets.py` that expands a finite ProductSet into its constituent
+      tuples as a `FiniteSet`.
+    weight: 2
+  - id: FC3
+    description: Fixes the `Eq(b, c).simplify()` `AttributeError` by either adding
+      an `equals` method to `Complement` (or its `Set` base class in `sympy/sets/sets.py`),
+      or guarding the `dif.equals(0)` call in `sympy/core/relational.py` against non-expression
+      objects.
+    weight: 3
+  - id: FC4
+    description: Restricts file edits to files directly relevant to the reported bugs
+      (`sympy/sets/sets.py`, `sympy/sets/handlers/issubset.py`, or `sympy/core/relational.py`)
+      and does not introduce unrelated modifications to other modules.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that `ProductSet(FiniteSet(1, 2), FiniteSet(1, 2)).is_subset(FiniteSet((1,1),(1,2),(2,1),(2,2)))`
+      evaluates to `True` (not `None`) as required by the PR description.
+    weight: 3
+  - id: SA2
+    description: 'Ensures that `Eq(ProductSet(a, a), FiniteSet((1,1),(1,2),(2,1),(2,2))).simplify()`
+      no longer raises `AttributeError: ''Complement'' object has no attribute ''equals''`.'
+    weight: 3
+  - id: SA3
+    description: Ensures that `ProductSet(FiniteSet(1, 2), FiniteSet(1, 2)).rewrite(FiniteSet)`
+      returns a `FiniteSet` of tuples rather than an unevaluated `ProductSet` expression.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the existing `c.is_subset(b)` behavior (True when `c
+      = FiniteSet((1,1),(1,2),(2,1),(2,2))` and `b = ProductSet(FiniteSet(1,2), FiniteSet(1,2))`)
+      is preserved by the patch, as the `FiniteSet._eval_is_subset` element-membership
+      path must continue to work.
+    weight: 2
+  - id: I2
+    description: Confirms that the patch does not weaken or skip any existing tests
+      (no `@XFAIL` removed, no `raises` replaced with passing calls, no test assertions
+      deleted).
+    weight: 2
+  - id: I3
+    description: Confirms that the public API signatures of `is_subset`, `rewrite`,
+      and `Eq` are unchanged (no parameter additions or removals to these public methods).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures the new `ProductSet._eval_is_subset` or equivalent handler
+      only attempts element-wise checking when the ProductSet `is_iterable` (i.e.,
+      all component sets are iterable/finite), avoiding infinite loops for non-finite
+      ProductSets like `ProductSet(S.Reals, S.Reals)`.
+    weight: 3
+  - id: R2
+    description: Ensures the `_eval_rewrite_as_FiniteSet` (or equivalent) in `ProductSet`
+      guards against non-finite component sets so that `ProductSet(Interval(0,1),
+      FiniteSet(1,2)).rewrite(FiniteSet)` does not raise or loop indefinitely.
+    weight: 2
+  - id: R3
+    description: Adds test coverage (anywhere in the diff) that exercises `ProductSet.is_subset`
+      with a `FiniteSet` argument to verify the corrected behavior described in the
+      PR.
+    weight: 1

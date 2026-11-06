@@ -1,0 +1,56 @@
+metadata:
+  task_summary: Fix integer overflow in fowlkes_mallows_score that causes RuntimeWarning
+    and returns nan when pk * qk exceeds int32 bounds.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the return statement (or computation) of fowlkes_mallows_score
+      in sklearn/metrics/cluster/supervised.py to eliminate the integer overflow when
+      computing pk * qk.
+    weight: 3
+  - id: FC2
+    description: Confines changes to sklearn/metrics/cluster/supervised.py (and optionally
+      its test file) without introducing unrelated file churn across the repository.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test case in the cluster supervised test file that
+      exercises fowlkes_mallows_score with large label arrays whose pk and qk values
+      would previously have overflowed int32, verifying no RuntimeWarning is raised
+      and a valid float is returned.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Replaces the overflow-prone expression tk / np.sqrt(pk * qk) with
+      an alternative that avoids multiplying two large integers together (e.g., np.sqrt(tk
+      / pk) * np.sqrt(tk / qk), or by casting pk and qk to float64 before multiplication)
+      as described in the PR fix proposal.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing zero-guard (tk != 0 check) so that fowlkes_mallows_score
+      still returns 0.0 when tk is zero, matching the pre-existing behaviour described
+      in the PR.
+    weight: 2
+  - id: SA3
+    description: Ensures the fixed computation yields a float result, consistent with
+      the PR requirement to return a float rather than nan.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public signature of fowlkes_mallows_score (parameters
+      labels_true, labels_pred, sparse) is unchanged, preserving backward compatibility.
+    weight: 3
+  - id: I2
+    description: Confirms that no existing test assertions for fowlkes_mallows_score
+      are weakened, removed, or marked as expected failures to hide the overflow issue.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Guarantees that fowlkes_mallows_score produces a finite, non-nan
+      float value (rather than nan) when pk and qk are large enough that their product
+      would exceed int32 or int64 range.
+    weight: 3
+  - id: R2
+    description: Ensures no RuntimeWarning about overflow is emitted from the return
+      expression in fowlkes_mallows_score when pk * qk exceeds integer limits, because
+      the fixed computation avoids the integer multiplication that triggered the warning.
+    weight: 2

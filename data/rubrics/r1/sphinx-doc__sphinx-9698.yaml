@@ -1,0 +1,54 @@
+metadata:
+  task_summary: 'Fix PyMethod.get_index_text in sphinx/domains/python.py so that py:method
+    with :property: option produces an index entry without parentheses, matching PyProperty
+    behavior.'
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the 'property' branch inside PyMethod.get_index_text in
+      sphinx/domains/python.py to remove the trailing parentheses from the format
+      string, changing it from '%s() (%s property)' to '%s (%s property)'.
+    weight: 3
+  - id: FC2
+    description: Confines the production-code change to sphinx/domains/python.py only,
+      without modifying unrelated domain files such as sphinx/domains/javascript.py,
+      cpp.py, or c.py.
+    weight: 2
+  - id: FC3
+    description: Updates the corresponding expected index-entry value in the test
+      file from 'meth5() (Class property)' to 'meth5 (Class property)' to reflect
+      the corrected format.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures the 'property' branch in PyMethod.get_index_text uses the
+      same parenthesis-free pattern as PyProperty.get_index_text, so both directives
+      produce consistent index entries of the form '%s (%s property)'.
+    weight: 3
+  - id: SA2
+    description: Preserves the index-entry format for non-property branches in PyMethod.get_index_text
+      (classmethod, staticmethod, plain method) by leaving those format strings unchanged.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing test assertions for non-property py:method
+      index entries (e.g., 'meth1', 'meth2', 'meth3', 'meth4') are weakened, skipped,
+      or removed.
+    weight: 2
+  - id: I2
+    description: Confirms that the PyProperty directive and its get_index_text method
+      in sphinx/domains/python.py are not altered, preserving the existing behavior
+      of py:property index entries.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: 'When a py:method directive carries the :property: option, the generated
+      addnodes.index entry contains a ''single'' entry whose text matches the pattern
+      ''NAME (CLASS property)'' without parentheses after NAME, matching the behavior
+      of py:property.'
+    weight: 3
+  - id: R2
+    description: 'When a py:method directive does NOT carry the :property: option
+      (e.g., plain method, classmethod, staticmethod), the generated index entry retains
+      parentheses in the method name, such as ''NAME() (CLASS method)''.'
+    weight: 2

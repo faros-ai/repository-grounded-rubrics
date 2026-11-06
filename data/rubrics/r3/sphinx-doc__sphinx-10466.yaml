@@ -1,0 +1,56 @@
+metadata:
+  task_summary: 'Deduplicate repeated (source, line) location entries in sphinx/builders/gettext.py
+    so that the generated .pot files do not contain repeated ''#: file:line'' comment
+    lines for the same message.'
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sphinx/builders/gettext.py and no unrelated files, keeping
+      the diff minimal and confined to the duplication fix.
+    weight: 2
+  - id: FC2
+    description: Adds deduplication logic that removes duplicate (source, line) tuples
+      from the positions/locations list, either inside Catalog.__iter__, Message.__init__,
+      or another closely related location in sphinx/builders/gettext.py.
+    weight: 3
+  - id: FC3
+    description: Preserves insertion order when deduplicating locations (e.g., via
+      dict.fromkeys, an OrderedDict, or an equivalent order-preserving seen-set pattern)
+      rather than using an unordered set that would shuffle location lines.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause described in the PR: multiple nodes sharing
+      the same (source, line) tuple (e.g., line 0) being appended separately into
+      metadata, causing repeated ''#: file:0'' entries in the .pot output.'
+    weight: 3
+  - id: SA2
+    description: Ensures the fix operates on the (source, line) pair used for location
+      comments, matching the structure already used in Catalog.__iter__ as positions
+      = [(source, line) for source, line, uuid in self.metadata[message]].
+    weight: 2
+  - id: SA3
+    description: Does not remove duplicate uuids alongside locations, keeping the
+      uuid list independent from the deduplication of source/line pairs, so that uuid-based
+      versioning is unaffected.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public interface of Message (its text, locations,
+      and uuids attributes) is preserved without renaming or removing any attribute.
+    weight: 2
+  - id: I2
+    description: Confirms that no existing tests related to gettext building are weakened,
+      skipped, or removed in the diff.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: 'Guarantees that when two or more document nodes share the same (source,
+      line) pair for a given message, only one instance of that pair appears in Message.locations,
+      preventing repeated ''#: file:line'' lines in the rendered .pot template output.'
+    weight: 3
+  - id: R2
+    description: Maintains that unique (source, line) pairs for a given message are
+      all still present in Message.locations after deduplication, so no legitimate
+      location reference is dropped from the .pot file.
+    weight: 2

@@ -1,0 +1,64 @@
+metadata:
+  task_summary: Replace the temporary-.pgpass-file approach in django.db.backends.postgresql.client
+    with subprocess.run and PGPASSWORD environment variable to simplify and improve
+    reliability of the psql client shell.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/db/backends/postgresql/client.py to replace subprocess.check_call
+      with subprocess.run.
+    weight: 3
+  - id: FC2
+    description: Removes the NamedTemporaryFile import (from django.core.files.temp
+      import NamedTemporaryFile) and associated temporary .pgpass file creation logic
+      from django/db/backends/postgresql/client.py.
+    weight: 3
+  - id: FC3
+    description: Removes the _escape_pgpass helper function and all PGPASSFILE-related
+      os.environ manipulation from django/db/backends/postgresql/client.py.
+    weight: 2
+  - id: FC4
+    description: Adds PGPASSWORD to a subprocess environment copy (e.g., os.environ.copy())
+      in django/db/backends/postgresql/client.py when a password is present, passing
+      it via the env parameter of subprocess.run.
+    weight: 3
+  - id: FC5
+    description: Limits code changes to django/db/backends/postgresql/client.py and
+      related test files, without modifying unrelated backend files (e.g., mysql/client.py,
+      oracle/client.py, sqlite3/client.py).
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements the password-passing mechanism using the PGPASSWORD environment
+      variable (not PGPASSFILE or a .pgpass temporary file) as described in the PR
+      description.
+    weight: 3
+  - id: SA2
+    description: Uses subprocess.run (not subprocess.check_call or subprocess.call)
+      to invoke the psql executable, as required by the PR description.
+    weight: 3
+  - id: SA3
+    description: Preserves the SIGINT handler behavior (ignoring SIGINT in Python
+      while psql runs and restoring it afterward) in the updated implementation.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the runshell_db classmethod signature and the runshell()
+      method interface on DatabaseClient remain unchanged so callers are unaffected.
+    weight: 2
+  - id: I2
+    description: Avoids weakening existing tests in tests/dbshell/test_postgresql.py
+      by removing or skipping password-related assertions (e.g., test_basic, test_column,
+      test_escape_characters, test_accent must remain or be replaced with equivalent
+      PGPASSWORD-based checks).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when a password is provided, PGPASSWORD is set only
+      in the subprocess environment copy and does not leak into the parent process
+      os.environ, avoiding global environment pollution.
+    weight: 3
+  - id: R2
+    description: Ensures that when no password is provided in conn_params, no PGPASSWORD
+      key is injected into the environment passed to subprocess.run.
+    weight: 2

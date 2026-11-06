@@ -1,0 +1,49 @@
+metadata:
+  task_summary: Fix QuerySet.none() on combined queries (e.g. union()) returning all
+    results instead of an empty queryset.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies code in django/db/models/sql/compiler.py or django/db/models/query.py
+      to address the combined-query none() bug, without touching unrelated files.
+    weight: 3
+  - id: FC2
+    description: Adds or modifies logic that checks whether the outer combined query
+      is empty (e.g. via is_empty(), a NothingNode check, or raising EmptyResultSet)
+      before or during get_combinator_sql() or as_sql() execution.
+    weight: 3
+  - id: FC3
+    description: Avoids adding _not_support_combined_queries() calls inside QuerySet.none(),
+      which would break the valid use case of calling .none() on a combined queryset.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that calling .none() on a queryset built with .union() (or
+      other combinators such as .intersection() or .difference()) produces an empty
+      result set rather than all matching rows.
+    weight: 3
+  - id: SA2
+    description: Preserves the behavior of ModelMultipleChoiceField.clean() returning
+      self.queryset.none() for empty optional selections, so that the form saves no
+      objects when nothing is selected.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that QuerySet.none() on a non-combined queryset still sets
+      the query empty via set_empty() and returns an empty queryset as before.
+    weight: 3
+  - id: I2
+    description: Confirms that the public API signatures of QuerySet.none(), get_combinator_sql(),
+      and as_sql() are not changed in backward-incompatible ways.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that as_sql() raises EmptyResultSet (or an equivalent early-return
+      path) when the outer combined query has been marked empty, so the database receives
+      no rows rather than all rows.
+    weight: 3
+  - id: R2
+    description: Ensures that normal combined queryset execution (without .none())
+      is unaffected, so union(), intersection(), and difference() still return correct
+      non-empty results.
+    weight: 2

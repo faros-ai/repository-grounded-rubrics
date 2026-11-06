@@ -1,0 +1,73 @@
+metadata:
+  task_summary: Fix UnicodeEncodeError when a non-ASCII hostname (e.g. '漢字') is used
+    as the email domain in the Message-ID header by converting the DNS name to its
+    ASCII-compatible (punycode/IDNA) representation.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/core/mail/utils.py or django/core/mail/message.py
+      (and no unrelated files) to add punycode/IDNA encoding logic for the DNS hostname.
+    weight: 3
+  - id: FC2
+    description: Adds a try/except or conditional block that attempts to encode the
+      FQDN as ASCII and falls back to IDNA encoding (e.g. encode('idna').decode('ascii')
+      or similar) when a UnicodeEncodeError or UnicodeError is raised.
+    weight: 3
+  - id: FC3
+    description: Keeps the change local to CachedDnsName in django/core/mail/utils.py
+      or to the domain passed to make_msgid in django/core/mail/message.py, without
+      restructuring unrelated code.
+    weight: 2
+  - id: FC4
+    description: Adds a test case (in tests/mail/tests.py or similar) that patches
+      DNS_NAME with a non-ASCII unicode hostname (such as '漢字' or '正宗') and asserts
+      that the resulting Message-ID header contains the corresponding punycode value
+      (such as 'xn--p8s937b' or 'xn--wgv71a309e').
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Resolves the UnicodeEncodeError described in the traceback by ensuring
+      the domain component used in make_msgid is ASCII-safe when the system hostname
+      contains non-ASCII characters.
+    weight: 3
+  - id: SA2
+    description: Applies the fix at the point where DNS_NAME is consumed or generated
+      (i.e., in CachedDnsName or at the make_msgid call site), matching the PR description's
+      suggestion to fix django.core.mail.utils or django.core.mail.message.
+    weight: 2
+  - id: SA3
+    description: Ensures the fix handles a non-ASCII domain even when the email encoding
+      is set to a non-unicode charset such as 'iso-8859-1', matching the specific
+      failure scenario in the PR description.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing public API of CachedDnsName (its __str__ and
+      get_fqdn methods remain callable) and DNS_NAME remains the module-level singleton
+      exported from django.core.mail.utils.
+    weight: 2
+  - id: I2
+    description: Does not weaken or remove any existing mail-related tests; existing
+      assertions about Message-ID, encoding, and header behavior remain intact.
+    weight: 2
+  - id: I3
+    description: Does not introduce new third-party dependencies; uses only Python
+      stdlib mechanisms (e.g. encode('idna'), encode('ascii')) for the punycode conversion.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when DNS_NAME resolves to a non-ASCII string, calling
+      email.message() on an EmailMessage with a non-unicode encoding (e.g. 'iso-8859-1')
+      no longer raises a UnicodeEncodeError and instead produces a valid ASCII Message-ID
+      header.
+    weight: 3
+  - id: R2
+    description: Confirms that when DNS_NAME resolves to a plain ASCII hostname, the
+      behavior is unchanged and no unnecessary IDNA encoding is applied (i.e., ASCII
+      hostnames are returned as-is).
+    weight: 2
+  - id: R3
+    description: Ensures the IDNA-encoded punycode form of the non-ASCII hostname
+      appears in the Message-ID header value, matching the test assertion pattern
+      'xn--...' described in the PR description.
+    weight: 2

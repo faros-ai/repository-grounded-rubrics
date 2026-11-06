@@ -1,0 +1,66 @@
+metadata:
+  task_summary: Fix modelform_factory to respect the formfield_callback defined in
+    a base form's Meta class instead of always overwriting it with None when no callback
+    is explicitly provided.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/forms/models.py in the modelform_factory function
+      to avoid unconditionally passing formfield_callback=None in form_class_attrs
+      when no callback is explicitly supplied.
+    weight: 3
+  - id: FC2
+    description: Confines all changes to django/forms/models.py (and optionally test
+      files), avoiding unrelated file churn such as changes to contrib apps, views,
+      or other utilities.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test in tests/model_forms/tests.py exercising the
+      scenario where modelform_factory is called without a formfield_callback argument
+      and the base form has a formfield_callback defined in its Meta class.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements logic so that when modelform_factory is called with the
+      default formfield_callback=None, the resulting form class uses the formfield_callback
+      inherited from the base form's Meta class rather than discarding it.
+    weight: 3
+  - id: SA2
+    description: Preserves existing behavior so that when an explicit non-None formfield_callback
+      is passed to modelform_factory, that callback is used and takes precedence over
+      any callback in the base form's Meta.
+    weight: 3
+  - id: SA3
+    description: Ensures that a formfield_callback defined directly on a ModelForm
+      class (as a class attribute, e.g. formfield_callback = all_required on MyForm)
+      is also respected when that form is passed to modelform_factory without an explicit
+      callback.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: 'Confirms that the public signature of modelform_factory (parameters:
+      model, form, fields, exclude, formfield_callback, widgets, localized_fields,
+      labels, help_texts, error_messages, field_classes) is not altered.'
+    weight: 3
+  - id: I2
+    description: Confirms that the existing test test_custom_callback and test_bad_callback
+      and test_inherit_after_custom_callback behaviors are preserved without weakening
+      or skipping those tests.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a FactoryForm created via modelform_factory(MyModel,
+      form=MyForm) where MyForm.Meta.formfield_callback is set produces fields governed
+      by that callback at runtime, not fields produced with no callback.
+    weight: 3
+  - id: R2
+    description: Ensures that the ModelFormMetaclass.__new__ method correctly resolves
+      formfield_callback by not receiving None from form_class_attrs when formfield_callback
+      was not explicitly passed to modelform_factory, so base_formfield_callback from
+      the parent Meta is used instead.
+    weight: 2
+  - id: R3
+    description: Maintains backward compatibility such that ModelForm subclasses not
+      using modelform_factory continue to resolve formfield_callback through ModelFormMetaclass
+      via the Meta class or class-level attribute without regression.
+    weight: 2

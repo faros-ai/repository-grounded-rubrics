@@ -1,0 +1,49 @@
+metadata:
+  task_summary: Add __repr__ support to RepeatedKFold and RepeatedStratifiedKFold
+    so they display a human-readable string instead of the default object address.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sklearn/model_selection/_split.py and no other unrelated
+      production files, keeping the diff minimal and local to the repr issue.
+    weight: 2
+  - id: FC2
+    description: Adds a __repr__ method (or equivalent mechanism) somewhere in _RepeatedSplits,
+      RepeatedKFold, or RepeatedStratifiedKFold in sklearn/model_selection/_split.py
+      so that repr is overridden for those classes.
+    weight: 3
+  - id: FC3
+    description: Uses the existing _build_repr helper (already present in sklearn/model_selection/_split.py)
+      inside the new __repr__ implementation rather than reimplementing repr formatting
+      from scratch.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Produces a repr string of the form 'RepeatedKFold(n_splits=5, n_repeats=10,
+      random_state=None)' for a default-constructed RepeatedKFold instance, matching
+      the expected output stated in the PR description.
+    weight: 3
+  - id: SA2
+    description: Produces a repr string of the form 'RepeatedStratifiedKFold(n_splits=5,
+      n_repeats=10, random_state=None)' for a default-constructed RepeatedStratifiedKFold
+      instance, matching the expected output stated in the PR description.
+    weight: 3
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the public __init__ signatures of RepeatedKFold and RepeatedStratifiedKFold
+      (n_splits, n_repeats, random_state parameters and their defaults) without modification.
+    weight: 3
+  - id: I2
+    description: Does not weaken, skip, or delete any existing tests in sklearn/model_selection/tests/test_split.py.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that repr(RepeatedKFold()) returns a plain string (not a
+      memory-address-based default object repr) by providing a __repr__ method that
+      does not fall through to object.__repr__.
+    weight: 3
+  - id: R2
+    description: Ensures the new __repr__ correctly reflects non-default constructor
+      arguments (e.g., repr(RepeatedKFold(n_splits=3)) includes 'n_splits=3') by relying
+      on _build_repr which reads instance attributes set during __init__.
+    weight: 2

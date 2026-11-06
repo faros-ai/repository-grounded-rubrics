@@ -1,0 +1,50 @@
+metadata:
+  task_summary: Fix merge_attrs to return a shallow copy of attrs for combine_attrs='override'
+    instead of returning a direct reference to the first object's attrs dict.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the 'override' branch of the merge_attrs function in xarray/core/merge.py
+      to return a copy rather than the original dict reference.
+    weight: 3
+  - id: FC2
+    description: Confines changes to xarray/core/merge.py (or equivalent merge-related
+      module) without modifying unrelated files.
+    weight: 2
+  - id: FC3
+    description: Adds a test (anywhere in the test suite) that exercises the copy
+      behavior for combine_attrs='override' — i.e., verifies that mutating the merged
+      result's attrs does not affect the source object's attrs.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Replaces the bare 'return variable_attrs[0]' expression in the combine_attrs='override'
+      branch with an expression that returns a new dict (e.g., dict(variable_attrs[0])),
+      matching the pattern used by the 'no_conflicts' and 'identical' branches.
+    weight: 3
+  - id: SA2
+    description: Preserves the semantic of combine_attrs='override' — the merged result's
+      attrs still contain the key-value pairs from the first source's attrs (only
+      the aliasing, not the content, changes).
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing test cases for merge_attrs or combine_attrs='override'
+      are removed, skipped, or weakened in the diff.
+    weight: 2
+  - id: I2
+    description: Confirms that the public signatures of merge_attrs, xr.merge, and
+      Dataset.merge remain unchanged (no new parameters, no parameter renames, no
+      removals).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that after calling xr.merge with combine_attrs='override',
+      mutating the merged dataset's attrs dict does not mutate the attrs of any source
+      dataset, because a new dict object is returned.
+    weight: 3
+  - id: R2
+    description: Maintains backward compatibility for combine_attrs values other than
+      'override' (i.e., 'drop', 'no_conflicts', 'identical') by leaving their return
+      paths unchanged.
+    weight: 2

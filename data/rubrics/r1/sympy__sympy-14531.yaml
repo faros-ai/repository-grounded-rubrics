@@ -1,0 +1,71 @@
+metadata:
+  task_summary: Fix StrPrinter settings (e.g., sympy_integers=True) being ignored
+    by subexpressions inside Eq/Ne/Relational and Limit, and fix PythonPrinter failing
+    to track symbols inside Eq.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Replaces direct use of `expr.lhs` and `expr.rhs` as format arguments
+      in `_print_Relational` (the `charmap` branch in sympy/printing/str.py) with
+      calls to `self._print(expr.lhs)` and `self._print(expr.rhs)` so printer settings
+      propagate.
+    weight: 3
+  - id: FC2
+    description: Replaces direct use of bare variables `e`, `z`, `z0`, `dir` as format
+      arguments in `_print_Limit` (sympy/printing/str.py) with calls to `self._print(...)`
+      on each argument so printer settings propagate.
+    weight: 3
+  - id: FC3
+    description: Updates or removes the test assertion `python(Eq(x, y)) == "e = Eq(x,
+      y)"` in the python printer test file, since the PR description explicitly identifies
+      it as asserting incorrect behavior.
+    weight: 2
+  - id: FC4
+    description: Confines changes to printing-related files (e.g., sympy/printing/str.py
+      and sympy/printing/tests/) without introducing unrelated modifications to non-printing
+      modules.
+    weight: 2
+  - id: FC5
+    description: Adds test cases (anywhere in the diff) that exercise `sstr` with
+      `sympy_integers=True` on `Eq` or `Limit` expressions, covering the examples
+      from the PR description.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that `sstr(Eq(x, S(1)/2), sympy_integers=True)` produces
+      output containing `S(1)/2` (not bare `1/2`), matching the PR description's stated
+      expected behavior.
+    weight: 3
+  - id: SA2
+    description: Ensures that `sstr(Limit(x, x, S(1)/2), sympy_integers=True)` produces
+      output containing `S(1)/2` (not bare `1/2`), matching the PR description's stated
+      expected behavior.
+    weight: 3
+  - id: SA3
+    description: Ensures that `python(Eq(x, y))` produces output containing symbol
+      definitions for both `x` and `y` (e.g., lines like `x = Symbol('x')`) before
+      the expression line, matching the PR description's stated expected behavior.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the fix does not weaken or delete any existing passing
+      test for non-Relational or non-Limit expressions (e.g., tests for `sstr(Rational(2,
+      3), sympy_integers=True)`, `str(Limit(sin(x)/x, x, y))`, or `str(Rel(x, y, "<"))`
+      remain intact).
+    weight: 2
+  - id: I2
+    description: Confirms that the public API signatures of `sstr`, `python`, and
+      `StrPrinter` are preserved unchanged (no new required parameters or renamed
+      functions).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Preserves correct printing of non-charmap relational operators (e.g.,
+      `<`, `<=`, `>`, `>=`) which use `self.parenthesize` and remain unaffected by
+      the fix to the charmap branch.
+    weight: 2
+  - id: R2
+    description: Ensures that when `PythonPrinter._print_Symbol` is invoked (via `self._print`)
+      on symbols appearing inside `Eq` arguments, those symbols are recorded in `self.symbols`
+      so their definitions appear in the `python()` output.
+    weight: 3

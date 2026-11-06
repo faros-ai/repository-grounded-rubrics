@@ -1,0 +1,49 @@
+metadata:
+  task_summary: Fix UnboundLocalError in kernS when input contains parentheses but
+    no spaces, causing 'kern' to be referenced before assignment.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies only sympy/core/sympify.py (the file containing kernS),
+      without touching unrelated files.
+    weight: 2
+  - id: FC2
+    description: Ensures that the variable 'kern' is initialized (e.g., assigned a
+      default value such as an empty string) before the 'if ' ' in s:' block inside
+      kernS, so it is always defined when 'hit = kern in s' is reached.
+    weight: 3
+  - id: FC3
+    description: Keeps the scope of changes minimal and confined to the kernS function
+      in sympy/core/sympify.py, without restructuring unrelated logic.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Resolves the UnboundLocalError reported in the PR description when
+      calling kernS with an input like '(2*x)/(x-1)' that contains parentheses but
+      no spaces.
+    weight: 3
+  - id: SA2
+    description: Ensures the 'hit' variable is set to False (not relying on an uninitialized
+      'kern') when the input string has no spaces, consistent with the original intent
+      that 'hit' tracks whether kern substitution occurred.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the fix does not weaken or remove existing test assertions
+      in test_kernS (e.g., tests for 'kernS' with strings containing spaces, negation,
+      or nested parentheses remain intact).
+    weight: 2
+  - id: I2
+    description: Confirms that the public API signature of kernS (taking a single
+      argument 's') is preserved unchanged.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures kernS returns a valid sympified expression (not raising UnboundLocalError)
+      when called with inputs containing parentheses but no spaces, such as '(2*x)/(x-1)'.
+    weight: 3
+  - id: R2
+    description: Preserves the existing behavior of kernS for inputs that do contain
+      spaces (e.g., '2*(x + y)'), so the kern substitution still prevents autosimplification
+      from distributing numbers into Add expressions.
+    weight: 3

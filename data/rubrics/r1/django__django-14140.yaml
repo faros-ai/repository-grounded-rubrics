@@ -1,0 +1,55 @@
+metadata:
+  task_summary: Fix Q.deconstruct() crashing with TypeError when its single child
+    is a non-subscriptable boolean expression (e.g., Exists), by removing or guarding
+    the special-case single-child path in django/db/models/query_utils.py.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the Q.deconstruct() method inside django/db/models/query_utils.py
+      to eliminate the crash when the single child is a non-subscriptable object.
+    weight: 3
+  - id: FC2
+    description: Removes or guards the specific offending lines that perform child[0]
+      and child[1] subscripting on a potentially non-subscriptable single child in
+      Q.deconstruct().
+    weight: 3
+  - id: FC3
+    description: Confines edits to the Q.deconstruct() method (and optionally its
+      tests) without modifying unrelated files or making mass renames.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements the fix such that Q(Exists(...)).deconstruct() no longer
+      raises TypeError when the child is a non-subscriptable boolean expression.
+    weight: 3
+  - id: SA2
+    description: Ensures single-child Q objects deconstruct into args (as a tuple
+      containing the child) instead of attempting to construct kwargs via subscripting,
+      or explicitly guards against non-tuple children before the kwargs path is taken.
+    weight: 2
+  - id: SA3
+    description: Preserves the deconstruct() behavior for multi-child Q objects (len(self.children)
+      > 1), still placing them into args with an optional _connector kwarg.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the existing test cases for Q.deconstruct() (e.g.,
+      test_deconstruct, test_deconstruct_negated, test_deconstruct_or, test_deconstruct_and,
+      test_deconstruct_nested) are not weakened, skipped, or removed.
+    weight: 2
+  - id: I2
+    description: Preserves the public Q.__init__ signature and the three-tuple (path,
+      args, kwargs) return type of Q.deconstruct() so that existing callers reconstructing
+      Q with Q(*args, **kwargs) continue to work.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures Q(Exists(...)).deconstruct() returns a three-tuple where
+      the Exists instance appears in args (not in kwargs), enabling correct round-trip
+      reconstruction via Q(*args, **kwargs).
+    weight: 3
+  - id: R2
+    description: Maintains that Q(x=1).deconstruct() still produces a valid deconstructed
+      form that can reconstruct the Q object (path, args, kwargs are non-contradictory
+      and Q(*args, **kwargs) yields an equivalent object).
+    weight: 2

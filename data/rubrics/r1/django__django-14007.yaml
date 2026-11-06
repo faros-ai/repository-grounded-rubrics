@@ -1,0 +1,75 @@
+metadata:
+  task_summary: Ensure that database converters (from_db_value) are applied to returning_fields
+    values on INSERT, so that custom field wrapper types are returned correctly after
+    create() and bulk_create().
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies SQLInsertCompiler.execute_sql in django/db/models/sql/compiler.py
+      to apply converters to the rows returned from an INSERT statement before returning
+      them to the caller.
+    weight: 3
+  - id: FC2
+    description: Uses get_converters() and apply_converters() (or equivalent logic)
+      within SQLInsertCompiler to process returning_fields values, consistent with
+      how SQLCompiler.results_iter applies converters.
+    weight: 3
+  - id: FC3
+    description: Constructs Col expressions (or equivalent expressions with get_db_converters)
+      from the returning_fields in SQLInsertCompiler so that field-level converters
+      including from_db_value are discoverable.
+    weight: 2
+  - id: FC4
+    description: Avoids modifying files unrelated to the insert/returning_fields converter
+      pipeline (e.g., no unrelated churn in migrations, settings, or unrelated model
+      methods).
+    weight: 2
+  - id: FC5
+    description: Adds or updates test coverage in tests/ that exercises from_db_value
+      being called on values returned via returning_fields during create() or bulk_create(),
+      for example by asserting the returned pk value is an instance of a custom wrapper
+      class.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the case described in the PR where AutoModel.objects.create()
+      sets a plain integer pk instead of passing the returned id through from_db_value,
+      so that the returned pk is now processed by any registered converters.
+    weight: 3
+  - id: SA2
+    description: Addresses the bulk_create case mentioned in the PR description, ensuring
+      that pk values returned via can_return_rows_from_bulk_insert are also passed
+      through converters before being set as attributes on objects.
+    weight: 3
+  - id: SA3
+    description: Handles the fallback path in execute_sql that uses last_insert_id
+      (when can_return_columns_from_insert is False), ensuring converters are applied
+      to that result as well.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the public API signature of SQLInsertCompiler.execute_sql(returning_fields=None)
+      without changing its parameter names or removing its return value contract.
+    weight: 3
+  - id: I2
+    description: Does not weaken or skip existing tests (no added @skip decorators,
+      no removed assertions, no relaxation of existing isinstance checks in test files
+      visible in the diff).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when a field defines from_db_value and is listed in
+      db_returning_fields, the value returned by execute_sql is the result of passing
+      the raw DB value through from_db_value, not the raw integer or string itself.
+    weight: 3
+  - id: R2
+    description: Ensures that converters are applied only when returning_fields is
+      non-empty, preserving the early-return path (return []) when no returning_fields
+      are requested.
+    weight: 2
+  - id: R3
+    description: Maintains backward compatibility for fields that do not define from_db_value,
+      ensuring no converter overhead is introduced for fields without registered converters
+      (i.e., get_converters returns an empty dict and apply_converters is a no-op
+      for those cases).
+    weight: 2

@@ -1,0 +1,56 @@
+metadata:
+  task_summary: Fix delete() on model instances without dependencies to set the PK
+    to None after deletion, matching the behavior of the slow-delete path.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/db/models/deletion.py and confines the fix to the
+      fast-delete early-return branch inside the Collector.delete() method.
+    weight: 3
+  - id: FC2
+    description: Avoids modifying any file outside django/db/models/deletion.py and
+      optionally tests/delete/tests.py, introducing no unrelated churn.
+    weight: 2
+  - id: FC3
+    description: Adds a setattr call (or equivalent pk assignment) targeting the instance
+      inside the fast-delete early-return branch, mirroring the setattr(instance,
+      model._meta.pk.attname, None) pattern already present in the slow-delete path.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the case where len(self.data) == 1 and len(instances) ==
+      1 and self.can_fast_delete(instance) is True, which is precisely the no-dependency
+      fast-delete path described in the PR as missing the PK-clearing step.
+    weight: 3
+  - id: SA2
+    description: Sets the PK attribute of the instance to None after deleting it in
+      the fast-delete branch, so that callers observe instance.pk == None after .delete()
+      returns, matching the expected behavior stated in the PR description.
+    weight: 3
+  - id: SA3
+    description: Adds or updates a test exercising that a model instance with no FK
+      dependencies has its pk set to None after calling .delete(), covering the scenario
+      described in the PR.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: 'Preserves the return value signature of the fast-delete branch as
+      (count, {model._meta.label: count}), keeping the public API of Collector.delete()
+      unchanged.'
+    weight: 2
+  - id: I2
+    description: Does not remove or weaken any existing test assertions related to
+      pk-clearing (e.g., assertIsNone(obj.pk) in test_instance_update) or fast-delete
+      query counts.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that after the fast-delete path executes, the in-memory instance
+      object reflects pk == None, providing the same post-deletion state as the slow-delete
+      path that calls setattr(instance, model._meta.pk.attname, None).
+    weight: 3
+  - id: R2
+    description: Maintains that the fast-delete path still issues exactly one SQL
+      DELETE query (via sql.DeleteQuery(model).delete_batch) and does not regress
+      the single-query optimization.
+    weight: 2

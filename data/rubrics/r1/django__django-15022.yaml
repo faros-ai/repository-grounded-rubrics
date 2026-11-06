@@ -1,0 +1,59 @@
+metadata:
+  task_summary: Eliminate unnecessary SQL JOINs in the admin changelist search by
+    combining per-word Q objects into a single filter() call instead of chaining multiple
+    filter() calls.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the get_search_results method in django/contrib/admin/options.py
+      to consolidate per-word OR Q objects so they are applied via a single queryset.filter()
+      call rather than one filter() call per word in smart_split(search_term).
+    weight: 3
+  - id: FC2
+    description: Confines all changes to django/contrib/admin/options.py (the get_search_results
+      method), without altering unrelated admin files or other Django core modules.
+    weight: 2
+  - id: FC3
+    description: Adds or imports an AND-combining mechanism (such as functools.reduce,
+      operator.and_, or accumulation of Q objects with &) to combine per-word Q expressions
+      before the single filter() call.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Removes the pattern of calling queryset.filter(or_queries) inside
+      the for bit in smart_split(search_term) loop, which is the root cause of one
+      extra JOIN per search word.
+    weight: 3
+  - id: SA2
+    description: 'Preserves the multi-word AND semantic: results returned by the modified
+      get_search_results still require every word in the search query to match at
+      least one search_fields entry.'
+    weight: 3
+  - id: SA3
+    description: 'Preserves the per-word OR semantic: within each word, any orm_lookup
+      field matching that word is sufficient, consistent with the Q(..., _connector=models.Q.OR)
+      construction.'
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the return signature of get_search_results as a (queryset,
+      may_have_duplicates) tuple, leaving the may_have_duplicates calculation via
+      lookup_spawns_duplicates intact.
+    weight: 3
+  - id: I2
+    description: Does not weaken or remove any existing tests covering get_search_results,
+      search_fields behavior, or multi-word search correctness (e.g., test_multiple_search_fields,
+      test_no_duplicates_for_non_unique_related_object_in_search_fields).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a multi-word search query (e.g., three or more words)
+      against search_fields spanning a ForeignKey relation no longer produces one
+      SQL JOIN per word, thereby avoiding query stalling on large datasets as described
+      in the PR.
+    weight: 3
+  - id: R2
+    description: Confirms that searching with a single word still returns correct
+      results, preserving the original OR-across-fields behavior for a single search
+      term.
+    weight: 2

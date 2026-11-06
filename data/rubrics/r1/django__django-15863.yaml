@@ -1,0 +1,62 @@
+metadata:
+  task_summary: Fix floatformat template filter losing precision when formatting Decimal
+    numbers by avoiding the lossy float() conversion in django/template/defaultfilters.py.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the floatformat function in django/template/defaultfilters.py
+      to avoid the lossy Decimal(str(float(text))) fallback path for Decimal inputs.
+    weight: 3
+  - id: FC2
+    description: Confines production code changes to django/template/defaultfilters.py
+      without modifying unrelated files (e.g., no changes to humanize.py, formats.py,
+      or other template filters).
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test in the floatformat test file (tests/template_tests/filter_tests/test_floatformat.py)
+      that exercises a high-precision Decimal input such as Decimal('42.12345678901234567890')
+      with floatformat:20.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Resolves the root cause identified in the PR description: Decimal
+      inputs were converted via repr(text) producing a string like "Decimal(''...'')"
+      that Decimal() cannot parse, triggering the lossy Decimal(str(float(text)))
+      fallback.'
+    weight: 3
+  - id: SA2
+    description: Preserves Decimal precision by using the Decimal value directly (e.g.,
+      via isinstance(text, Decimal) guard) or via str(text) rather than repr(text)
+      or float(text) when the input is a Decimal instance.
+    weight: 3
+  - id: SA3
+    description: Retains the existing fallback path (Decimal(str(float(text)))) for
+      non-Decimal numeric types (e.g., plain float or int) that still require the
+      float-based conversion.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the floatformat function's public signature and @register.filter
+      decorator remain unchanged, preserving backward compatibility.
+    weight: 2
+  - id: I2
+    description: Avoids weakening existing test assertions in the floatformat test
+      suite (e.g., does not remove or loosen assertEqual calls for existing Decimal
+      and float cases such as floatformat(Decimal('555.555'), 2) == '555.56').
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a Decimal value with more than 15 significant digits
+      (e.g., Decimal('42.12345678901234567890')) is formatted without float-induced
+      truncation, preserving digits beyond the float64 precision limit.
+    weight: 3
+  - id: R2
+    description: Maintains correct behavior for non-Decimal numeric inputs (float,
+      int, string-encoded numbers) so that existing output values such as floatformat(7.7)
+      == '7.7' and floatformat(Decimal('09.000')) == '9' are unaffected.
+    weight: 2
+  - id: R3
+    description: Preserves the InvalidOperation and TypeError exception-handling logic
+      so that invalid inputs (e.g., 'foo', None) still return an empty string rather
+      than raising an unhandled exception.
+    weight: 2

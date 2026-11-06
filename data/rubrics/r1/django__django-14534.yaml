@@ -1,0 +1,50 @@
+metadata:
+  task_summary: Fix BoundWidget.id_for_label to use the id already computed in self.data['attrs']['id']
+    instead of reconstructing it from self.data['name'] and self.data['index'].
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the id_for_label property in the BoundWidget class inside
+      django/forms/boundfield.py and no other unrelated files.
+    weight: 3
+  - id: FC2
+    description: Removes the string-reconstruction expression 'id_%s_%s' % (self.data['name'],
+      self.data['index']) from BoundWidget.id_for_label.
+    weight: 3
+  - id: FC3
+    description: Replaces the removed expression with a reference to self.data['attrs']['id']
+      (or a safe variant such as self.data['attrs'].get('id')) in BoundWidget.id_for_label.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements BoundWidget.id_for_label so that it returns the id value
+      already stored in self.data['attrs'] rather than recomputing it, aligning with
+      the PR description's stated fix.
+    weight: 3
+  - id: SA2
+    description: Handles the case where no 'id' key is present in self.data['attrs']
+      (e.g., when auto_id is disabled and option_attrs contains no id), avoiding a
+      KeyError by using .get('id') or an equivalent guard.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the public property signature of BoundWidget.id_for_label
+      (decorated with @property, takes no arguments beyond self) so callers like radio.id_for_label
+      in templates remain valid.
+    weight: 2
+  - id: I2
+    description: Does not weaken or skip existing tests for BoundWidget.id_for_label
+      or subwidget iteration in the test suite.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when a form uses a custom auto_id format string or an
+      explicit id attribute on a CheckboxSelectMultiple or RadioSelect widget, BoundWidget.id_for_label
+      returns the id that ChoiceWidget.create_option already computed and stored in
+      option_attrs['id'].
+    weight: 3
+  - id: R2
+    description: Confirms that BoundWidget.id_for_label returns an empty string or
+      None (not a KeyError) when the widget's options are rendered without an id attribute,
+      consistent with Django's existing behavior when auto_id is falsy.
+    weight: 2

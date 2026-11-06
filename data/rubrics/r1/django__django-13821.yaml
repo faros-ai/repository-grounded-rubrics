@@ -1,0 +1,56 @@
+metadata:
+  task_summary: Drop support for SQLite < 3.9.0 by raising the minimum version check
+    in django/db/backends/sqlite3/base.py from 3.8.3 to 3.9.0.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Updates the version tuple in check_sqlite_version() inside django/db/backends/sqlite3/base.py
+      from (3, 8, 3) to (3, 9, 0).
+    weight: 3
+  - id: FC2
+    description: Updates the ImproperlyConfigured error message string inside check_sqlite_version()
+      so that it references '3.9.0' instead of '3.8.3'.
+    weight: 3
+  - id: FC3
+    description: Updates the documentation in docs/ref/databases.txt so that the stated
+      minimum SQLite version is 3.9.0 rather than 3.8.3.
+    weight: 2
+  - id: FC4
+    description: 'Avoids unrelated file churn: changes are confined to the SQLite
+      backend, its tests, and relevant documentation, without modifying unrelated
+      backends or adding new dependencies.'
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Reflects the PR's stated rationale by setting the new minimum at
+      exactly 3.9.0 (not some intermediate version such as 3.8.x or a higher version
+      such as 3.11.0).
+    weight: 3
+  - id: SA2
+    description: Removes or simplifies any feature flags in django/db/backends/sqlite3/features.py
+      whose version guard is now always satisfied given the 3.9.0 minimum (e.g. guards
+      using versions below 3.9.0 such as (3, 8, x) become unconditionally True).
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Updates the test in tests/backends/sqlite/tests.py (test_check_sqlite_version)
+      so the expected message and the mocked version tuple are consistent with the
+      new 3.9.0 threshold, rather than leaving the old '3.8.3' assertion in place.
+    weight: 2
+  - id: I2
+    description: Preserves the public check_sqlite_version() function signature and
+      its use of ImproperlyConfigured, so callers relying on that exception type are
+      unaffected.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that importing django.db.backends.sqlite3.base with an SQLite
+      version below 3.9.0 raises ImproperlyConfigured with a message containing '3.9.0
+      or later is required', providing a clear, stable error message a test can assert
+      against.
+    weight: 3
+  - id: R2
+    description: Ensures that importing django.db.backends.sqlite3.base with an SQLite
+      version of exactly (3, 9, 0) or higher does NOT raise ImproperlyConfigured,
+      so the minimum boundary is inclusive and not overly restrictive.
+    weight: 2

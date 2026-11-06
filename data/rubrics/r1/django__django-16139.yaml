@@ -1,0 +1,53 @@
+metadata:
+  task_summary: Fix the broken link to PasswordResetForm in UserChangeForm when UserAdmin
+    is accessed via a to_field URL (e.g., ?_to_field=uuid), by replacing the hardcoded
+    relative path '../password/' with a path anchored to the user's primary key.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `__init__` method of `UserChangeForm` in `django/contrib/auth/forms.py`
+      to change the `password.help_text` format call.
+    weight: 3
+  - id: FC2
+    description: Avoids modifying files unrelated to `UserChangeForm` or `UserAdmin`
+      password link logic (e.g., no churn in unrelated modules, templates, or admin.py
+      beyond what is strictly required).
+    weight: 2
+  - id: FC3
+    description: Replaces the hardcoded relative path string `'../password/'` in `password.help_text.format(...)`
+      with a path that incorporates `self.instance.pk` so the link is correct regardless
+      of how the UserAdmin URL is accessed.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements the fix described in the PR by using `self.instance.pk`
+      to construct the password change URL, matching the suggested pattern `../../{self.instance.pk}/password/`
+      or an equivalent absolute reference using the pk.
+    weight: 3
+  - id: SA2
+    description: Preserves the conditional guard `if password:` so the help_text formatting
+      is only applied when a `password` field exists in the form.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the `password` field definition on `UserChangeForm`
+      (the `ReadOnlyPasswordHashField` with `help_text` containing `'{}'`) is not
+      altered, so the format placeholder remains functional.
+    weight: 2
+  - id: I2
+    description: Confirms that existing tests for `UserChangeForm` (such as `test_password_excluded`
+      and `test_unusable_password`) are not weakened, skipped, or removed.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Ensures the generated password change link works when UserAdmin is
+      accessed via a non-pk `to_field` URL (e.g., `.../user/22222222-3333-4444-5555-666677778888/change/?_to_field=uuid`),
+      because the link is now based on `self.instance.pk` rather than a naive one-level-up
+      relative path.
+    weight: 3
+  - id: R2
+    description: Preserves correct behavior when `self.instance` has no pk (e.g.,
+      the form is instantiated without an instance or with an unsaved instance), either
+      by gracefully handling the None pk or by only formatting the link when a valid
+      pk is available.
+    weight: 2

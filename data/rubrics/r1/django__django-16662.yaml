@@ -1,0 +1,50 @@
+metadata:
+  task_summary: Fix MigrationWriter to sort plain `import X` statements before `from
+    X import Y` statements, matching Django coding style and isort defaults.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: 'Modifies the import-sorting logic in `django/db/migrations/writer.py`,
+      specifically the line containing `sorted(imports, key=lambda i: i.split()[1])`.'
+    weight: 3
+  - id: FC2
+    description: Confines changes to `django/db/migrations/writer.py` and optionally
+      test files, without modifying unrelated production files.
+    weight: 2
+  - id: FC3
+    description: Updates the `test_sorted_imports` test (or adds a new test case)
+      in the migrations test suite to assert that plain `import` lines appear before
+      `from ... import` lines in the generated migration output.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements a sort key in `as_string` (in `django/db/migrations/writer.py`)
+      that places all `import X` style statements before `from X import Y` style statements
+      within the generated migration imports block.
+    weight: 3
+  - id: SA2
+    description: Preserves secondary alphabetical sorting by module name so that imports
+      within each group (plain `import` and `from ... import`) remain ordered by the
+      module/package name.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the existing `from django.db import migrations, models`
+      merging logic (lines that discard `from django.db import models` and add `from
+      django.db import migrations, models`) is not removed or altered.
+    weight: 3
+  - id: I2
+    description: Confirms that the migration_imports manual-porting comment block
+      and its associated `sorted(migration_imports)` call are not removed or weakened.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Produces generated migration files where any plain `import X` line
+      (e.g. `import datetime`, `import time`) always appears above any `from X import
+      Y` line (e.g. `from django.db import migrations, models`) in the imports section.
+    weight: 3
+  - id: R2
+    description: Maintains correct output for migrations that only have `from ...
+      import` style lines (no plain `import` statements), so that the single-style
+      case still produces a valid, non-empty imports block.
+    weight: 2

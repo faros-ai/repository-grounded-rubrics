@@ -1,0 +1,60 @@
+metadata:
+  task_summary: Fix datetime axis tick labels losing spaces when usetex=True by correcting
+    _wrap_in_tex in lib/matplotlib/dates.py to produce visible spacing in TeX math
+    mode.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `_wrap_in_tex` function in `lib/matplotlib/dates.py`
+      to handle space characters so they are rendered visibly when the text is passed
+      to TeX (i.e., spaces are not silently swallowed inside `\mathdefault{...}`).
+    weight: 3
+  - id: FC2
+    description: Limits changes to `lib/matplotlib/dates.py` (and optionally its test
+      file); does not introduce unrelated edits to other source files.
+    weight: 2
+  - id: FC3
+    description: Updates test expectations in the date-formatting usetex tests (e.g.,
+      `test_date_formatter_usetex` or `test_concise_formatter_usetex`) to reflect
+      the corrected TeX output produced by the fixed `_wrap_in_tex`.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause described in the PR: datetime tick labels
+      with spaces (e.g., from formats `''%d %H:%M''` or `''%m-%d %H''`) lose visible
+      spacing when rendered under `usetex=True` because TeX math mode ignores space
+      characters.'
+    weight: 3
+  - id: SA2
+    description: Ensures that non-space content already handled by `_wrap_in_tex`
+      (letter sequences wrapped outside `\mathdefault`, dashes wrapped as `{-}`) continues
+      to be handled correctly after the fix.
+    weight: 2
+  - id: SA3
+    description: Preserves the `usetex` parameter on `AutoDateFormatter.__init__`
+      and `DateFormatter.__init__` (i.e., both constructors still accept a `usetex`
+      keyword argument).
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that `_wrap_in_tex` remains a module-level function in `lib/matplotlib/dates.py`
+      (no removal or rename that would break internal callers such as `DateFormatter.__call__`,
+      `ConciseDateFormatter.__call__`, and offset-string formatting).
+    weight: 3
+  - id: I2
+    description: Confirms that any updated test assertions in the usetex formatter
+      tests tighten or correct expectations rather than weaken them (e.g., no removal
+      of parametrize cases or relaxation to a less-specific assertion).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: After the fix, datetime strings containing a space character (such
+      as `'01 00:01'` from format `'%d %H:%M'`) produce a TeX representation where
+      the space is rendered as a visible separator outside of or correctly encoded
+      within `\mathdefault{}`, not silently dropped.
+    weight: 3
+  - id: R2
+    description: After the fix, datetime strings that contain no spaces (such as `'00:00:00'`
+      or `'2020{-}01{-}01'`) still produce the same `$\mathdefault{...}$` wrapping
+      as before, confirming no regression for the space-free case.
+    weight: 2

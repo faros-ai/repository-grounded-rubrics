@@ -1,0 +1,54 @@
+metadata:
+  task_summary: Fix UnboundLocalError in kernS where 'kern' is referenced before assignment
+    when the input string contains parentheses but no spaces are introduced by the
+    string transformations.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sympy/core/sympify.py and only sympy/core/sympify.py for
+      the production-code fix (no unrelated file churn).
+    weight: 2
+  - id: FC2
+    description: Ensures 'kern' is initialized or given a default value before the
+      'if " " in s:' conditional block inside the 'kernS' function, so that the subsequent
+      'hit = kern in s' line does not raise UnboundLocalError.
+    weight: 3
+  - id: FC3
+    description: Keeps 'hit = kern in s' assignment semantically correct after the
+      fix, i.e., 'hit' is True only when 'kern' was actually inserted into 's' (spaces
+      were present and replaced).
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Resolves the exact reported failure: calling kernS with a string
+      such as ''(2*x)/(x-1)'' (which contains parentheses but no spaces) no longer
+      triggers an UnboundLocalError.'
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior of kernS for inputs that do contain
+      spaces inside parenthesised expressions (e.g., '2*(x + y)'), so that the kern
+      substitution hack still executes and prevents autosimplification.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Does not remove, skip, or weaken any existing assertions or test
+      cases in test_kernS (e.g., does not delete lines asserting kernS('E**-(x)')
+      == exp(-x) or similar).
+    weight: 2
+  - id: I2
+    description: Preserves the public signature of 'def kernS(s):' without adding,
+      removing, or renaming parameters.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when no spaces are present in the transformed string
+      (so the 'if " " in s:' block is skipped), 'hit' evaluates to False and kernS
+      falls through to return the plain sympify result, avoiding any NameError or
+      UnboundLocalError at runtime.
+    weight: 3
+  - id: R2
+    description: 'Confirms that the fix does not introduce a new code path where ''rep
+      = {Symbol(kern): 1}'' could be reached with ''kern'' still unset or set to a
+      sentinel value that is not a valid symbol string, which would produce a misleading
+      result.'
+    weight: 2

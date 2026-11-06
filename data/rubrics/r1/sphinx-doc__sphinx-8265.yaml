@@ -1,0 +1,63 @@
+metadata:
+  task_summary: Fix visit_Tuple in sphinx/pycode/ast.py to wrap non-empty tuple AST
+    nodes in parentheses so that tuple default argument values (e.g. color=(1, 1,
+    1)) are rendered correctly instead of being stripped of their parentheses.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the visit_Tuple method in sphinx/pycode/ast.py so that a
+      non-empty tuple is rendered with surrounding parentheses (e.g. producing '(1,
+      2, 3)' instead of '1, 2, 3').
+    weight: 3
+  - id: FC2
+    description: Preserves the visit_Tuple empty-tuple branch in sphinx/pycode/ast.py
+      so that an empty tuple still returns '()'.
+    weight: 3
+  - id: FC3
+    description: Confines the functional change to sphinx/pycode/ast.py (the _UnparseVisitor
+      class), without modifying unrelated modules such as sphinx/util/inspect.py or
+      sphinx/domains/python.py.
+    weight: 2
+  - id: FC4
+    description: Updates the existing test parametrize entry for Tuple in test_pycode_ast.py
+      (or equivalent test file) so that the expected value for '(1, 2, 3)' changes
+      from '1, 2, 3' to '(1, 2, 3)', reflecting the corrected behavior.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause described in the PR: a tuple default argument
+      such as color=(1, 1, 1) was rendered without its outer parentheses (as color=1,
+      1, 1) because visit_Tuple omitted them.'
+    weight: 3
+  - id: SA2
+    description: Ensures the fix applies to the AST unparsing layer (sphinx/pycode/ast.py)
+      rather than only patching downstream display logic, so all callers of unparse
+      that handle tuple AST nodes benefit.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the existing test for an empty tuple ('()') is not
+      weakened or removed, preserving the invariant that unparse of an empty ast.Tuple
+      still returns '()'.
+    weight: 2
+  - id: I2
+    description: Confirms that no new imports, dependencies, or large-scale refactors
+      are introduced beyond what is needed to fix the visit_Tuple parenthesization.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that calling unparse on an ast.Tuple node with elements produces
+      a string that begins with '(' and ends with ')', so downstream signature stringification
+      renders tuple defaults faithfully.
+    weight: 3
+  - id: R2
+    description: Ensures that the corrected visit_Tuple output is compatible with
+      the _visit_arg_with_default method in _UnparseVisitor, so that a parameter like
+      color=(1, 1, 1) is reconstructed as 'color=(1, 1, 1)' when unparsing function
+      signatures.
+    weight: 2
+  - id: R3
+    description: Maintains backward compatibility for non-tuple default argument types
+      (scalars, strings, lists, None) so that their unparse output is unaffected by
+      the Tuple fix.
+    weight: 2

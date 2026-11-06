@@ -1,0 +1,65 @@
+metadata:
+  task_summary: Fix srepr to recursively print elements of dict and set using repr-style
+    output, analogous to how list and tuple are already handled.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Adds a _print_dict method to ReprPrinter in sympy/printing/repr.py
+      that iterates over dict keys and values, printing each with self._print or self.reprify
+      rather than falling through to emptyPrinter.
+    weight: 3
+  - id: FC2
+    description: Adds a _print_set method to ReprPrinter in sympy/printing/repr.py
+      that iterates over set elements, printing each with self._print or self.reprify
+      rather than falling through to emptyPrinter.
+    weight: 3
+  - id: FC3
+    description: Confines all production code changes to sympy/printing/repr.py without
+      modifying unrelated printer files such as str.py, pretty.py, or latex.py.
+    weight: 2
+  - id: FC4
+    description: 'Adds test cases for srepr on dict and set inputs (e.g., srepr({x:
+      y}) and srepr({x, y})) somewhere in the test suite, mirroring the existing test_list
+      and test_tuple structure.'
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Ensures that srepr on a dict like {x: y} produces output where both
+      keys and values are printed in repr form (e.g., containing Symbol(''x'') and
+      Symbol(''y'')) rather than bare variable names.'
+    weight: 3
+  - id: SA2
+    description: Ensures that srepr on a set like {x, y} produces output where each
+      element is printed in repr form (e.g., containing Symbol('x') and Symbol('y'))
+      rather than bare variable names.
+    weight: 3
+  - id: SA3
+    description: Preserves existing srepr behavior for list and tuple inputs, keeping
+      _print_list and _print_tuple methods intact and unmodified.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing tests in sympy/printing/tests/test_repr.py
+      are removed, weakened, or have their assertions changed to accommodate the new
+      behavior.
+    weight: 2
+  - id: I2
+    description: 'Confirms that the public srepr function signature in sympy/printing/repr.py
+      remains unchanged (same parameters: expr and **settings).'
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: 'Produces dict repr output that wraps key-value pairs using curly-brace
+      syntax or an equivalent repr-evaluable form, with each key and value individually
+      repr-printed (e.g., {Symbol(''x''): Symbol(''y'')} or similar).'
+    weight: 3
+  - id: R2
+    description: Produces set repr output with each element individually repr-printed
+      (e.g., {Symbol('x'), Symbol('y')} or set([Symbol('x'), Symbol('y')])), rather
+      than delegating to Python's built-in str() which renders bare symbol names.
+    weight: 3
+  - id: R3
+    description: Handles an empty set input without raising an exception, producing
+      a valid empty-set representation (e.g., set()) analogous to how str.py handles
+      it with the empty-set guard.
+    weight: 2

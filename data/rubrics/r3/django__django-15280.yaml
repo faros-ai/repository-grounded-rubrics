@@ -1,0 +1,63 @@
+metadata:
+  task_summary: Fix deferred fields being incorrectly inherited when following a prefetch
+    back to a 'parent' object via a ForeignKey or OneToOneField.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the file django/db/models/fields/related_descriptors.py
+      and no other production files, keeping the fix local to the descriptor logic
+      where the reverse cache is set during prefetch.
+    weight: 3
+  - id: FC2
+    description: Adds a guard in ForwardManyToOneDescriptor.get_prefetch_queryset
+      (around the line calling remote_field.set_cached_value(rel_obj, instance)) that
+      prevents setting the reverse cache when instance has more deferred fields than
+      the already-fetched rel_obj.
+    weight: 3
+  - id: FC3
+    description: Adds a guard in ReverseOneToOneDescriptor.get_prefetch_queryset (around
+      the line calling self.related.field.set_cached_value(rel_obj, instance)) that
+      prevents setting the forward FK cache when instance has more deferred fields
+      than the already-fetched rel_obj.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause identified in the PR description: the inner
+      prefetched User objects (fetched with only(''kind'')) were having their cached
+      user reference overwritten by the outer User instance (fetched with only(''email'')),
+      causing kind to appear deferred.'
+    weight: 3
+  - id: SA2
+    description: Ensures the fix handles the ForeignKey case (ForwardManyToOneDescriptor)
+      in addition to the OneToOneField case (ReverseOneToOneDescriptor), as the PR
+      description states both relationships are affected.
+    weight: 2
+  - id: SA3
+    description: 'Adds a regression test covering the scenario from the PR description:
+      User.objects.only(''email'').prefetch_related with a nested Prefetch on profile
+      and then back to User via User.objects.only(''kind''), asserting that accessing
+      user.profile.user.kind triggers zero additional queries.'
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing behavior of set_cached_value for the reverse
+      relation cache in all cases where the instance does NOT have more deferred fields
+      than the rel_obj, so non-deferred prefetch scenarios continue to set the cache
+      as before.
+    weight: 3
+  - id: I2
+    description: Does not remove or weaken any existing test in the prefetch_related
+      or defer test suites.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that after the fix, accessing user.profile.user.kind on a
+      queryset built with User.objects.only('email').prefetch_related(...Profile.objects.prefetch_related(...User.objects.only('kind')...))
+      does not execute an additional SQL query, because the inner User instance has
+      kind loaded and its cache is not overwritten by the outer (email-only) instance.
+    weight: 3
+  - id: R2
+    description: Confirms that get_deferred_fields() on the inner prefetched User
+      instance (accessed via user.profile.user) returns an empty set for 'kind', reflecting
+      that kind was explicitly loaded by the inner User.objects.only('kind') queryset.
+    weight: 2

@@ -1,0 +1,61 @@
+metadata:
+  task_summary: Fix CreateModel.reduce() to properly unset model options when squashing
+    with AlterModelOptions(options={}) by mirroring the key-removal logic found in
+    AlterModelOptions.state_forwards().
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the AlterModelOptions branch inside CreateModel.reduce()
+      in django/db/migrations/operations/models.py to remove ALTER_OPTION_KEYS entries
+      absent from operation.options, rather than only merging with {**self.options,
+      **operation.options}.
+    weight: 3
+  - id: FC2
+    description: Confines the change to django/db/migrations/operations/models.py
+      without modifying unrelated files (e.g., no schema-editor, migration autodetector,
+      or unrelated operation files are altered).
+    weight: 2
+  - id: FC3
+    description: Adds or modifies a test case in the migrations optimizer test suite
+      that exercises CreateModel followed by AlterModelOptions(options={}) and asserts
+      that the resulting CreateModel has no residual option keys from ALTER_OPTION_KEYS.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements logic equivalent to AlterModelOptions.state_forwards()
+      key-removal — for each key in AlterModelOptions.ALTER_OPTION_KEYS that is absent
+      from operation.options, removes that key from the merged options dict in CreateModel.reduce().
+    weight: 3
+  - id: SA2
+    description: Preserves options that are not in ALTER_OPTION_KEYS (such as proxy,
+      indexes, constraints) unchanged when merging in the AlterModelOptions branch
+      of CreateModel.reduce().
+    weight: 2
+  - id: SA3
+    description: 'Ensures that when operation.options is non-empty (e.g., AlterModelOptions(options={''verbose_name_plural'':
+      ''Foozes''})), the resulting CreateModel still retains the specified option
+      keys.'
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Avoids weakening existing optimizer tests — specifically, the existing
+      test_create_alter_model_options test still asserts that non-empty AlterModelOptions
+      options are merged into CreateModel.
+    weight: 2
+  - id: I2
+    description: Preserves the public interface of CreateModel.reduce() — it still
+      returns a list containing a single CreateModel instance when reducing an AlterModelOptions
+      operation targeting the same model.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Produces a squashed CreateModel whose options dict no longer contains
+      keys from AlterModelOptions.ALTER_OPTION_KEYS (e.g., ordering, verbose_name,
+      permissions) that were present in self.options but absent from operation.options,
+      mirroring the behavior of AlterModelOptions.state_forwards().
+    weight: 3
+  - id: R2
+    description: Maintains correct behavior when AlterModelOptions(options={}) is
+      reduced with a CreateModel that had no prior options, resulting in a CreateModel
+      with an empty options dict.
+    weight: 2

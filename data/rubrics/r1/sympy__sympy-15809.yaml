@@ -1,0 +1,56 @@
+metadata:
+  task_summary: Allow zero-argument Min() and Max() to return S.Infinity and S.NegativeInfinity
+    respectively, instead of raising ValueError.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the zero-argument guard in MinMaxBase.__new__ inside sympy/functions/elementary/miscellaneous.py
+      to return cls.identity instead of raising ValueError when args is empty.
+    weight: 3
+  - id: FC2
+    description: Confines the production-code change to sympy/functions/elementary/miscellaneous.py
+      without introducing unrelated file edits or churn in unrelated modules.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that Max() with no arguments returns S.NegativeInfinity (Max.identity),
+      consistent with the mathematical convention for the supremum of the empty set.
+    weight: 3
+  - id: SA2
+    description: Ensures that Min() with no arguments returns S.Infinity (Min.identity),
+      consistent with the mathematical convention for the infimum of the empty set.
+    weight: 3
+  - id: SA3
+    description: 'Removes or replaces the existing raises(ValueError, lambda: Min())
+      assertion in the test file so the test suite reflects the new zero-argument
+      behavior rather than the old error.'
+    weight: 2
+  - id: SA4
+    description: 'Removes or replaces the existing raises(ValueError, lambda: Max())
+      assertion in the test file so the test suite reflects the new zero-argument
+      behavior rather than the old error.'
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the ValueError guard for non-comparable or non-real
+      arguments in _new_args_filter is preserved and not weakened by the change.
+    weight: 2
+  - id: I2
+    description: Confirms that the public API of Min and Max for one or more arguments
+      (return types, simplification rules, identity/zero short-circuit paths) is unchanged.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures Min() evaluates to the same object as S.Infinity (oo) at
+      runtime, leveraging the already-defined Min.identity = S.Infinity attribute.
+    weight: 3
+  - id: R2
+    description: Ensures Max() evaluates to the same object as S.NegativeInfinity
+      (-oo) at runtime, leveraging the already-defined Max.identity = S.NegativeInfinity
+      attribute.
+    weight: 3
+  - id: R3
+    description: Preserves the existing short-circuit behavior where Max(*args) returns
+      S.Infinity (Max.zero) and Min(*args) returns S.NegativeInfinity (Min.zero) when
+      those sentinel values appear among non-empty argument lists.
+    weight: 2

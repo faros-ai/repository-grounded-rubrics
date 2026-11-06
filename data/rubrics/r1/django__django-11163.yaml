@@ -1,0 +1,53 @@
+metadata:
+  task_summary: Fix model_to_dict() to return an empty dict when called with fields=[]
+    (empty list) instead of returning all fields.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the condition in the model_to_dict function inside django/forms/models.py,
+      replacing 'if fields and f.name not in fields:' with a check that uses 'is not
+      None' to distinguish an empty list from None.
+    weight: 3
+  - id: FC2
+    description: Confines the fix to only the model_to_dict function in django/forms/models.py,
+      with no unrelated files or functions modified.
+    weight: 2
+  - id: FC3
+    description: Avoids changing the fields_for_model or construct_instance functions
+      in django/forms/models.py, which already use the 'is not None' pattern correctly.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Implements the exact fix described in the PR: the condition guarding
+      field inclusion in model_to_dict changes from ''if fields and f.name not in
+      fields:'' to ''if fields is not None and f.name not in fields:'', so that an
+      empty list triggers the filter rather than being treated as falsy.'
+    weight: 3
+  - id: SA2
+    description: Preserves the behavior that when fields=None (the default), model_to_dict
+      returns all editable fields, since 'None is not None' evaluates to False.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the public signature of model_to_dict(instance, fields=None,
+      exclude=None) without altering its parameter names or default values.
+    weight: 3
+  - id: I2
+    description: Does not weaken or remove any existing tests for model_to_dict in
+      tests/model_forms/tests.py.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that model_to_dict(instance, fields=[]) returns an empty
+      dict, because the updated condition 'fields is not None' is True for an empty
+      list, causing all fields to be skipped via 'f.name not in fields'.
+    weight: 3
+  - id: R2
+    description: Ensures that model_to_dict(instance, fields=['some_field']) continues
+      to return only the named field, since the new condition still correctly filters
+      fields not present in a non-empty list.
+    weight: 2
+  - id: R3
+    description: Confirms the exclude parameter logic remains unaffected, as the changed
+      condition does not interact with the 'if exclude and f.name in exclude:' guard.
+    weight: 1

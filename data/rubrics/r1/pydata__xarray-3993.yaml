@@ -1,0 +1,78 @@
+metadata:
+  task_summary: Rename the `dim` parameter of `DataArray.integrate` to `coord` (with
+    a deprecation warning for the old name) to match the API of `Dataset.integrate`
+    and `DataArray.differentiate`.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `def integrate(` signature in `xarray/core/dataarray.py`
+      to accept `coord` as the primary parameter name instead of `dim`.
+    weight: 3
+  - id: FC2
+    description: Adds a deprecation/compatibility path (e.g., `if dim is not None`
+      guard or `**kwargs` handling) in `DataArray.integrate` in `xarray/core/dataarray.py`
+      so that callers using the old `dim` keyword argument still work without an immediate
+      hard error.
+    weight: 3
+  - id: FC3
+    description: Updates the docstring of `DataArray.integrate` in `xarray/core/dataarray.py`
+      to document the parameter as `coord` instead of `dim`, including any note that
+      previously referenced `dim must be one dimensional`.
+    weight: 2
+  - id: FC4
+    description: Updates the internal forwarding call inside `DataArray.integrate`
+      in `xarray/core/dataarray.py` so it passes the resolved coordinate value (no
+      longer a variable named `dim`) to `self._to_temp_dataset().integrate(...)`.
+    weight: 2
+  - id: FC5
+    description: Updates test code (in `xarray/tests/test_units.py` or `xarray/tests/test_dataset.py`)
+      that called `DataArray.integrate` with `dim=` as a keyword argument to instead
+      use `coord=`.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Aligns `DataArray.integrate` with `Dataset.integrate` and `DataArray.differentiate`
+      so that all three methods expose a `coord` parameter, matching the API consistency
+      goal stated in the PR description.
+    weight: 3
+  - id: SA2
+    description: Implements a deprecation warning (using `warnings.warn` with `FutureWarning`
+      or `DeprecationWarning`) when the old `dim` keyword is passed to `DataArray.integrate`,
+      as implied by the PR description's question about a deprecation cycle.
+    weight: 2
+  - id: SA3
+    description: Preserves positional-argument compatibility so that `da.integrate('x')`
+      (passing the coordinate name as a positional argument) continues to work without
+      triggering a deprecation warning.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing test for `DataArray.integrate` or `Dataset.integrate`
+      is deleted or marked as skip/xfail without a corresponding behavioral justification.
+    weight: 2
+  - id: I2
+    description: Confirms that `Dataset.integrate` in `xarray/core/dataset.py` is
+      left unchanged (its signature already uses `coord`), so the patch is confined
+      to `DataArray.integrate` and its callers.
+    weight: 2
+  - id: I3
+    description: 'Avoids unrelated file changes: the diff does not rename, reformat,
+      or restructure files outside `xarray/core/dataarray.py`, `xarray/tests/`, and
+      optionally `doc/` files.'
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that calling `da.integrate(coord='x')` routes correctly to
+      the underlying `Dataset.integrate` computation, producing the same result as
+      the previous `da.integrate(dim='x')` call.
+    weight: 3
+  - id: R2
+    description: Ensures that passing the old `dim` keyword argument (e.g., `da.integrate(dim='x')`)
+      emits a `FutureWarning` or `DeprecationWarning` rather than raising a `TypeError`,
+      preserving backward compatibility during the deprecation cycle.
+    weight: 3
+  - id: R3
+    description: Ensures that the deprecation warning message references both the
+      old name `dim` and the new name `coord` so users can update their code without
+      consulting external documentation.
+    weight: 1

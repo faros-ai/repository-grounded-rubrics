@@ -1,0 +1,56 @@
+metadata:
+  task_summary: Fix 'NoneType' object is not subscriptable error in cache.backends.db._cull
+    by guarding against cursor.fetchone() returning None before indexing the result.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies only django/core/cache/backends/db.py to fix the _cull method,
+      without introducing unrelated file changes.
+    weight: 3
+  - id: FC2
+    description: Adds a guard or conditional check in the _cull method that tests
+      whether the result of cursor.fetchone() (following the cache_key_culling_sql()
+      execution) is not None before subscripting with [0].
+    weight: 3
+  - id: FC3
+    description: Skips or returns early from the DELETE statement in _cull when cursor.fetchone()
+      returns None, rather than proceeding with a None value that causes a TypeError.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the specific code path at the DELETE FROM ... WHERE cache_key
+      < %s statement in _cull that subscripts cursor.fetchone() result, which is the
+      exact location identified in the PR backtrace.
+    weight: 3
+  - id: SA2
+    description: Handles the case where cache_key_culling_sql() returns no rows gracefully,
+      matching the PR description's diagnosis that the cursor returns no data after
+      running cache_key_culling_sql().
+    weight: 2
+  - id: SA3
+    description: Adds a test case exercising the _cull code path when the culling
+      SQL query returns no rows (i.e., when cursor.fetchone() would be None), to prevent
+      regression of this fix.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: 'Preserves the existing _cull logic flow: expired entries are still
+      deleted first, then the COUNT is checked, and culling by cache_key ordering
+      is still attempted when num exceeds _max_entries.'
+    weight: 2
+  - id: I2
+    description: Confirms the fix does not weaken or remove existing cache cull tests
+      (such as test_cull or test_zero_cull) in tests/cache/tests.py.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when cache_key_culling_sql() returns an empty result
+      set (no rows), the _cull method completes without raising a TypeError such as
+      'NoneType' object is not subscriptable.
+    weight: 3
+  - id: R2
+    description: Ensures that when cursor.fetchone() returns a valid row, the DELETE
+      FROM ... WHERE cache_key < %s query still executes normally using the first
+      element of that row, preserving the culling behavior for the normal (non-empty
+      result) case.
+    weight: 2

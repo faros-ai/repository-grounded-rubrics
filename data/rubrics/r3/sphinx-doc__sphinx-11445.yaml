@@ -1,0 +1,66 @@
+metadata:
+  task_summary: Fix rst_prolog incorrectly skipping top-level headings that start
+    with a domain directive (e.g., :mod:`name`) by correcting the docinfo_re regex
+    in sphinx/util/rst.py so it no longer matches domain roles as docinfo fields.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `docinfo_re` regex pattern in `sphinx/util/rst.py` (the
+      line starting with `docinfo_re = re.compile(`) to be more restrictive so it
+      no longer matches domain role syntax such as `:mod:` followed by a backtick.
+    weight: 3
+  - id: FC2
+    description: Confines production code changes to `sphinx/util/rst.py` without
+      altering unrelated modules (e.g., `sphinx/parsers.py`, `sphinx/transforms/i18n.py`,
+      or builder code).
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test in `tests/test_util_rst.py` or `tests/test_parser.py`
+      that exercises `prepend_prolog` with content whose first line is a domain role
+      heading (e.g., a line starting with `:mod:`).
+    weight: 1
+  - id: FC4
+    description: Adds or updates a test fixture RST file (anywhere under `tests/roots/`)
+      that contains a domain directive (such as `:mod:`) as the first heading, to
+      support integration-level testing of the bug scenario.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Ensures the updated `docinfo_re` pattern requires whitespace (a
+      space character) after the closing colon of the field name (i.e., the pattern
+      distinguishes `:fieldname: body` from `:rolename:\`text\``) so that domain roles
+      are not treated as docinfo fields.'
+    weight: 3
+  - id: SA2
+    description: 'Preserves the existing behaviour where genuine RST docinfo fields
+      (lines matching the pattern `:fieldname: body`, with a space after the second
+      colon) are still detected and skipped before inserting the prolog.'
+    weight: 3
+  - id: SA3
+    description: Ensures that when `rst_prolog` is set and a document's first line
+      is a domain-role heading such as `:mod:\`mypackage2\``, the prolog is inserted
+      before that line (position 0) rather than after it, keeping the heading text
+      and its underline adjacent.
+    weight: 3
+  integrity_rubrics:
+  - id: I1
+    description: Confirms the public signature of `prepend_prolog(content, prolog)`
+      in `sphinx/util/rst.py` is unchanged — no parameters added, removed, or retyped.
+    weight: 2
+  - id: I2
+    description: Confirms no existing passing tests in `tests/test_util_rst.py` or
+      `tests/test_parser.py` are removed or have their assertions weakened (e.g.,
+      no removal of `assert` statements or loosening of expected `xitems()` sequences).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that at runtime, a document beginning with a domain-role
+      heading (e.g., `:mod:\`mypackage2\`` followed immediately by an underline `=====`)
+      is parsed as a proper section node — the prolog does not split the heading text
+      from its underline.
+    weight: 3
+  - id: R2
+    description: 'Ensures backward compatibility: documents that start with legitimate
+      RST docinfo fields (e.g., `:title: My Doc`) still have the prolog inserted after
+      those fields, not before them.'
+    weight: 2

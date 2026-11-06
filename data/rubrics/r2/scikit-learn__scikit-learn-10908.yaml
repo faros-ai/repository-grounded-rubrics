@@ -1,0 +1,58 @@
+metadata:
+  task_summary: Fix CountVectorizer.get_feature_names() to not raise NotFittedError
+    when a vocabulary parameter is provided at initialization but transform has not
+    been called yet.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the get_feature_names method (or _check_vocabulary method)
+      in sklearn/feature_extraction/text.py to call _validate_vocabulary before _check_vocabulary
+      when vocabulary_ is not yet set.
+    weight: 3
+  - id: FC2
+    description: Confines all production-code changes to sklearn/feature_extraction/text.py,
+      avoiding unrelated file churn in other modules.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test in sklearn/feature_extraction/tests/test_text.py
+      that exercises get_feature_names on a CountVectorizer initialized with a vocabulary
+      parameter before any transform or fit is called.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements a fix so that calling get_feature_names() on a CountVectorizer
+      initialized with a non-None vocabulary parameter does not raise NotFittedError,
+      mirroring the behavior already present in transform.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior that get_feature_names() raises a
+      NotFittedError (or ValueError) for a CountVectorizer initialized without a vocabulary
+      parameter that has not been fitted.
+    weight: 3
+  - id: SA3
+    description: Ensures that after get_feature_names() is called on an unfitted but
+      vocabulary-initialized CountVectorizer, the vocabulary_ attribute is set (consistent
+      with how transform already works).
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that _check_vocabulary is not removed or weakened, so that
+      the NotFittedError / ValueError path for genuinely unfitted vectorizers (no
+      vocabulary parameter) is still triggered.
+    weight: 3
+  - id: I2
+    description: Confirms that the fix does not alter the public signatures of get_feature_names,
+      transform, or any other public method in VectorizerMixin or CountVectorizer.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that get_feature_names returns the correctly ordered list
+      of feature names derived from the provided vocabulary parameter, without requiring
+      a prior fit or transform call.
+    weight: 3
+  - id: R2
+    description: Maintains that calling get_feature_names() on a CountVectorizer with
+      no vocabulary and no prior fit still raises NotFittedError (with a message containing
+      'Vocabulary wasn't fitted' or similar), preserving the error-surface contract
+      for users.
+    weight: 3

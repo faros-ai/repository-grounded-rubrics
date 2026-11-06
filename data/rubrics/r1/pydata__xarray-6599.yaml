@@ -1,0 +1,59 @@
+metadata:
+  task_summary: Fix `polyval` producing wrong results when the coordinate has `timedelta64`
+    dtype by correcting the offset used in `_ensure_numeric`.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies `_ensure_numeric` or `to_floatable` in `xarray/core/computation.py`
+      to split handling of `timedelta64` (dtype kind `m`) from `datetime64` (dtype
+      kind `M`) instead of treating both identically.
+    weight: 3
+  - id: FC2
+    description: Removes or replaces the single branch `if x.dtype.kind in "mM"` that
+      applies `offset=np.datetime64("1970-01-01")` unconditionally to both datetime
+      and timedelta arrays in `to_floatable`.
+    weight: 3
+  - id: FC3
+    description: Confines changes to the minimal set of files relevant to the `polyval`
+      / `_ensure_numeric` logic (e.g., `xarray/core/computation.py` and optionally
+      `xarray/tests/test_computation.py`), without unrelated file churn.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Adds a timedelta-compatible offset (such as `np.timedelta64(0, "ns")`
+      or equivalent) for the `timedelta64` branch in `_ensure_numeric`, so that subtracting
+      a `datetime64` epoch from a `timedelta64` array no longer occurs.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing `datetime64` conversion path that uses `offset=np.datetime64("1970-01-01")`
+      and `datetime_unit="ns"`, keeping the correct behaviour for datetime64 coordinates
+      in `polyval`.
+    weight: 2
+  - id: SA3
+    description: Adds a test case (within the `test_polyval` parametrize block or
+      a new test) that exercises `polyval` with a `timedelta64` coordinate and verifies
+      the output matches expected numeric values.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the existing `datetime` parametrize case in `test_polyval`
+      (using `pd.date_range` starting `1970-01-01` with expected values `[0, 1e9,
+      2e9]`) is not removed or weakened.
+    weight: 2
+  - id: I2
+    description: Confirms that the public signature of `polyval` (`coord`, `coeffs`,
+      `degree_dim`) is unchanged, preserving backward compatibility.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that passing a `timedelta64` coordinate to `polyval` results
+      in the coordinate being converted to a finite float value proportional to nanoseconds
+      (or another consistent unit), not an astronomically large or garbage value caused
+      by subtracting a `datetime64` epoch from a `timedelta64`.
+    weight: 3
+  - id: R2
+    description: Ensures that `datetime64` coordinates in `polyval` continue to be
+      converted relative to the Unix epoch `np.datetime64("1970-01-01")`, so values
+      like `pd.date_range("1970-01-01", freq="s", periods=3)` still yield `[0, 1e9,
+      2e9]` in nanoseconds.
+    weight: 2

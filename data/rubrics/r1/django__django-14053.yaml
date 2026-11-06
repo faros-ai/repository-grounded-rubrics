@@ -1,0 +1,71 @@
+metadata:
+  task_summary: Fix HashedFilesMixin.post_process() to yield each original filename
+    only once (with the final hashed result) instead of yielding duplicates across
+    multiple processing passes.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the post_process() method inside HashedFilesMixin (in django/contrib/staticfiles/storage.py)
+      to eliminate duplicate yields of the same original filename across multiple
+      passes.
+    weight: 3
+  - id: FC2
+    description: Confines changes to django/contrib/staticfiles/storage.py and/or
+      related test files, without modifying unrelated files or introducing new dependencies.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test (anywhere in tests/staticfiles_tests/) that
+      asserts each original filename appears at most once in the yielded results or
+      in stats['post_processed'] from collect().
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that post_process() yields each original filename (the first
+      element of the yielded tuple) exactly once, even when multiple passes are performed
+      via the max_post_process_passes loop.
+    weight: 3
+  - id: SA2
+    description: Ensures that when a file does not change between passes (hash stays
+      identical, e.g. admin/css/dashboard.css), post_process() still yields it only
+      once rather than once per pass.
+    weight: 3
+  - id: SA3
+    description: Ensures that the final yielded hashed_name for each original file
+      reflects the result of the last completed pass rather than an intermediate pass
+      result.
+    weight: 2
+  - id: SA4
+    description: Preserves the RuntimeError yield (with 'All', None) when substitutions
+      are still happening after max_post_process_passes is exhausted, as required
+      by the existing error-reporting contract.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the public signature of post_process(paths, dry_run=False,
+      **options) in HashedFilesMixin without adding or removing parameters.
+    weight: 3
+  - id: I2
+    description: Does not weaken existing tests by removing assertions, skipping test
+      cases, or reducing the scope of what is checked in test_post_processing or test_post_processing_failure.
+    weight: 2
+  - id: I3
+    description: Preserves the three-element yield tuple (original_path, processed_path,
+      processed) consumed by collectstatic's collect() loop, ensuring no change to
+      tuple structure.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that the length of stats['post_processed'] returned by collect()
+      reflects each unique original file at most once, so the 'Y post-processed' count
+      in collectstatic output is accurate.
+    weight: 3
+  - id: R2
+    description: Ensures that the processed flag yielded for a file is True only when
+      the file was actually processed (hashed/saved), preventing false positives that
+      would inflate the post-processed count.
+    weight: 2
+  - id: R3
+    description: Avoids introducing unbounded loops or re-processing logic outside
+      the existing max_post_process_passes guard, preventing pathological O(n^2) or
+      infinite iteration.
+    weight: 1

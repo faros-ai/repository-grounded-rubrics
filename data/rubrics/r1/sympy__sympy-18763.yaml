@@ -1,0 +1,54 @@
+metadata:
+  task_summary: Fix incorrect parenthesization of the inner expression in the LaTeX
+    printer's _print_Subs method so that expressions like -x+y are wrapped in parentheses
+    when Subs appears in a product.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies `_print_Subs` in `sympy/printing/latex.py` to wrap the inner
+      expression using `parenthesize` (or equivalent bracket logic) instead of calling
+      `self._print(expr)` directly.
+    weight: 3
+  - id: FC2
+    description: Confines changes to files directly related to printing (e.g., `sympy/printing/latex.py`,
+      `sympy/printing/precedence.py`, or test files for the printer) without modifying
+      unrelated modules.
+    weight: 2
+  - id: FC3
+    description: Updates the test for `_print_Subs` in the LaTeX printing tests (e.g.,
+      `test_latex_subs`) to include a case covering a `Subs` expression whose inner
+      expression has lower precedence than `Mul` (such as an `Add` with a negative
+      term).
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Produces LaTeX output for `3*Subs(-x+y, (x,), (1,))` that wraps the
+      inner expression `-x+y` in `\left(` and `\right)` delimiters inside the `\left.
+      ... \right|` construct.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing LaTeX output for `Subs(x*y, (x, y), (1, 2))`
+      (i.e., `\left. x y \right|_{\substack{ x=1\\ y=2 }}`), which requires no extra
+      parentheses because `x*y` has `Mul`-level precedence.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing passing test assertions for `_print_Subs`
+      are removed or weakened in the diff.
+    weight: 2
+  - id: I2
+    description: Confirms that the public signature of `_print_Subs` in `sympy/printing/latex.py`
+      is unchanged (same method name and same parameters).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that an inner expression whose `precedence_traditional` value
+      is strictly less than `PRECEDENCE['Mul']` (such as an `Add` expression like
+      `-x+y`) receives parentheses in the Subs LaTeX output.
+    weight: 3
+  - id: R2
+    description: Ensures that an inner expression whose `precedence_traditional` value
+      is at least `PRECEDENCE['Mul']` (such as a simple `Mul` like `x*y`) does NOT
+      receive extra parentheses in the Subs LaTeX output, avoiding unnecessary bracket
+      clutter.
+    weight: 2

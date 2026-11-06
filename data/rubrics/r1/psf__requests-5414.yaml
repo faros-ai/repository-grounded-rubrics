@@ -1,0 +1,59 @@
+metadata:
+  task_summary: Catch UnicodeError raised when IDNA-encoding an ASCII hostname like
+    '.example.com' inside prepare_url and re-raise it as InvalidURL instead of letting
+    it propagate.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies requests/models.py and no other production source file to
+      address the UnicodeError issue, keeping the diff minimal and scoped.
+    weight: 3
+  - id: FC2
+    description: Extends or replaces the ASCII-hostname branch (the 'elif host.startswith'
+      block) in prepare_url so that ASCII hostnames that fail IDNA validation are
+      also caught and raise InvalidURL.
+    weight: 3
+  - id: FC3
+    description: Preserves the existing _get_idna_encoded_host static method or equivalent
+      IDNA encoding logic rather than removing it.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that a URL with an ASCII hostname containing an invalid label
+      (e.g., 'http://.example.com') raises InvalidURL rather than propagating a raw
+      UnicodeError, matching the stated expected result in the PR description.
+    weight: 3
+  - id: SA2
+    description: Uses the error message string 'URL has an invalid label.' (or a clearly
+      equivalent message) when raising InvalidURL for an invalid ASCII hostname, consistent
+      with the existing non-ASCII hostname error path and PR description's expected
+      result.
+    weight: 2
+  - id: SA3
+    description: Adds a test case (anywhere in the test suite) that exercises prepare_url
+      or requests.get with a URL containing an invalid ASCII label such as 'http://.example.com'
+      and asserts that InvalidURL is raised.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the existing handling for non-ASCII hostnames (the
+      'if not unicode_is_ascii(host)' branch that calls _get_idna_encoded_host and
+      catches UnicodeError) remains intact and is not weakened or removed.
+    weight: 3
+  - id: I2
+    description: Confirms that the existing handling for wildcard hostnames ('elif
+      host.startswith(u"*")' raising InvalidURL) is preserved or equivalently covered
+      after the change.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Produces an InvalidURL exception (a subclass of requests.exceptions.RequestException)
+      rather than a bare UnicodeError when prepare_url encounters a hostname that
+      IDNA encoding rejects, ensuring callers can catch it with the requests exception
+      hierarchy.
+    weight: 3
+  - id: R2
+    description: Preserves successful URL preparation for valid ASCII hostnames (e.g.,
+      'http://example.com') by not forcing IDNA encoding on hostnames that do not
+      need it or by ensuring the try/except only catches encoding failures.
+    weight: 2

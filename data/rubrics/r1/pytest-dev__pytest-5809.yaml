@@ -1,0 +1,57 @@
+metadata:
+  task_summary: Change the bpaste.net lexer parameter in --pastebin from 'python3'/'python'
+    to 'text' in src/_pytest/pastebin.py to prevent HTTP 400 errors.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the lexer value in `create_new_paste` inside `src/_pytest/pastebin.py`
+      away from `python3` (and/or `python`) toward `text`.
+    weight: 3
+  - id: FC2
+    description: Removes the version-conditional lexer selection (`python3` if sys.version_info[0]
+      >= 3 else `python`) from `src/_pytest/pastebin.py`, replacing it with a single
+      unconditional value.
+    weight: 3
+  - id: FC3
+    description: Confines production-code changes to `src/_pytest/pastebin.py` (i.e.,
+      does not introduce unrelated modifications to other source files such as `terminal.py`
+      or `config/__init__.py`).
+    weight: 2
+  - id: FC4
+    description: Updates the test in `testing/test_pastebin.py` that previously asserted
+      `lexer=python3` (or the version-conditional equivalent) to now assert `lexer=text`,
+      keeping it consistent with the changed production code.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Sets the `lexer` parameter to the string `text` in the `params` dict
+      inside `create_new_paste`, matching the PR description's explicit recommendation
+      to use `lexer=text`.
+    weight: 3
+  - id: SA2
+    description: Ensures that the `lexer` value used in the HTTP request to `https://bpaste.net`
+      is no longer Python-version-dependent, addressing the PR description's rationale
+      that pytest console output is arbitrary text, not Python code.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves all other parameters in the `params` dict inside `create_new_paste`
+      (`code` and `expiry`) unchanged, avoiding unintended side-effects on the paste
+      submission logic.
+    weight: 2
+  - id: I2
+    description: Does not weaken existing tests by removing assertions or marking
+      them as skipped; any test update only replaces the expected lexer string value
+      rather than deleting coverage.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that the encoded POST body sent to `https://bpaste.net` contains
+      `lexer=text` (not `lexer=python3` or `lexer=python`), so that bpaste.net no
+      longer returns HTTP 400 errors for arbitrary pytest console output.
+    weight: 3
+  - id: R2
+    description: Maintains the same URL (`https://bpaste.net`), encoding scheme (`urlencode`
+      + ASCII), and response-parsing logic (regex on `href="/raw/(\w+)"`) so that
+      valid paste submissions continue to return the expected paste URL.
+    weight: 2

@@ -1,0 +1,54 @@
+metadata:
+  task_summary: Fix DateFormat.Y() in django/utils/dateformat.py to return a zero-padded
+    four-digit string for years before 1000.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the Y() method in django/utils/dateformat.py to return a
+      zero-padded four-digit year string instead of the raw integer self.data.year.
+    weight: 3
+  - id: FC2
+    description: Confines the change to the Y() method inside django/utils/dateformat.py
+      without altering unrelated methods or files.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test case in the dateformat test suite that exercises
+      the Y format specifier with a year value less than 1000, verifying the zero-padded
+      result.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures the Y() method returns a string (not an integer) so that
+      the four-digit zero-padded contract described in the PR description is satisfied
+      for years like 476, 42, or 4.
+    weight: 3
+  - id: SA2
+    description: Applies zero-padding to exactly four digits (e.g., using '%04d' %
+      self.data.year or equivalent), matching the PR description's requirement that
+      Y always returns a four-digit year.
+    weight: 3
+  - id: SA3
+    description: Preserves the existing behavior of Y() for years >= 1000 (e.g., year
+      1999 still yields '1999', year 2100 still yields '2100'), consistent with existing
+      test assertions in test_dateformat.py.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing tests for the Y format specifier are weakened
+      or removed; any test expecting '1979' or '2100' from Y() remains intact.
+    weight: 2
+  - id: I2
+    description: Confirms that the y() method (two-digit year, 'Year, 2 digits with
+      leading zeros') is not modified, keeping its separate behavior unchanged.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures Y() returns a string type rather than an integer, so that
+      it is safe to concatenate with other format pieces inside the Formatter.format()
+      method without type errors.
+    weight: 2
+  - id: R2
+    description: Ensures Y() produces '0476' (or equivalent zero-padded string) for
+      a year value of 476, distinguishing the corrected behavior from the pre-patch
+      integer return.
+    weight: 3

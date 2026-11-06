@@ -1,0 +1,57 @@
+metadata:
+  task_summary: Fix offsetText color to use xtick.labelcolor/ytick.labelcolor instead
+    of always using xtick.color/ytick.color when labelcolor is not 'inherit'.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the XAxis._init method in lib/matplotlib/axis.py so that
+      the color assigned to offsetText uses xtick.labelcolor (when it is not 'inherit')
+      instead of unconditionally using xtick.color.
+    weight: 3
+  - id: FC2
+    description: Modifies the YAxis._init method in lib/matplotlib/axis.py so that
+      the color assigned to offsetText uses ytick.labelcolor (when it is not 'inherit')
+      instead of unconditionally using ytick.color.
+    weight: 3
+  - id: FC3
+    description: Confines changes to lib/matplotlib/axis.py only, without modifying
+      unrelated files or introducing extraneous churn.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Implements the ''inherit'' sentinel check for xtick.labelcolor:
+      the offsetText color falls back to xtick.color only when xtick.labelcolor equals
+      ''inherit'', matching the pattern described in the PR patch.'
+    weight: 3
+  - id: SA2
+    description: 'Implements the ''inherit'' sentinel check for ytick.labelcolor:
+      the offsetText color falls back to ytick.color only when ytick.labelcolor equals
+      ''inherit'', matching the pattern described in the PR patch.'
+    weight: 3
+  - id: SA3
+    description: Preserves existing offsetText.set() call structure (fontsize, transform,
+      position, alignment) in both XAxis._init and YAxis._init, changing only the
+      color argument.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing tests for offsetText color via set_tick_params(labelcolor=...)
+      (such as test_offset_label_color) are not weakened, removed, or skipped in the
+      patch.
+    weight: 2
+  - id: I2
+    description: Confirms that the public API of get_offset_text() and offsetText
+      attribute remains unchanged — no renames or signature modifications introduced
+      by the patch.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when xtick.labelcolor or ytick.labelcolor is set to
+      a non-'inherit' color (e.g., 'red'), the offsetText color is initialized to
+      that labelcolor value, not to the tick line color.
+    weight: 3
+  - id: R2
+    description: 'Ensures backward compatibility: when xtick.labelcolor or ytick.labelcolor
+      is ''inherit'' (the default), the offsetText color still falls back to xtick.color
+      or ytick.color respectively, preserving pre-fix behavior.'
+    weight: 3

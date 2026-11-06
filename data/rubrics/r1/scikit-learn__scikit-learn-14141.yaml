@@ -1,0 +1,49 @@
+metadata:
+  task_summary: Add joblib to the list of dependencies reported by show_versions in
+    sklearn/utils/_show_versions.py.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Adds 'joblib' as an entry in the deps list inside the _get_deps_info
+      function in sklearn/utils/_show_versions.py.
+    weight: 3
+  - id: FC2
+    description: Confines changes to at most sklearn/utils/_show_versions.py and its
+      test file, with no unrelated file churn introduced by the patch.
+    weight: 2
+  - id: FC3
+    description: Updates the test for _get_deps_info (in sklearn/utils/tests/test_show_versions.py)
+      to assert that 'joblib' is present in the returned dict.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that 'joblib' appears in the deps list used by _get_deps_info,
+      satisfying the PR requirement to include joblib in show_versions output for
+      sklearn >= 0.20.
+    weight: 3
+  - id: SA2
+    description: Preserves all previously listed dependencies (pip, setuptools, sklearn,
+      numpy, scipy, Cython, pandas, matplotlib) alongside the newly added joblib entry.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing assertions or checks in the test suite
+      for _get_deps_info are removed or weakened; previously asserted keys remain
+      asserted.
+    weight: 3
+  - id: I2
+    description: Confirms that the public API of show_versions (its signature and
+      printed output structure) is unchanged — the function still prints System, BLAS,
+      and Python deps sections.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when joblib is not installed, _get_deps_info gracefully
+      stores None for the 'joblib' key (consistent with the existing ImportError-catching
+      pattern for optional deps).
+    weight: 2
+  - id: R2
+    description: Ensures that when joblib is installed, _get_deps_info returns a 'joblib'
+      key with a non-None version string, so show_versions output includes the joblib
+      version.
+    weight: 2

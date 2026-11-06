@@ -1,0 +1,71 @@
+metadata:
+  task_summary: Fix the `source-read` event so that modifications made by handlers
+    are applied to the content of files included via the `.. include::` directive,
+    not just to top-level document sources.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `Include` class in `sphinx/directives/other.py` to emit
+      or propagate the `source-read` event when reading included file content.
+    weight: 3
+  - id: FC2
+    description: Confines the change to `sphinx/directives/other.py` (or `sphinx/io.py`)
+      without modifying unrelated files outside the include-directive or I/O pipeline.
+    weight: 2
+  - id: FC3
+    description: Adds a `read_file` method override (or equivalent mechanism) inside
+      the `Include` class that intercepts the raw text read from the included file
+      before it is inserted into the input stream.
+    weight: 3
+  - id: FC4
+    description: Uses `self.env.events.emit('source-read', ...)` (or equivalent via
+      `self.env`) inside the overridden method to fire the event with the included
+      file's content as a mutable list argument.
+    weight: 3
+  - id: FC5
+    description: Passes the relative filename (e.g., `rel_filename` from `self.env.relfn2path`)
+      rather than the absolute path as the `docname` argument to the emitted `source-read`
+      event, matching the convention used in `SphinxStandaloneReader.read_source`.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause described in the PR: the `source-read`
+      event fires for included files (via `.. include::`) but the modified `source[0]`
+      was not used when inserting content into the parse stream, causing the HTML
+      to contain the unreplaced text.'
+    weight: 3
+  - id: SA2
+    description: Ensures that after the fix, a `source-read` handler that replaces
+      text in `source[0]` will see its replacement reflected in the final rendered
+      output for content from `.. include::` files, as shown by the expected HTML
+      in the PR description.
+    weight: 3
+  - id: SA3
+    description: Preserves the early-return path for docutils standard includes (arguments
+      starting with `<` and ending with `>`) so they bypass the new event-emission
+      logic, consistent with the existing `run` method guard.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public `source-read` event signature (`docname,
+      source` where `source` is a one-element list) is not changed — handlers written
+      as `def handler(app, docname, source)` continue to work without modification.
+    weight: 3
+  - id: I2
+    description: Avoids weakening or skipping existing tests related to the `Include`
+      directive or the `source-read` event (no added `@pytest.mark.skip`, `xfail`,
+      or removed assertions).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when a `source-read` handler modifies `source[0]` for
+      an included file, the modified text (not the raw disk content) is what gets
+      inserted into the parent document's input stream, so replacements appear in
+      rendered output.
+    weight: 3
+  - id: R2
+    description: 'Preserves correct behavior for top-level documents: the `source-read`
+      event for root `.rst` files (processed by `SphinxStandaloneReader.read_source`)
+      is still emitted and its modifications still take effect, unaffected by this
+      change.'
+    weight: 2

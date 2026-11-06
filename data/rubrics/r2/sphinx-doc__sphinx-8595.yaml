@@ -1,0 +1,54 @@
+metadata:
+  task_summary: Fix autodoc ignoring an empty __all__ attribute by distinguishing
+    None (no __all__) from [] (empty __all__) in ModuleDocumenter.get_object_members.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the conditional check in ModuleDocumenter.get_object_members
+      inside sphinx/ext/autodoc/__init__.py that currently uses 'if not self.__all__:'
+      to instead distinguish between None and an empty sequence.
+    weight: 3
+  - id: FC2
+    description: Confines changes to the minimal set of files required — primarily
+      sphinx/ext/autodoc/__init__.py — without unrelated file churn.
+    weight: 2
+  - id: FC3
+    description: Optionally adds a test fixture file (e.g., a target module with __all__
+      = []) or a test case exercising the empty-__all__ scenario.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that when __all__ is an empty list ([]), the ModuleDocumenter
+      documents no members (i.e., treats empty __all__ as an explicit exclusion of
+      all members, not as 'no __all__ defined').
+    weight: 3
+  - id: SA2
+    description: 'Preserves the existing behavior where __all__ = None (attribute
+      not present on the module) still causes autodoc to document all members when
+      :members: is used.'
+    weight: 3
+  - id: SA3
+    description: Preserves the existing behavior where a non-empty __all__ (e.g.,
+      __all__ = ['Class']) still restricts documented members to only those listed.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing autodoc test assertions are weakened, removed,
+      or skipped to accommodate the change.
+    weight: 2
+  - id: I2
+    description: Confirms that the public autodoc API (ModuleDocumenter class, options,
+      and directive signatures) remains unchanged.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures the fix distinguishes the falsy-but-not-None empty list case
+      from None by using an explicit identity check (e.g., 'is None') or equivalent
+      logic, so that 'if not self.__all__:' no longer conflates __all__ = [] with
+      __all__ being absent.
+    weight: 3
+  - id: R2
+    description: Ensures that the sort-by-__all__ logic (the bysource order path that
+      checks 'if self.__all__:') is also compatible with the corrected None-vs-empty
+      distinction, avoiding regressions in member ordering when __all__ is empty.
+    weight: 2

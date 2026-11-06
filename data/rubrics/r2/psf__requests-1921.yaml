@@ -1,0 +1,51 @@
+metadata:
+  task_summary: Fix merge_setting in sessions.py so that a session header set to None
+    is excluded from the final merged headers rather than sent as the string 'None'.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the merge_setting function in requests/sessions.py to handle
+      None-valued keys from both session_setting and request_setting.
+    weight: 3
+  - id: FC2
+    description: Confines changes to requests/sessions.py (and optionally test files),
+      without modifying unrelated files such as requests/utils.py, requests/models.py,
+      or requests/adapters.py.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test that exercises setting a session-level header
+      (e.g., session.headers['Accept-Encoding'] = None) and verifies the header is
+      absent from the prepared request.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that assigning None to a key in session.headers causes that
+      header to be excluded from merged headers, matching the documented behavior
+      described in the PR description.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior where assigning None to a key in
+      per-request headers (the request_setting dict) still removes that header from
+      the merged result.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the merge_setting function signature and its callers
+      in sessions.py (e.g., in prepare_request) are not changed in a way that breaks
+      backward compatibility.
+    weight: 2
+  - id: I2
+    description: Avoids weakening or removing the existing test_header_remove_is_case_insensitive
+      test that validates per-request None header removal.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: 'Ensures that after the fix, merged_setting omits any key whose value
+      is None in either the session_setting or request_setting mapping, so no ''Header-Name:
+      None'' string is transmitted.'
+    weight: 3
+  - id: R2
+    description: Ensures that non-None session headers continue to be present in merged
+      headers, so removing one header (e.g., Accept-Encoding) does not inadvertently
+      suppress unrelated session headers (e.g., User-Agent).
+    weight: 2

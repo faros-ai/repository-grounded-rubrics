@@ -1,0 +1,72 @@
+metadata:
+  task_summary: Fix the bug in `signature_from_str` where default values for positional-only
+    arguments (e.g., `foo(a, b=0, /, c=1)`) are silently dropped when building the
+    `inspect.Signature` object.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies `sphinx/util/inspect.py` in the `signature_from_str` function
+      to add default-value lookup for `posonlyargs` entries, rather than unconditionally
+      omitting the `default` keyword argument when constructing each `Parameter(...
+      Parameter.POSITIONAL_ONLY ...)` object.
+    weight: 3
+  - id: FC2
+    description: Confines the change to `sphinx/util/inspect.py` (and optionally `tests/test_util_inspect.py`)
+      without introducing unrelated file modifications.
+    weight: 2
+  - id: FC3
+    description: Uses `args.defaults` (the combined right-aligned defaults list from
+      the AST `arguments` node) to look up the default for each positional-only argument,
+      consistent with how `args.defaults` is already used for the regular `args` loop
+      immediately after.
+    weight: 3
+  - id: FC4
+    description: Computes the correct index into `args.defaults` for each positional-only
+      argument by accounting for both `len(args.posonlyargs)` and `len(args.args)`
+      forming the total positional parameter count, so the right-aligned slice is
+      correctly resolved.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the specific scenario from the PR description — a signature
+      containing positional-only arguments with defaults followed by regular arguments
+      with defaults, e.g., `(a, b=0, /, c=1)` — so that `b` receives default `0` in
+      the resulting `Signature`.
+    weight: 3
+  - id: SA2
+    description: Preserves `Parameter.empty` as the default for positional-only arguments
+      that genuinely have no default (e.g., `a` in `(a, b=0, /, c=1)`), ensuring no
+      spurious default is assigned.
+    weight: 2
+  - id: SA3
+    description: Passes the resolved default value (as an unparsed string via `ast_unparse`)
+      to the `Parameter` constructor for positional-only arguments, matching the pattern
+      used for `POSITIONAL_OR_KEYWORD` parameters in the same function.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Does not weaken existing tests for `signature_from_str`, such as
+      `test_signature_from_str_positionaly_only_args` or `test_signature_from_str_default_values`,
+      by removing or softening assertions.
+    weight: 2
+  - id: I2
+    description: Preserves the public signature of `signature_from_str` (same name,
+      same parameter list) without renaming or removing it.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that calling `signature_from_str('(a, b=0, /, c=1)')` produces
+      a `Signature` where `sig.parameters['b'].default` is the string `'0'` (not `Parameter.empty`),
+      matching the expected behavior described in the PR.
+    weight: 3
+  - id: R2
+    description: Ensures that non-positional-only parameters following the `/` separator
+      still receive their correct defaults (e.g., `sig.parameters['c'].default ==
+      '1'` for `(a, b=0, /, c=1)`), confirming no regression in existing default-value
+      handling for regular args.
+    weight: 2
+  - id: R3
+    description: Handles edge cases where all positional-only arguments have no defaults
+      (e.g., `(a, /, b)`) without raising an `IndexError` or assigning a wrong default,
+      preserving the behavior tested by `test_signature_from_str_positionaly_only_args`.
+    weight: 2

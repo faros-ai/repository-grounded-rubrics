@@ -1,0 +1,55 @@
+metadata:
+  task_summary: Fix the Python code printer (lambdify) to correctly emit a trailing
+    comma for single-element tuples, restoring the `(1,)` output instead of `(1)`.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the tuple-handling code path in `sympy/utilities/lambdify.py`
+      (specifically in `_recursive_to_string` or the surrounding tuple-serialization
+      logic) to produce a trailing comma for single-element tuples.
+    weight: 3
+  - id: FC2
+    description: Confines changes to the minimal set of files relevant to the single-element
+      tuple bug; does not introduce unrelated file edits (e.g., no gratuitous changes
+      to unrelated printer modules).
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements special-case handling so that when a Python `tuple` with
+      exactly one element is serialized by `_recursive_to_string` (or equivalent tuple-serialization
+      code), the result includes a trailing comma, yielding the form `(element,)`
+      rather than `(element)`.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior for tuples with two or more elements,
+      ensuring they continue to be serialized as `(e1, e2, ...)` without an extra
+      trailing comma.
+    weight: 2
+  - id: SA3
+    description: Preserves the existing behavior for Python `list` arguments in `_recursive_to_string`
+      (or equivalent), which should continue to produce `[e1, e2, ...]` without any
+      trailing comma regardless of element count.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Does not weaken or skip any existing tests related to tuple or list
+      serialization in `lambdify` (e.g., does not remove or `@XFAIL`-mark assertions
+      in `test_lambdify.py` that exercise tuple return values).
+    weight: 2
+  - id: I2
+    description: Adds or updates a test (anywhere in the diff) that exercises `lambdify([],
+      tuple([1]))` or an equivalent single-element tuple expression, verifying the
+      returned function produces a tuple rather than an integer.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Ensures `lambdify([], tuple([1]))()` returns a one-element tuple
+      `(1,)` rather than the integer `1`, as described in the PR, by introducing a
+      structural code path that detects `len(arg) == 1` (or equivalent) and appends
+      a trailing comma inside the parentheses.
+    weight: 3
+  - id: R2
+    description: Maintains backward compatibility with multi-element tuples passed
+      as the `expr` argument to `lambdify`, so that `lambdify([], (1, 2))()` continues
+      to return `(1, 2)` unchanged.
+    weight: 2

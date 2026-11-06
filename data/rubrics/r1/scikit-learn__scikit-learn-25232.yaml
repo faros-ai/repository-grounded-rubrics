@@ -1,0 +1,62 @@
+metadata:
+  task_summary: Add a `fill_value` parameter to `IterativeImputer` so that when `initial_strategy='constant'`
+    the initial fill constant can be specified by the user, including `np.nan` for
+    compatibility with decision-tree-based estimators.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Adds `fill_value` as a keyword-only parameter in `IterativeImputer.__init__`
+      with a default of `None`, matching the default used by `SimpleImputer`.
+    weight: 3
+  - id: FC2
+    description: Stores `fill_value` as an instance attribute (i.e., `self.fill_value
+      = fill_value`) inside `IterativeImputer.__init__`.
+    weight: 3
+  - id: FC3
+    description: Passes `fill_value=self.fill_value` when constructing the `SimpleImputer`
+      inside `_initial_imputation`, so the constant is forwarded to the underlying
+      imputer.
+    weight: 3
+  - id: FC4
+    description: Registers `fill_value` in `IterativeImputer._parameter_constraints`
+      dict with a permissive validator (such as `'no_validation'` or `None`) to allow
+      `np.nan` and arbitrary scalar values.
+    weight: 2
+  - id: FC5
+    description: Adds documentation for the `fill_value` parameter in `IterativeImputer`'s
+      class docstring, describing its role when `initial_strategy='constant'`.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements `fill_value` specifically for the `initial_strategy='constant'`
+      use case, as stated in the PR description, without altering behavior for other
+      `initial_strategy` values.
+    weight: 3
+  - id: SA2
+    description: Allows `np.nan` as a valid `fill_value` (by not restricting it via
+      strict type validation), enabling compatibility with decision-tree-based estimators
+      as explicitly requested in the PR description.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves all existing `IterativeImputer.__init__` parameters and
+      their default values unchanged, maintaining backward compatibility with current
+      callers.
+    weight: 3
+  - id: I2
+    description: Confines changes to `sklearn/impute/_iterative.py` (and optionally
+      its test file), without modifying unrelated files such as `_base.py`, `_knn.py`,
+      or other imputer classes.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when `IterativeImputer` is constructed with `initial_strategy='constant'`
+      and a user-specified `fill_value`, the `SimpleImputer` stored in `self.initial_imputer_`
+      after fitting is initialized with that same `fill_value`, making the constant
+      propagate correctly during `fit_transform`.
+    weight: 3
+  - id: R2
+    description: 'Maintains existing default behavior when `fill_value` is not supplied:
+      `fill_value=None` is forwarded to `SimpleImputer`, which defaults to `0` for
+      numerical data, preserving backward-compatible imputation results.'
+    weight: 2

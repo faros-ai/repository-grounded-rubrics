@@ -1,0 +1,65 @@
+metadata:
+  task_summary: Fix OPTICS to convert float min_samples to int (via int(round(...)))
+    before passing it to NearestNeighbors, preventing a TypeError.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the float-to-int conversion for min_samples in compute_optics_graph
+      (the lines following 'if min_samples <= 1:' in optics_.py) to produce an integer
+      result instead of a float.
+    weight: 3
+  - id: FC2
+    description: Applies the same integer conversion fix to min_samples in cluster_optics_xi
+      (the analogous 'if min_samples <= 1:' block in optics_.py), keeping both conversion
+      sites consistent.
+    weight: 2
+  - id: FC3
+    description: Applies integer conversion to the min_cluster_size float-to-int conversion
+      in cluster_optics_xi (the 'if min_cluster_size <= 1:' block), matching the same
+      pattern as min_samples.
+    weight: 2
+  - id: FC4
+    description: Confines all changes to sklearn/cluster/optics_.py (and optionally
+      its test file), introducing no unrelated file modifications.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Wraps the result of 'max(2, min_samples * n_samples)' with both round()
+      and int() (or equivalent integer coercion) so the value is a Python int rather
+      than a numpy.float64, matching the PR description's proposed fix.
+    weight: 3
+  - id: SA2
+    description: Uses rounding (round()) rather than truncation (e.g., int() alone)
+      when converting the scaled float min_samples to integer, preserving the semantics
+      described in the PR description.
+    weight: 2
+  - id: SA3
+    description: Ensures that when min_samples is passed as a float between 0 and
+      1 (e.g., 0.1), the converted value satisfies the constraint of being at least
+      2 before integer conversion.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the public API of OPTICS and compute_optics_graph, keeping
+      float-valued min_samples as a valid accepted input type without raising a TypeError.
+    weight: 3
+  - id: I2
+    description: Does not weaken or remove any existing validation logic (such as
+      _validate_size checks) that guards against invalid min_samples values.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures NearestNeighbors receives an integer n_neighbors argument
+      when min_samples is supplied as a float, preventing the 'n_neighbors does not
+      take numpy.float64 value' TypeError at fit time.
+    weight: 3
+  - id: R2
+    description: Ensures that integer min_samples inputs (e.g., min_samples=5) are
+      unaffected by the fix, since the 'if min_samples <= 1' branch is not entered
+      for such values.
+    weight: 2
+  - id: R3
+    description: Ensures that the converted integer min_samples is used consistently
+      throughout compute_optics_graph (passed to both NearestNeighbors and _compute_core_distances_)
+      without reverting to a float intermediate.
+    weight: 2

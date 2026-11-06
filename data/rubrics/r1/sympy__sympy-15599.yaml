@@ -1,0 +1,61 @@
+metadata:
+  task_summary: Fix Mod(3*i, 2) to reduce to Mod(i, 2) when i is an integer symbol
+    by applying modular reduction to non-Mod multiplicands before checking for inner
+    Mod terms.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the Mul branch inside the `doit` function in `sympy/core/mod.py`
+      to apply `cls(x, q)` to non-Mod multiplicands regardless of whether `mod_l`
+      is non-empty.
+    weight: 3
+  - id: FC2
+    description: Ensures the condition guarding the distributive simplification block
+      in the Mul branch is broadened so that non-Mod factors that reduce (i.e., `cls(x,
+      q) != x`) trigger the simplification path even when `mod_l` is empty.
+    weight: 3
+  - id: FC3
+    description: Confines all changes to `sympy/core/mod.py` (and optionally `sympy/core/tests/test_arit.py`),
+      introducing no modifications to unrelated files.
+    weight: 2
+  - id: FC4
+    description: Adds a test assertion `Mod(3*i, 2) == Mod(i, 2)` (or equivalent)
+      in the test suite for `Mod`, where `i` is an integer-typed Symbol.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements the fix such that `Mod(3*i, 2)` evaluates to `Mod(i, 2)`
+      when `i` is declared as an integer symbol, matching the stated expected output
+      in the PR description.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing reduction `Mod(4*i, 4) == 0` for integer `i`,
+      ensuring the change does not regress cases where the product is exactly divisible
+      by the modulus.
+    weight: 2
+  - id: SA3
+    description: Preserves the existing reduction `(3*i*x) % (2*i*y) == i*Mod(3*x,
+      2*y)` for integer `i`, ensuring the Mul-branch logic still handles the combined
+      Mod-and-non-Mod multiplicand case.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing test assertions in `test_Mod` are removed
+      or weakened by the patch.
+    weight: 3
+  - id: I2
+    description: Confirms that the public API signature of `Mod.eval(cls, p, q)` remains
+      unchanged (same arguments, no new required parameters).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures the Mul-branch simplification captures the case where non-Mod
+      integer multiplicands reduce under `cls(x, q)` by detecting a change (i.e.,
+      `was != non_mod_l` or equivalent comparison) before entering the distributive-term
+      factoring block.
+    weight: 3
+  - id: R2
+    description: Ensures that when no non-Mod term reduces and `mod_l` is empty, the
+      Mul branch does not prematurely return a modified expression, preserving the
+      unchanged-case fall-through to subsequent simplification logic.
+    weight: 2

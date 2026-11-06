@@ -1,0 +1,58 @@
+metadata:
+  task_summary: Fix urlize() to correctly handle HTML-escaped strings with trailing
+    punctuation, where entity length differences caused the wrong portion of the original
+    string to be assigned to trail vs. middle.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the trailing-punctuation trimming logic inside the `trim_punctuation`
+      function in `django/utils/html.py` and no other unrelated files.
+    weight: 3
+  - id: FC2
+    description: Removes or corrects the buggy index expression `middle[len(stripped):]`
+      (used to compute `trail`) that assumed `middle` and `middle_unescaped` have
+      the same length.
+    weight: 3
+  - id: FC3
+    description: Replaces the incorrect slice assignment for `middle` (previously
+      `middle[:len(stripped) - len(middle_unescaped)]`) with a corrected expression
+      that accounts for differing lengths between the escaped and unescaped strings.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that for input like `google.com/?q=1&lt!`, the trailing `!`
+      is correctly placed into `trail` rather than combining `lt!` into the trail
+      (as described in the PR example).
+    weight: 3
+  - id: SA2
+    description: Ensures that for input like `google.com/?q=1&lt!`, the `middle` after
+      trimming retains the full HTML entity `&lt` (i.e., `google.com/?q=1&lt`) rather
+      than incorrectly truncating it.
+    weight: 3
+  - id: SA3
+    description: Adds or updates a test exercising `urlize()` with an HTML-escaped
+      URL containing a trailing punctuation character (e.g., `google.com/?q=1&lt!`)
+      and verifying the expected output matches the PR description's expected result.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing `html.unescape(middle)` call used to compute
+      `middle_unescaped` and `stripped`, keeping the protection against inadvertently
+      breaking HTML entities that end with `;` (a `TRAILING_PUNCTUATION_CHARS` member).
+    weight: 2
+  - id: I2
+    description: Confirms that existing `urlize` tests for non-entity inputs (plain
+      URLs, mailto links, wrapping punctuation) are not weakened or removed in the
+      patch.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Produces correct output where the trailing punctuation character
+      (e.g., `!`) appears outside the anchor tag and `middle` retains the full HTML
+      entity, for inputs where an HTML entity immediately precedes trailing punctuation.
+    weight: 3
+  - id: R2
+    description: Preserves correct behavior for inputs without HTML entities, such
+      that plain trailing punctuation (e.g., `google.com/?q=!`) is still correctly
+      stripped into `trail` and excluded from the URL.
+    weight: 2

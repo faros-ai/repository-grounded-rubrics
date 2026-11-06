@@ -1,0 +1,61 @@
+metadata:
+  task_summary: Extend the auth.E003/auth.W004 system checks to skip raising an error
+    when the USERNAME_FIELD is covered by a total UniqueConstraint (one without a
+    condition) in the model's Meta.constraints.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the uniqueness check logic inside check_user_model in django/contrib/auth/checks.py
+      to also accept a total UniqueConstraint covering the USERNAME_FIELD as satisfying
+      the uniqueness requirement.
+    weight: 3
+  - id: FC2
+    description: Confines changes to django/contrib/auth/checks.py (and optionally
+      related test files), without modifying unrelated source files such as django/db/models/constraints.py
+      or django/db/models/options.py.
+    weight: 2
+  - id: FC3
+    description: Adds or updates at least one test case in the auth checks test suite
+      that uses a UniqueConstraint on the USERNAME_FIELD and asserts no auth.E003
+      or auth.W004 error is raised.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that the modified check skips raising auth.E003 specifically
+      when the USERNAME_FIELD is the sole field (or among the fields) of a UniqueConstraint
+      with condition=None (a total constraint), matching the PR description's scenario
+      of UniqueConstraint(fields=['username'], name='user_username_unq').
+    weight: 3
+  - id: SA2
+    description: Ensures that a partial UniqueConstraint (one with a non-None condition)
+      covering the USERNAME_FIELD is NOT treated as satisfying the uniqueness requirement,
+      so auth.E003 or auth.W004 is still raised in that case.
+    weight: 2
+  - id: SA3
+    description: Ensures that both the auth.E003 branch (default ModelBackend) and
+      the auth.W004 branch (custom authentication backends) are consistently updated
+      to skip when a total UniqueConstraint covers the USERNAME_FIELD.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the existing auth.E003 and auth.W004 error/warning
+      behavior is preserved for models where the USERNAME_FIELD is neither unique=True
+      on the field nor covered by any total UniqueConstraint.
+    weight: 3
+  - id: I2
+    description: Confirms that no existing test checking auth.E003 or auth.W004 behavior
+      is weakened, removed, or marked as expected-failure without a corresponding
+      behavioral justification in the PR description.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a user model with USERNAME_FIELD covered only by a total
+      UniqueConstraint (condition=None) produces an empty errors list from check_user_model,
+      because the new check branch detects the constraint and suppresses the error.
+    weight: 3
+  - id: R2
+    description: Ensures that the uniqueness detection logic correctly inspects cls._meta.constraints
+      (or cls._meta.total_unique_constraints) and checks that the USERNAME_FIELD name
+      appears in the constraint's fields attribute, rather than performing only a
+      field-level unique attribute check.
+    weight: 2

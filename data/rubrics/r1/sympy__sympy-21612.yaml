@@ -1,0 +1,55 @@
+metadata:
+  task_summary: Fix LaTeX fraction parsing so that a fraction with a compound denominator
+    (e.g., nested \frac) is correctly wrapped, preventing sympy.Mul from flattening
+    the inverse-denominator Pow.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sympy/parsing/latex/_parse_latex_antlr.py, with the core
+      logic change confined to the convert_frac function.
+    weight: 3
+  - id: FC2
+    description: Does not modify unrelated parsing functions such as convert_mp, convert_add,
+      or convert_comp as part of the fix.
+    weight: 2
+  - id: FC3
+    description: 'Removes or restructures the early-return branch ''if expr_top ==
+      1: return inverse_denom'' so that both the expr_top == 1 case and the general
+      case produce a consistent return type (e.g., both return a sympy.Mul).'
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause stated in the PR description: the denominator
+      of an outer fraction that is itself a nested fraction was not properly bracketed,
+      causing sympy.Mul to flatten the result incorrectly.'
+    weight: 3
+  - id: SA2
+    description: Ensures the fix prevents the wrong expression ((a**3 + b)/c)/1/(c**2)
+      and instead produces the correctly parenthesized form ((a**3 + b)/c)/(1/(c**2)).
+    weight: 3
+  - id: SA3
+    description: Adds or updates a test that exercises the parse_latex input containing
+      a nested fraction as the denominator (e.g., the pattern frac{frac{a^3+b}{c}}{frac{1}{c^2}}).
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Preserves correct behavior for simple (non-nested) fractions such
+      as frac{a}{b} and frac{7}{3} (no change to existing passing test expectations
+      for those cases).
+    weight: 3
+  - id: I2
+    description: Preserves the differential-operator and partial-derivative early-return
+      paths in convert_frac (the diff_op/partial_op branches) without modification.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Produces a sympy expression for frac{frac{a^3+b}{c}}{frac{1}{c^2}}
+      whose structure retains the denominator frac{1}{c^2} as a grouped unit (i.e.,
+      as a Mul or Pow in the denominator position) rather than flattening it.
+    weight: 3
+  - id: R2
+    description: Ensures that convert_frac returns a sympy.Mul (rather than a bare
+      sympy.Pow) even when expr_top equals 1, so that a subsequent outer-fraction
+      inversion via Pow(result, -1, evaluate=False) does not silently simplify away
+      nested structure.
+    weight: 2

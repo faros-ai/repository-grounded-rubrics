@@ -1,0 +1,67 @@
+metadata:
+  task_summary: Fix JSONField values being displayed as Python dict literals (invalid
+    JSON) in the Django admin readonly view by adding a special case in display_for_field
+    to call the form field's prepare_value method.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/contrib/admin/utils.py to add a special case inside
+      the display_for_field function that handles django.db.models.JSONField (or equivalent)
+      instances.
+    weight: 3
+  - id: FC2
+    description: Avoids modifying unrelated files; changes are confined to the admin
+      display utilities (e.g., django/contrib/admin/utils.py) and optionally test
+      files, with no churn in unrelated modules such as core ORM, form widgets, or
+      migration files.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test covering display_for_field with a JSONField
+      model field, verifiable by the presence of models.JSONField or related imports
+      in a test file touching display_for_field behavior.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements the fix by calling the form field's prepare_value method
+      (i.e., delegating to forms.JSONField.prepare_value) rather than calling json.dumps
+      directly on the value in display_for_field, matching the PR description's stated
+      approach.
+    weight: 3
+  - id: SA2
+    description: Handles the InvalidJSONInput case correctly by routing through prepare_value,
+      which returns the raw InvalidJSONInput string as-is rather than attempting to
+      re-serialize it, preserving the behavior described in the PR description.
+    weight: 2
+  - id: SA3
+    description: Ensures the new branch in display_for_field is guarded by an isinstance
+      check for the db-level models.JSONField (from django.db.models or django.db.models.fields.json),
+      not a form-level or other unrelated field type.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the existing branches in display_for_field (for BooleanField,
+      DateTimeField, DateField, TimeField, DecimalField, IntegerField, FloatField,
+      FileField) are not removed or reordered in a way that changes their behavior.
+    weight: 2
+  - id: I2
+    description: Confirms that no existing tests in the admin_utils test suite are
+      weakened, skipped, or deleted to accommodate the new behavior.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: 'Ensures that when display_for_field is called with a dict value
+      and a models.JSONField instance, the returned string is valid JSON (using double-quoted
+      keys, e.g., ''{"foo": "bar"}'') rather than a Python repr (e.g., "{''foo'':
+      ''bar''}"), addressing the core bug.'
+    weight: 3
+  - id: R2
+    description: Ensures that when display_for_field is called with a None value and
+      a models.JSONField instance, the function returns empty_value_display rather
+      than attempting serialization (via the pre-existing null check or an analogous
+      guard).
+    weight: 2
+  - id: R3
+    description: Ensures that non-JSONField field types (e.g., CharField, IntegerField)
+      continue to reach their original code paths in display_for_field without interference
+      from the new JSONField branch.
+    weight: 2

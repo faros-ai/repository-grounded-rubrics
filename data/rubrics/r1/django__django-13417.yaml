@@ -1,0 +1,57 @@
+metadata:
+  task_summary: Fix QuerySet.ordered to return False for GROUP BY queries on models
+    with Meta.ordering when no explicit order_by is set.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the 'ordered' property in 'django/db/models/query.py' to
+      account for GROUP BY queries.
+    weight: 3
+  - id: FC2
+    description: Confines changes to the 'ordered' property implementation without
+      altering unrelated methods or files outside the queryset or test modules.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test case (anywhere in the test suite) that exercises
+      the 'ordered' property on a model with 'Meta.ordering' after calling 'annotate()'
+      with an aggregate, verifying it returns False.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements a check in the 'ordered' property that returns False when
+      'query.group_by' is set (truthy or a non-empty tuple) and the ordering would
+      come solely from 'Meta.ordering' via 'default_ordering' (i.e., no explicit 'query.order_by'
+      or 'query.extra_order_by').
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior of 'ordered' returning True when
+      'Meta.ordering' is set and no GROUP BY is present (plain 'all()' on a model
+      with 'Meta.ordering' still returns True).
+    weight: 3
+  - id: SA3
+    description: Preserves the existing behavior of 'ordered' returning True when
+      an explicit 'order_by()' is applied to an annotated queryset that has GROUP
+      BY.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Avoids weakening existing test assertions in 'QuerysetOrderedTests'
+      (e.g., does not change 'assertIs(qs.ordered, False)' to True or remove test
+      methods).
+    weight: 3
+  - id: I2
+    description: Preserves the public signature of 'QuerySet.ordered' as a property
+      with no new required parameters.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that 'QuerySet.ordered' returns False for a queryset produced
+      by calling 'annotate()' with an aggregate on a model that has 'Meta.ordering',
+      when no explicit 'order_by()' is applied, matching the SQL compiler behavior
+      of dropping meta ordering when GROUP BY is present.
+    weight: 3
+  - id: R2
+    description: Ensures that 'QuerySet.ordered' still returns True for a plain (non-annotated)
+      queryset on a model with 'Meta.ordering', confirming no regression for the default
+      case.
+    weight: 2

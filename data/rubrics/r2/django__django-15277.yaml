@@ -1,0 +1,53 @@
+metadata:
+  task_summary: Modify CharField.__init__ to only append MaxLengthValidator when max_length
+    is not None, matching BinaryField's pattern, so that CharField() with no max_length
+    does not create a broken validator.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies CharField.__init__ in django/db/models/fields/__init__.py
+      to guard the MaxLengthValidator append with an 'if self.max_length is not None:'
+      condition.
+    weight: 3
+  - id: FC2
+    description: Confines all changes to django/db/models/fields/__init__.py (the
+      CharField.__init__ site) without modifying Value._resolve_output_field or other
+      unrelated files.
+    weight: 2
+  - id: FC3
+    description: Avoids removing the unconditional self.validators.append(validators.MaxLengthValidator(self.max_length))
+      line and replacing it with nothing — ensures the guarded append still executes
+      when max_length is not None.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Implements the exact pattern described in the PR: ''if self.max_length
+      is not None: self.validators.append(validators.MaxLengthValidator(self.max_length))'',
+      mirroring BinaryField.__init__.'
+    weight: 3
+  - id: SA2
+    description: Ensures that when CharField is instantiated without a max_length
+      argument (as done by Value._resolve_output_field returning fields.CharField()),
+      no MaxLengthValidator is added to self.validators.
+    weight: 3
+  integrity_rubrics:
+  - id: I1
+    description: 'Preserves CharField system-check behavior: the _check_max_length_attribute
+      method still detects and reports a missing max_length as error ''fields.E120''.'
+    weight: 2
+  - id: I2
+    description: Avoids weakening or deleting any existing test assertions (no test
+      cases removed or skipped), confirming MaxLengthValidator is still appended for
+      CharField instances with a valid max_length.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Confirms that CharField(max_length=N).validators still contains a
+      MaxLengthValidator(N) for positive integer N, preserving length-validation behaviour
+      for normal model field usage.
+    weight: 3
+  - id: R2
+    description: Confirms that CharField() (no max_length) produces an empty validators
+      list, preventing the TypeError described in the PR when MaxLengthValidator compares
+      'int' and 'NoneType'.
+    weight: 3

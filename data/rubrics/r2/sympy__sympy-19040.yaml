@@ -1,0 +1,59 @@
+metadata:
+  task_summary: Fix factor() dropping a factor (e.g. y-1) when called with extension=True
+    or extension=[I] on multivariate polynomials.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Removes 'extension' from the excludes list of the Composite option
+      class in sympy/polys/polyoptions.py, so that composite and extension options
+      are no longer mutually exclusive.
+    weight: 3
+  - id: FC2
+    description: Limits changes to the polynomial options/constructor machinery (e.g.
+      sympy/polys/polyoptions.py or sympy/polys/constructor.py) without touching unrelated
+      modules or mass-renaming symbols.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test (anywhere in the diff) that exercises factor()
+      with extension=[I] or extension=True on a multivariate polynomial such as expand((x-1)*(y-1)),
+      confirming that no factor is silently dropped.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that factor(expand((x-1)*(y-1)), extension=[I]) returns a
+      product containing both (x-1) and (y-1) factors, matching the stated expected
+      behavior from the PR description.
+    weight: 3
+  - id: SA2
+    description: Addresses the root cause where opt.composite was forced to False
+      when extension was specified, preventing _construct_composite from being called
+      for multivariate polynomials with integer/rational coefficients.
+    weight: 3
+  - id: SA3
+    description: Preserves the behavior of factor() without extension (e.g. factor(expand((x-1)*(y-1)))
+      still returns (x-1)*(y-1)) so that the fix does not regress existing factoring
+      behavior.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the Extension option's own excludes list in sympy/polys/polyoptions.py
+      does not gain 'composite' as an exclusion, avoiding a symmetric but equally
+      broken workaround.
+    weight: 2
+  - id: I2
+    description: Confirms no existing tests for factor() with extension and single-variable
+      polynomials (e.g. factor(x**4+1, extension=I)) are weakened, skipped, or removed.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when extension=True is specified for a multivariate
+      polynomial with rational/integer coefficients, construct_domain falls through
+      to _construct_composite rather than _construct_expression (EX domain), so variables
+      are treated as generators and not as symbolic coefficients.
+    weight: 3
+  - id: R2
+    description: Ensures that factor() with extension=[I] on a polynomial involving
+      only algebraic-number coefficients (single-variable case) still produces the
+      correct algebraic factorization, confirming that allowing composite does not
+      break the algebraic-extension code path.
+    weight: 2

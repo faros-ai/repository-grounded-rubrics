@@ -1,0 +1,55 @@
+metadata:
+  task_summary: Fix caplog fixture so that the handler's log level set via set_level()
+    is restored to its original value at the end of each test, preventing level leakage
+    between tests.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the _finalize method (or an equivalent teardown path) in
+      LogCaptureFixture inside src/_pytest/logging.py to restore the handler's level
+      in addition to restoring logger levels.
+    weight: 3
+  - id: FC2
+    description: Adds logic in set_level (in LogCaptureFixture) to record the original
+      handler level before it is changed, analogous to the existing use of _initial_logger_levels.setdefault.
+    weight: 3
+  - id: FC3
+    description: Confines all changes to src/_pytest/logging.py and optional test
+      files, without modifying unrelated source files.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that after a test that calls caplog.set_level(), the handler's
+      level is reverted to its pre-test value, matching the documented contract that
+      log levels set via caplog are restored automatically at the end of the test.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing logger-level restoration behavior in _finalize
+      (restoring levels for each logger_name in _initial_logger_levels) while adding
+      handler-level restoration.
+    weight: 2
+  - id: SA3
+    description: Adds or updates a test case that verifies caplog.handler.level is
+      restored to its initial value after a preceding test calls caplog.set_level()
+      with an arbitrary level such as 42.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public API of set_level and at_level in LogCaptureFixture
+      is unchanged, with the same signatures (level, logger=None) as before.
+    weight: 2
+  - id: I2
+    description: Confirms that at_level's existing handler-level save-and-restore
+      pattern (using handler_orig_level) is not removed or regressed.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when set_level() is called in test_foo and test_bar
+      runs afterwards, caplog.handler.level in test_bar reflects the handler's pre-test
+      default rather than the level set in test_foo.
+    weight: 3
+  - id: R2
+    description: Ensures that calling set_level() multiple times within a single test
+      only saves the original (first) handler level, so that _finalize restores the
+      correct pre-test value rather than an intermediate one.
+    weight: 2

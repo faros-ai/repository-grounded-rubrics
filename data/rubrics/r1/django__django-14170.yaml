@@ -1,0 +1,74 @@
+metadata:
+  task_summary: Fix YearLookup BETWEEN optimization incorrectly applied to ExtractIsoYear
+    (iso_year) filters, which produces wrong results because ISO year boundaries differ
+    from calendar year boundaries.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/db/models/lookups.py or django/db/models/functions/datetime.py
+      to prevent the BETWEEN optimization in YearLookup.as_sql() from being applied
+      when the lhs is an ExtractIsoYear (lookup_name 'iso_year').
+    weight: 3
+  - id: FC2
+    description: Removes the ExtractIsoYear.register_lookup calls for YearExact, YearGt,
+      YearGte, YearLt, and YearLte from django/db/models/functions/datetime.py, or
+      replaces them with iso-year-specific lookup classes that do not apply the BETWEEN
+      optimization.
+    weight: 3
+  - id: FC3
+    description: Reverts or corrects the test assertions in tests/db_functions/datetime/test_extract_trunc.py
+      that erroneously include 'iso_year' in the for-loop of test_extract_year_exact_lookup
+      (and related year lookup tests) expecting BETWEEN and no EXTRACT for iso_year.
+    weight: 2
+  - id: FC4
+    description: Avoids unrelated file changes outside of the lookups module (django/db/models/lookups.py),
+      the datetime functions module (django/db/models/functions/datetime.py), and
+      the datetime extract/trunc test file.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that filtering by __iso_year with a direct integer value
+      generates SQL using EXTRACT('isoyear' ...) rather than a BETWEEN clause, matching
+      the stated requirement in the PR description.
+    weight: 3
+  - id: SA2
+    description: Preserves the BETWEEN optimization for __year lookups (ExtractYear)
+      so that indexes can still be used for regular year filtering, as described in
+      the PR description which only targets iso_year.
+    weight: 3
+  - id: SA3
+    description: Extends or adds a test that exercises the ISO year boundary case
+      (e.g., a date such as 2014-12-31 that falls in ISO year 2015 but calendar year
+      2014) via a direct-value filter like filter(start_datetime__iso_year=2015),
+      verifying the correct rows are returned.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing test assertions are weakened by removing
+      count checks or correctness assertions; any changes to test_extract_year_exact_lookup,
+      test_extract_year_greaterthan_lookup, or test_extract_year_lessthan_lookup only
+      remove the invalid iso_year subtest or correct its expectations.
+    weight: 2
+  - id: I2
+    description: Confirms that ExtractYear (lookup_name 'year') still registers YearExact,
+      YearGt, YearGte, YearLt, and YearLte lookups unchanged in django/db/models/functions/datetime.py,
+      preserving the existing year BETWEEN optimization.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a filter expression like DTModel.objects.filter(start_date__iso_year=2020)
+      generates SQL containing EXTRACT('isoyear' ...) and not a BETWEEN clause, so
+      ISO-year boundary rows (e.g., Dec 31 in the previous calendar year) are correctly
+      included or excluded.
+    weight: 3
+  - id: R2
+    description: Ensures that when an expression (not a direct value) is provided
+      as the rhs of an iso_year lookup, the generated SQL still falls through to the
+      base Lookup.as_sql() logic using EXTRACT, consistent with how the non-optimized
+      path works for year lookups.
+    weight: 2
+  - id: R3
+    description: Ensures that ExtractIsoYear used in an annotation (e.g., DTModel.objects.annotate(extracted=ExtractIsoYear('start_date')))
+      continues to generate EXTRACT('isoyear' ...) in the SELECT clause without any
+      BETWEEN clause, confirming no regression to annotation behavior.
+    weight: 2

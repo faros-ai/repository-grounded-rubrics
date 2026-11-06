@@ -1,0 +1,57 @@
+metadata:
+  task_summary: Extend the HEAD-to-GET fallback in the linkcheck builder to also catch
+    TooManyRedirects exceptions, so URLs that enter infinite redirect loops on HEAD
+    requests are retried with GET instead of being reported as broken.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sphinx/builders/linkcheck.py as the sole production-code
+      change, with no unrelated files altered.
+    weight: 3
+  - id: FC2
+    description: Extends the except clause inside the inner HEAD-request try block
+      (currently catching only HTTPError) to also catch TooManyRedirects, so the GET
+      fallback path is reached on redirect loops.
+    weight: 3
+  - id: FC3
+    description: Adds an import of TooManyRedirects from requests.exceptions (or an
+      equivalent requests import path) alongside the existing HTTPError import in
+      sphinx/builders/linkcheck.py.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements the GET fallback retry for TooManyRedirects raised during
+      the HEAD request, matching the PR description requirement that such URLs be
+      retried with GET instead of being classified as broken.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing HTTPError-based GET fallback behavior so that
+      servers responding with HTTP error status codes on HEAD requests still fall
+      back to GET, as before the patch.
+    weight: 2
+  - id: SA3
+    description: Confines the TooManyRedirects catch to the inner HEAD-request try
+      block only, not to the outer exception handler that reports links as broken,
+      ensuring the GET retry is attempted before giving up.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing tests for HEAD-to-GET fallback on HTTPError
+      (test_follows_redirects_on_GET) are not weakened, skipped, or removed in the
+      patch.
+    weight: 2
+  - id: I2
+    description: Confirms that no public API, configuration values, or builder method
+      signatures introduced in sphinx/builders/linkcheck.py are changed or removed.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a URL causing TooManyRedirects on a HEAD request is
+      retried with a GET request rather than immediately reported as broken, matching
+      the described behavior fix for sites like idr.openmicroscopy.org.
+    weight: 3
+  - id: R2
+    description: Ensures that a URL causing TooManyRedirects on both HEAD and GET
+      requests is still ultimately reported as broken (the outer except Exception
+      handler remains intact).
+    weight: 2

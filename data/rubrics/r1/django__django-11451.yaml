@@ -1,0 +1,57 @@
+metadata:
+  task_summary: Add an early-return guard in ModelBackend.authenticate() to skip the
+    database query and password hashing when username or password is None.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `authenticate` method inside `ModelBackend` in `django/contrib/auth/backends.py`
+      and no other production source files (i.e., the diff touches only files related
+      to authentication backends or their tests).
+    weight: 3
+  - id: FC2
+    description: Adds an early-return (returning `None` implicitly or explicitly)
+      inside `ModelBackend.authenticate()` that is placed after the `username = kwargs.get(UserModel.USERNAME_FIELD)`
+      fallback line and before the `get_by_natural_key` database call.
+    weight: 3
+  - id: FC3
+    description: Adds a test case (anywhere in the diff) that exercises `ModelBackend.authenticate()`
+      when `username` is `None` or `password` is `None`, verifying no database query
+      or unexpected behavior occurs.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements the guard condition `username is None or password is None`
+      (or an equivalent check covering both cases) so that `ModelBackend.authenticate()`
+      returns early when either credential is absent.
+    weight: 3
+  - id: SA2
+    description: Ensures the early-return guard does NOT call `UserModel().set_password(password)`
+      when `username` or `password` is `None`, eliminating the unnecessary password-hashing
+      work described in the PR.
+    weight: 2
+  - id: SA3
+    description: Preserves the existing fallback `username = kwargs.get(UserModel.USERNAME_FIELD)`
+      lookup so that custom USERNAME_FIELD backends still resolve the username from
+      kwargs before the early-return check.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms the public signature `def authenticate(self, request, username=None,
+      password=None, **kwargs)` of `ModelBackend` is unchanged by the patch.
+    weight: 3
+  - id: I2
+    description: Confirms the normal authenticated-user code path (when both `username`
+      and `password` are non-None) is unaffected, i.e., the `get_by_natural_key`,
+      `check_password`, and `user_can_authenticate` calls remain in place.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Prevents a database query with `WHERE username IS NULL` when `username`
+      is `None`, as described in the PR, by ensuring `get_by_natural_key` is never
+      reached in that case.
+    weight: 3
+  - id: R2
+    description: Returns `None` (implicitly or explicitly) when `username` or `password`
+      is `None`, matching the convention used by authentication backends to signal
+      they cannot handle the provided credentials.
+    weight: 2

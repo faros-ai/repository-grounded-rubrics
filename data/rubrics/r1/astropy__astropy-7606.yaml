@@ -1,0 +1,49 @@
+metadata:
+  task_summary: Fix UnrecognizedUnit.__eq__ to return False instead of raising TypeError
+    when compared with None.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the UnrecognizedUnit.__eq__ method in astropy/units/core.py
+      to handle the TypeError raised by Unit(None, parse_strict='silent').
+    weight: 3
+  - id: FC2
+    description: Confines changes to the minimal relevant scope — does not modify
+      unrelated methods or classes outside of the UnrecognizedUnit equality logic.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test for UnrecognizedUnit equality comparison with
+      None (e.g., asserting that Unit('asdf', parse_strict='silent') == None returns
+      False without raising).
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that comparing an UnrecognizedUnit instance to None (e.g.,
+      x == None) returns False instead of raising TypeError, matching the PR description's
+      stated expected behavior.
+    weight: 3
+  - id: SA2
+    description: Ensures that UnrecognizedUnit.__ne__ also behaves correctly when
+      compared to None (returning True rather than raising), which follows naturally
+      from fixing __eq__.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing behavior of UnrecognizedUnit.__eq__ for non-None
+      valid inputs — two UnrecognizedUnits with the same name are still equal, and
+      those with different names are still not equal.
+    weight: 3
+  - id: I2
+    description: Avoids weakening existing tests — does not remove or skip any existing
+      assertions about UnrecognizedUnit equality or TypeError behavior in test_units.py.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Produces False (not a TypeError) when UnrecognizedUnit.__eq__ is
+      called with None, by catching TypeError in the Unit() call inside __eq__.
+    weight: 3
+  - id: R2
+    description: Preserves the existing TypeError raised by Unit(None) itself (e.g.,
+      used in test_unknown_unit3) — the fix catches TypeError only inside UnrecognizedUnit.__eq__,
+      not globally.
+    weight: 2

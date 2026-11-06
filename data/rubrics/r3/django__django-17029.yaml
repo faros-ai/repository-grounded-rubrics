@@ -1,0 +1,49 @@
+metadata:
+  task_summary: Add self.get_swappable_settings_name.cache_clear() to Apps.clear_cache()
+    in django/apps/registry.py so that the LRU cache on get_swappable_settings_name
+    is also invalidated when the app registry cache is cleared.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/apps/registry.py and no unrelated files, keeping
+      the diff minimal and confined to the app registry.
+    weight: 2
+  - id: FC2
+    description: Adds a call to self.get_swappable_settings_name.cache_clear() inside
+      the def clear_cache( method body in django/apps/registry.py.
+    weight: 3
+  - id: FC3
+    description: Does not alter the @functools.cache decorator on def get_swappable_settings_name(
+      itself — the caching decoration remains intact.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that clear_cache now invalidates the get_swappable_settings_name
+      cache, matching the PR description's stated requirement to add self.get_swappable_settings_name.cache_clear().
+    weight: 3
+  - id: SA2
+    description: Confirms the cache_clear() call is placed inside def clear_cache(
+      alongside the existing self.get_models.cache_clear() call, following the established
+      pattern in the method.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing self.get_models.cache_clear() call in def
+      clear_cache( without removing or altering it.
+    weight: 3
+  - id: I2
+    description: Avoids weakening, skipping, or removing any existing test that exercises
+      clear_cache or get_swappable_settings_name.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that after Apps.clear_cache() is called, a subsequent call
+      to get_swappable_settings_name returns freshly computed results rather than
+      stale cached values, as indicated by the cache_clear() call being unconditional
+      (not guarded by self.ready).
+    weight: 3
+  - id: R2
+    description: Maintains backward compatibility of the Apps.clear_cache() public
+      API — the method signature and its other side-effects (expiring _meta caches
+      via _expire_cache) are unchanged.
+    weight: 2

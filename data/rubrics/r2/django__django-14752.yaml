@@ -1,0 +1,57 @@
+metadata:
+  task_summary: Refactor AutocompleteJsonView.get() to extract per-object result construction
+    into a separate overridable serialize_result() method in django/contrib/admin/views/autocomplete.py.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/contrib/admin/views/autocomplete.py and no unrelated
+      production files, keeping the diff minimal and scoped to the autocomplete view.
+    weight: 2
+  - id: FC2
+    description: Adds a new method definition 'def serialize_result(' to the AutocompleteJsonView
+      class in django/contrib/admin/views/autocomplete.py.
+    weight: 3
+  - id: FC3
+    description: 'Replaces the inline dict literal ''{''id'': str(getattr(obj, to_field_name)),
+      ''text'': str(obj)}'' inside the list comprehension in AutocompleteJsonView.get()
+      with a call to ''self.serialize_result(''.'
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Implements serialize_result() so that it accepts exactly two positional
+      parameters: the model instance (obj) and to_field_name, matching the PR description''s
+      proposed signature ''def serialize_result(self, obj, to_field_name)''.'
+    weight: 3
+  - id: SA2
+    description: 'Implements serialize_result() to return a dict containing at minimum
+      the keys ''id'' (value: str(getattr(obj, to_field_name))) and ''text'' (value:
+      str(obj)), preserving the original response shape.'
+    weight: 3
+  - id: SA3
+    description: 'Preserves the outer structure of the JsonResponse in AutocompleteJsonView.get()
+      so that ''results'' maps to a list produced by iterating over context[''object_list'']
+      and calling the new helper, and ''pagination'' still maps to {''more'': context[''page_obj''].has_next()}.'
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public signature of AutocompleteJsonView.get()
+      is unchanged (still accepts request, *args, **kwargs) so that existing subclasses
+      or URL configurations that call get() directly remain valid.
+    weight: 2
+  - id: I2
+    description: Confirms that no existing test assertions in tests/admin_views/test_autocomplete_view.py
+      are removed or weakened (e.g., no deletion of 'assertEqual', 'assertIn', or
+      expected response-structure checks).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: 'Maintains backward-compatible default behavior: when serialize_result()
+      is not overridden, the autocomplete endpoint returns JSON objects with exactly
+      ''id'' and ''text'' keys for each result, identical to the pre-refactor output.'
+    weight: 3
+  - id: R2
+    description: 'Enables extension without overriding get(): a subclass that overrides
+      only serialize_result() can merge extra fields (e.g., using dict union or update)
+      into the returned dict, as illustrated by the PR description''s CustomAutocompleteJsonView
+      example.'
+    weight: 2

@@ -1,0 +1,54 @@
+metadata:
+  task_summary: Fix the inability to use aggregate() over annotated Window expressions
+    since Django 4.2 by ensuring a subquery is used when aggregates reference window-function
+    annotations.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/db/models/sql/query.py and no unrelated files are
+      changed (changes are confined to the ORM query layer).
+    weight: 2
+  - id: FC2
+    description: Adds a check inside get_aggregation in django/db/models/sql/query.py
+      that detects when an aggregate references an annotation containing a window
+      (over) clause, using contains_over_clause on annotation expressions.
+    weight: 3
+  - id: FC3
+    description: Adds the new window-detection condition to the existing if-branch
+      in get_aggregation that decides whether to use a subquery (the branch already
+      containing isinstance(self.group_by, tuple), self.is_sliced, has_existing_aggregation,
+      refs_subquery, qualify, self.distinct, self.combinator).
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that calling aggregate() after annotate() with a Window expression
+      (as in the PR description example with cumul_DJR=Coalesce(Window(Sum('DJR'),
+      ...), 0.0)) no longer results in the database-level error 'aggregate function
+      calls cannot contain window function calls'.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior of aggregate() when no window-function
+      annotations are involved, so non-window aggregation paths are unaffected.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Avoids weakening or skipping existing tests related to window expressions
+      or aggregation in tests/expressions_window/tests.py or related test modules.
+    weight: 2
+  - id: I2
+    description: Preserves the public API of QuerySet.aggregate() and QuerySet.annotate(),
+      introducing no new parameters or changed signatures.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when an aggregate references a window-function annotation,
+      the generated SQL wraps the annotated query as a subquery (inner query) so the
+      aggregate operates on already-computed window values rather than attempting
+      to inline window calls inside an aggregate.
+    weight: 3
+  - id: R2
+    description: Confirms that the annotation_mask logic inside the subquery path
+      (the block setting inner_query.set_annotation_mask(annotation_mask) via aggregate.get_refs())
+      correctly includes window-annotated aliases so they are exposed in the inner
+      query for the outer aggregate to reference.
+    weight: 2

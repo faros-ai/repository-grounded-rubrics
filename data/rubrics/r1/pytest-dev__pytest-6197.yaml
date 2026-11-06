@@ -1,0 +1,72 @@
+metadata:
+  task_summary: Fix regression in pytest 5.2.3 where __init__.py files in non-test
+    packages were incorrectly collected and imported during directory traversal.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the directory-traversal branch inside Session._collect in
+      src/_pytest/main.py to guard the pkginit _collectfile call so that __init__.py
+      files are not unconditionally collected.
+    weight: 3
+  - id: FC2
+    description: Avoids modifying unrelated files beyond the targeted fix location
+      (e.g., no changes to unrelated modules, no mass renaming, no dependency churn
+      in setup.cfg or tox.ini).
+    weight: 2
+  - id: FC3
+    description: Adds a regression test (anywhere in the test suite) exercising the
+      scenario where a non-test package directory containing an __init__.py with failing
+      or non-test code exists alongside ordinary test files, and confirms collection
+      succeeds without importing that __init__.py.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that when pytest recurses into a directory during collection,
+      a bare __init__.py whose directory is not already identified as a Package root
+      is not yielded as a collectible unless it matches the python_files configuration
+      patterns.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior where __init__.py files that do match
+      python_files patterns (e.g., via -o python_files=*.py) are still correctly collected.
+    weight: 2
+  - id: SA3
+    description: Preserves the behavior where an __init__.py given explicitly as a
+      command-line argument (an initpath) is still collected and handled via the isinitpath
+      / _pkg_roots path.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the pytest_collect_file hook in src/_pytest/python.py,
+      which already appends __init__.py to the python_files patterns for file-level
+      matching, is not removed or weakened.
+    weight: 2
+  - id: I2
+    description: Confirms that existing tests covering Package collection (e.g., test_collect_pkg_init_and_file_in_args,
+      test_collect_pkg_init_only) are not removed, skipped, or have their assertions
+      loosened.
+    weight: 2
+  - id: I3
+    description: Avoids introducing a broad except clause or silent swallowing of
+      ImportError/AssertionError in package collection code that would hide legitimate
+      import failures in actual test packages.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when pytest runs against a directory tree where a subdirectory
+      has an __init__.py containing invalid or failing code but no test files, pytest
+      does not attempt to import that __init__.py and collection completes without
+      errors.
+    weight: 3
+  - id: R2
+    description: Ensures that the fix does not prevent Package nodes from being correctly
+      inserted into _pkg_roots when a directory is a legitimate test package (i.e.,
+      contains test files alongside __init__.py), so subdirectory test files are still
+      discovered.
+    weight: 2
+  - id: R3
+    description: Ensures the guard condition used in the directory-traversal branch
+      is consistent with the guard already present in Package.collect (in src/_pytest/python.py)
+      that checks path_matches_patterns against the python_files ini option before
+      yielding an init_module.
+    weight: 2

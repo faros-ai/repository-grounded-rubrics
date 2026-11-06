@@ -1,0 +1,56 @@
+metadata:
+  task_summary: Add cls._clear_cached_lookups() to RegisterLookupMixin._unregister_lookup()
+    in django/db/models/query_utils.py so the lookup cache is cleared on unregistration,
+    mirroring the behavior of register_lookup().
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the _unregister_lookup method in django/db/models/query_utils.py
+      to call cls._clear_cached_lookups() after the del cls.class_lookups[lookup_name]
+      statement.
+    weight: 3
+  - id: FC2
+    description: Confines the production-code change in query_utils.py to the _unregister_lookup
+      method only, without altering _clear_cached_lookups, register_lookup, get_lookups,
+      or any other method in that file.
+    weight: 2
+  - id: FC3
+    description: Updates test_func_unique_constraint_lookups in tests/schema/tests.py
+      so that operations requiring lookup resolution (such as editor.remove_constraint
+      with F expressions like F('name__lower') and F('weight__abs')) are executed
+      inside the register_lookup context manager block.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements the cache-clearing step in _unregister_lookup by calling
+      cls._clear_cached_lookups(), the same helper method already used in register_lookup,
+      rather than an ad-hoc or inline alternative.
+    weight: 3
+  - id: SA2
+    description: Addresses the asymmetry described in the PR so that both register_lookup
+      and _unregister_lookup call cls._clear_cached_lookups(), ensuring the lru_cache
+      on get_lookups is invalidated in both the registration and unregistration paths.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms the public signature of _unregister_lookup (classmethod
+      accepting cls, lookup, and keyword argument lookup_name=None) is unchanged,
+      so existing callers in django/test/utils.py continue to work without modification.
+    weight: 2
+  - id: I2
+    description: Avoids weakening or removing assertions in test_func_unique_constraint_lookups;
+      the updated test still verifies that the constraint name appears in the database
+      constraints, that the SQL references the expected columns, and that remove_constraint
+      succeeds.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that after _unregister_lookup is called, the lru_cache on
+      get_lookups is cleared for the class and all its subclasses, so that subsequent
+      calls to get_lookup or get_transform do not return the stale unregistered lookup.
+    weight: 3
+  - id: R2
+    description: Preserves test_func_unique_constraint_lookups correctness by ensuring
+      that remove_constraint, which internally calls _get_index_expressions and resolve_expression
+      on lookup-based F expressions, is invoked while Lower and Abs are still registered.
+    weight: 2

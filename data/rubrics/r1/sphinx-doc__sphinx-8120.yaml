@@ -1,0 +1,58 @@
+metadata:
+  task_summary: Fix locale/<language>/LC_MESSAGES/sphinx.po user translations being
+    ignored because the built-in Sphinx locale directory was searched before user-specified
+    locale_dirs in _init_i18n.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the locale_dirs ordering in the _init_i18n method of sphinx/application.py
+      so that user-specified repo.locale_dirs appear before the built-in path.join(package_dir,
+      'locale') entry.
+    weight: 3
+  - id: FC2
+    description: Confines the ordering change to sphinx/application.py (the _init_i18n
+      method) without introducing unrelated file churn or changes to unrelated modules.
+    weight: 2
+  - id: FC3
+    description: Preserves the None sentinel entry (the system default locale path)
+      in the locale_dirs list passed to locale.init within _init_i18n.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that user-provided locale/<language>/LC_MESSAGES/sphinx.po
+      (or sphinx.mo) translations override the built-in Sphinx locale translations,
+      matching the documented behavior of locale_dirs.
+    weight: 3
+  - id: SA2
+    description: Addresses the root cause by placing user locale dirs (from repo.locale_dirs)
+      earlier in the list than path.join(package_dir, 'locale'), so locale.init finds
+      the user catalog first and it becomes the primary translator rather than a fallback.
+    weight: 3
+  - id: SA3
+    description: Adds a test (anywhere in the diff) that exercises locale override
+      behavior, verifying that a user-supplied sphinx catalog in a project locale_dirs
+      takes priority over the built-in Sphinx catalog.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the locale.init function in sphinx/locale/__init__.py
+      is not modified to change its add_fallback chaining logic, keeping its existing
+      merge semantics intact.
+    weight: 2
+  - id: I2
+    description: Confirms that the CatalogRepository usage in _init_i18n (scanning
+      for outdated sphinx.po catalogs and writing .mo files) is preserved without
+      removal or weakening.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when a user places locale/<language>/LC_MESSAGES/sphinx.po
+      in a directory listed in locale_dirs, its translations take effect at runtime
+      by being the primary translator rather than a fallback behind the built-in Sphinx
+      catalog.
+    weight: 3
+  - id: R2
+    description: Maintains backward-compatibility so that when no user-supplied sphinx
+      catalog exists for the configured language, the built-in Sphinx locale translation
+      is still used as before.
+    weight: 2

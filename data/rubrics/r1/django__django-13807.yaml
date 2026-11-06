@@ -1,0 +1,62 @@
+metadata:
+  task_summary: Fix loaddata crash on SQLite when table names are SQL reserved words
+    by quoting table names in PRAGMA foreign_key_check and PRAGMA foreign_key_list
+    statements inside check_constraints.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/db/backends/sqlite3/base.py and confines all changes
+      to the check_constraints method, with no unrelated file churn.
+    weight: 3
+  - id: FC2
+    description: Replaces the unquoted table_name interpolation in 'PRAGMA foreign_key_check(%s)'
+      with a quoted form (e.g., using self.ops.quote_name or explicit double/backtick
+      quoting) so that SQL-keyword table names are handled safely.
+    weight: 3
+  - id: FC3
+    description: Replaces the unquoted table_name interpolation in 'PRAGMA foreign_key_list(%s)'
+      with a quoted form (e.g., using self.ops.quote_name or explicit double/backtick
+      quoting).
+    weight: 3
+  - id: FC4
+    description: Replaces or updates the unquoted table_name in the 'SELECT %s, %s
+      FROM %s WHERE rowid = %%s' statement so the FROM clause uses a quoted table
+      name.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause stated in the PR description: table names
+      that are SQL keywords cause ''near X: syntax error'' in SQLite because they
+      are not quoted in PRAGMA statements.'
+    weight: 3
+  - id: SA2
+    description: Ensures that the fix applies to the supports_pragma_foreign_key_check
+      branch (the if-branch at line 324) where PRAGMA foreign_key_check and PRAGMA
+      foreign_key_list are executed, which is the code path identified in the PR description.
+    weight: 3
+  - id: SA3
+    description: Preserves the no-PRAGMA fallback else-branch (which already uses
+      backtick-quoted table names in its SQL SELECT statement) without alteration
+      or removal.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public signature of check_constraints(self, table_names=None)
+      remains unchanged, preserving backward compatibility.
+    weight: 2
+  - id: I2
+    description: Confirms that no test assertions are removed, weakened, or skipped
+      in any test file as part of this patch.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that calling check_constraints with a table whose name is
+      an SQL reserved word (such as 'order') no longer produces a sqlite3.OperationalError,
+      by structurally wrapping the table name in quotes before interpolating into
+      PRAGMA statements.
+    weight: 3
+  - id: R2
+    description: Maintains correct behavior for ordinary (non-keyword) table names
+      by using a quoting function that is idempotent or safe for already-valid identifiers,
+      so existing functionality is not broken.
+    weight: 2

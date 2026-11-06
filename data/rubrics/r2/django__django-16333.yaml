@@ -1,0 +1,52 @@
+metadata:
+  task_summary: Fix UserCreationForm.save() to call self.save_m2m() so that ManyToManyField
+    data on custom User models is persisted.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the UserCreationForm.save() method in django/contrib/auth/forms.py
+      and no other unrelated production files.
+    weight: 3
+  - id: FC2
+    description: Adds a call to self.save_m2m() (or self._save_m2m()) inside the commit=True
+      branch of UserCreationForm.save(), directly after user.save().
+    weight: 3
+  - id: FC3
+    description: Adds handling in the commit=False branch of UserCreationForm.save()
+      so that self.save_m2m is set (e.g. self.save_m2m = self._save_m2m) to allow
+      deferred saving of M2M data.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the stated bug that UserCreationForm.save(commit=True)
+      omits saving ManyToManyField data, as described in the PR description referencing
+      self.save_m2m().
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior of calling user.set_password(self.cleaned_data['password1'])
+      before saving, so that password hashing is not affected by the fix.
+    weight: 2
+  - id: SA3
+    description: Adds a test (anywhere in the diff) that exercises UserCreationForm
+      (or a subclass) with a ManyToManyField and verifies M2M data is saved when commit=True.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms the UserCreationForm.save() method signature def save(self,
+      commit=True) is preserved unchanged, maintaining backward compatibility.
+    weight: 3
+  - id: I2
+    description: Confirms no existing tests in the auth_tests suite are removed or
+      weakened (e.g. no assertions deleted, no tests skipped) as part of this change.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when commit=True, M2M relations are saved immediately
+      after the user instance is persisted, mirroring the behavior of the parent ModelForm.save()
+      method.
+    weight: 3
+  - id: R2
+    description: Ensures that when commit=False, a save_m2m callable is exposed on
+      the form instance so callers can manually trigger M2M saving after manually
+      calling user.save(), matching the contract established by ModelForm.save(commit=False).
+    weight: 2

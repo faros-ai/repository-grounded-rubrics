@@ -1,0 +1,63 @@
+metadata:
+  task_summary: Fix QuerySet.bulk_create() to use db_column names instead of field
+    names in the ON CONFLICT clause for unique_fields and update_fields when fields
+    have a custom db_column.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies code in django/db/models/sql/compiler.py or django/db/models/query.py
+      to translate update_fields and unique_fields from field names to their actual
+      db column names (e.g., via field.column) before they are passed to on_conflict_suffix_sql.
+    weight: 3
+  - id: FC2
+    description: Modifies the on_conflict_suffix_sql method in django/db/backends/postgresql/operations.py
+      so that column names rather than raw field-name strings are used in the ON CONFLICT
+      and DO UPDATE SET clauses.
+    weight: 2
+  - id: FC3
+    description: Modifies the on_conflict_suffix_sql method in django/db/backends/sqlite3/operations.py
+      so that column names rather than raw field-name strings are used in the ON CONFLICT
+      and DO UPDATE SET clauses.
+    weight: 2
+  - id: FC4
+    description: Confines changes to the bulk_create / upsert SQL-generation path;
+      does not introduce unrelated modifications to unaffected methods or files.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures the generated ON CONFLICT clause uses the db_column value
+      (e.g., 'BlacklistID') rather than the Python field name (e.g., 'blacklistid')
+      for unique_fields.
+    weight: 3
+  - id: SA2
+    description: Ensures the generated DO UPDATE SET clause uses the db_column value
+      (e.g., 'SectorID') and EXCLUDED.<db_column> (e.g., EXCLUDED.'SectorID') rather
+      than the Python field name for update_fields.
+    weight: 3
+  - id: SA3
+    description: Adds or updates tests in the bulk_create test suite that exercise
+      bulk_create with update_conflicts=True and fields that have a custom db_column
+      set, covering both unique_fields and update_fields.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the fix does not break the existing behavior when field
+      names and db_column values are identical (i.e., no custom db_column), preserving
+      normal upsert SQL generation.
+    weight: 3
+  - id: I2
+    description: Confirms that no existing tests are removed, weakened (e.g., converted
+      from asserting specific SQL to asserting nothing), or marked as skip/xfail as
+      part of this change.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Produces valid SQL for the ON CONFLICT clause where unique_fields
+      column references match the actual database column names as defined by db_column,
+      preventing 'column does not exist' errors from PostgreSQL.
+    weight: 3
+  - id: R2
+    description: Produces valid SQL for the DO UPDATE SET and EXCLUDED references
+      using actual database column names as defined by db_column, not Python field
+      names, for any backend implementing on_conflict_suffix_sql.
+    weight: 3

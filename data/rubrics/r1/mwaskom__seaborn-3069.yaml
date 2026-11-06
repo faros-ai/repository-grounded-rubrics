@@ -1,0 +1,65 @@
+metadata:
+  task_summary: 'Make so.Nominal scales (including inferred ones) behave like categorical
+    axes: drawn to +/- 0.5 from first/last tick, no grid, and y-axis inverted.'
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Implements axis-limit logic for Nominal-scaled axes in `_finalize_figure`
+      (or equivalent location in `seaborn/_core/plot.py`) that sets the view range
+      to span from -0.5 to n-0.5 (or equivalent sticky-edges approach) rather than
+      using the default margin logic.
+    weight: 3
+  - id: FC2
+    description: Implements grid suppression for Nominal-scaled axes (e.g., calling
+      `ax.xaxis.grid(False)` or `ax.yaxis.grid(False)`) somewhere in `seaborn/_core/plot.py`
+      or `seaborn/_core/scales.py` when the scale for that axis is an instance of
+      `Nominal`.
+    weight: 3
+  - id: FC3
+    description: Implements y-axis inversion for Nominal-scaled y-axes (e.g., calling
+      `ax.invert_yaxis()` or setting limits in inverted order) somewhere in `seaborn/_core/plot.py`
+      or `seaborn/_core/scales.py`.
+    weight: 3
+  - id: FC4
+    description: Confines changes to files directly related to the objects-oriented
+      plotting internals (`seaborn/_core/plot.py` and/or `seaborn/_core/scales.py`)
+      without introducing unrelated churn in other files.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Applies the three categorical-axis behaviors to both explicitly declared
+      `so.Nominal` scales and inferred Nominal scales (i.e., the code checks `isinstance(scale,
+      Nominal)` or equivalent, not just explicit user-declared scales).
+    weight: 3
+  - id: SA2
+    description: Respects user-supplied axis limits via `Plot.limit()` when a Nominal
+      scale is active, so that explicit limits take precedence over the automatic
+      +/-0.5 categorical range.
+    weight: 2
+  - id: SA3
+    description: Applies grid suppression only on the Nominal-scaled axis dimension
+      (x or y), not unconditionally on both axes when only one dimension uses a Nominal
+      scale.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves existing behavior for non-Nominal scales (Continuous, Temporal)
+      so that their axes retain normal margin logic, grid visibility, and y-axis orientation.
+    weight: 3
+  - id: I2
+    description: Avoids weakening or skipping any existing tests in `tests/_core/test_plot.py`
+      or `tests/_core/test_scales.py` (e.g., no `@pytest.mark.skip` annotations added,
+      no assertion removals).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures the automatic categorical axis range adds a structural branch
+      that checks for `Nominal` scale type before setting the +/-0.5 limits, so non-nominal
+      axes are not inadvertently clamped.
+    weight: 3
+  - id: R2
+    description: Ensures the y-axis inversion for Nominal-scaled y-axes is applied
+      in the correct order relative to other finalization steps (e.g., after limits
+      are already set or using an approach compatible with `ax.invert_yaxis()`) so
+      that the inversion is not overridden by subsequent limit-setting.
+    weight: 2

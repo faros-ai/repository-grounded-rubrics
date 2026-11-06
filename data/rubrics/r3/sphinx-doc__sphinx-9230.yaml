@@ -1,0 +1,58 @@
+metadata:
+  task_summary: 'Fix incorrect rendering of :param type name: docstring fields when
+    the type contains parenthesized expressions with spaces, such as dict(str, str).'
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the type-name splitting logic in sphinx/util/docfields.py
+      at or near the line containing 'argtype, argname = fieldarg.split(None, 1)'
+      to correctly handle type strings that contain spaces inside parentheses (e.g.,
+      'dict(str, str)').
+    weight: 3
+  - id: FC2
+    description: Confines code changes to the minimal relevant scope (primarily sphinx/util/docfields.py
+      transform logic), without introducing unrelated file churn or modifications
+      outside the docfields/parameter-parsing subsystem.
+    weight: 2
+  - id: FC3
+    description: Adds a test case (anywhere in the diff) exercising a :param field
+      whose type contains parentheses with spaces, such as 'dict(str, str)', to prevent
+      regressions.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Replaces or supplements the naive 'fieldarg.split(None, 1)' call
+      with logic that correctly identifies the boundary between a type expression
+      and a parameter name when the type contains spaces inside balanced parentheses.
+    weight: 3
+  - id: SA2
+    description: Ensures the extracted argtype for ':param dict(str, str) opc_meta:'
+      is the complete string 'dict(str, str)' (not a truncated prefix like 'dict(str,'),
+      and that argname is 'opc_meta'.
+    weight: 3
+  - id: SA3
+    description: Preserves the existing behavior for simple typed params (e.g., ':param
+      int foo:') where the type contains no spaces, so that the split still yields
+      the correct argtype and argname without regression.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing tests for docfield/param rendering are
+      weakened, removed, or skipped as part of this change.
+    weight: 2
+  - id: I2
+    description: Confirms that the public API of TypedField and DocFieldTransformer
+      classes (their __init__ signatures, make_field, make_entry, make_xrefs methods)
+      remains unchanged.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when ':param dict(str, str) opc_meta:' is parsed, the
+      types dictionary entry for 'param' maps 'opc_meta' to the full type node 'dict(str,
+      str)', not a partial or corrupted value.
+    weight: 3
+  - id: R2
+    description: Ensures that the fix handles nested or multiple parenthesized types
+      (e.g., 'dict(str, list(int))') by respecting parenthesis depth when locating
+      the split boundary between type and parameter name.
+    weight: 2

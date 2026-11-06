@@ -1,0 +1,62 @@
+metadata:
+  task_summary: Unwrap functools.partial objects in ResolverMatch.__init__() so that
+    __repr__() shows the underlying function, pre-supplied args, and pre-supplied
+    kwargs instead of a generic 'functools.partial' label.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/urls/resolvers.py and confines all functional changes
+      to that file (no unrelated files are added or modified in the patch).
+    weight: 2
+  - id: FC2
+    description: Adds handling for functools.partial inside ResolverMatch.__init__()
+      (e.g., a loop or conditional using isinstance(func, functools.partial)) to unwrap
+      the partial before computing _func_path.
+    weight: 3
+  - id: FC3
+    description: Preserves or extends the partial_args / partial_kwargs (or equivalent)
+      attributes on the ResolverMatch instance so that the pre-supplied positional
+      and keyword arguments from the partial are accessible.
+    weight: 2
+  - id: FC4
+    description: Updates ResolverMatch.__repr__() to include the partial_args and
+      partial_kwargs (or equivalent) fields in its output string.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that self.func on a ResolverMatch constructed with a functools.partial
+      points to the underlying (unwrapped) callable, not the partial object itself,
+      matching the PR description requirement to 'unwrap functools.partial objects'.
+    weight: 3
+  - id: SA2
+    description: Ensures that the _func_path computed in ResolverMatch.__init__()
+      reflects the module and name of the innermost underlying function, not 'functools.partial',
+      as required by the PR description.
+    weight: 3
+  - id: SA3
+    description: Adds at least one test case that creates a ResolverMatch (or resolves
+      a URL) with a functools.partial view and asserts that repr() output contains
+      the underlying function path rather than 'functools.partial'.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that ResolverMatch.__init__() signature (parameters func,
+      args, kwargs, url_name, app_names, namespaces, route, tried) is not changed,
+      preserving the public API.
+    weight: 3
+  - id: I2
+    description: Confirms that ResolverMatch.__getitem__() still returns (self.func,
+      self.args, self.kwargs) without modification, preserving backward-compatible
+      tuple unpacking.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: When a functools.partial is passed as func, the __repr__() output
+      contains the underlying function's dotted module path (e.g. 'module.view_name')
+      instead of a string containing 'functools.partial'.
+    weight: 3
+  - id: R2
+    description: When a non-partial callable (plain function or class-based view)
+      is passed as func, the ResolverMatch behaves identically to the pre-patch behavior,
+      preserving backward compatibility.
+    weight: 2

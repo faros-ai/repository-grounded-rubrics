@@ -1,0 +1,87 @@
+metadata:
+  task_summary: 'Fix autodoc :inherited-members: so that inherited data attributes
+    (class variables documented with #: comments) are included by checking base-class
+    namespaces in the attr_docs cache.'
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies code in sphinx/ext/autodoc/__init__.py to address the inherited
+      attribute docstring lookup bug.
+    weight: 3
+  - id: FC2
+    description: Modifies or extends the attr_docs lookup in filter_members so that
+      it checks base-class namespaces (via MRO) in addition to the current class namespace
+      when searching for (namespace, membername) in attr_docs.
+    weight: 3
+  - id: FC3
+    description: Modifies or extends the key lookup in Documenter.add_content (the
+      block computing key = ('.'.join(self.objpath[:-1]), self.objpath[-1]) and checking
+      it against attr_docs) to also fall back to base-class namespaces when the derived-class
+      key is not found.
+    weight: 2
+  - id: FC4
+    description: Modifies get_class_members in sphinx/ext/autodoc/importer.py or adds
+      equivalent logic so that ClassAttribute.docstring is populated for inherited
+      data members by scanning base-class namespaces in analyzer.attr_docs (e.g.,
+      iterating getmro of the subject class).
+    weight: 2
+  - id: FC5
+    description: Adds or modifies a target fixture file (e.g., under tests/roots/test-ext-autodoc/target/)
+      to include a base class with a documented data attribute and a derived class
+      that inherits it, enabling test coverage of the bug.
+    weight: 1
+  - id: FC6
+    description: Avoids changes to files unrelated to autodoc inherited attribute
+      resolution (e.g., no modifications to sphinx/builders/, sphinx/domains/, or
+      unrelated extension files).
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause stated in the PR description: when searching
+      for a cached docstring using (namespace, attrname) as search-key, also checks
+      base-class namespaces so that inherited data members with #: doc-comments are
+      not silently dropped.'
+    weight: 3
+  - id: SA2
+    description: 'Ensures that a class documented with :inherited-members: includes
+      inherited data attributes that have docstrings defined via #: comment in the
+      base class source, which was the missing behavior described in the PR.'
+    weight: 3
+  - id: SA3
+    description: 'Adds a test (or updates an existing test) that documents a class
+      with :inherited-members: and asserts that an inherited data attribute from a
+      base class appears in the autodoc output.'
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: 'Confirms that the fix does not weaken or remove existing test assertions
+      about :inherited-members: behavior for methods (e.g., assertions about inheritedmeth,
+      inheritedclassmeth, inheritedstaticmeth in test_autodoc_inherited_members).'
+    weight: 2
+  - id: I2
+    description: Confirms that the public API of get_class_members in sphinx/ext/autodoc/importer.py
+      (its signature and return type Dict[str, ClassAttribute]) is preserved, with
+      no parameter additions that would break existing callers.
+    weight: 2
+  - id: I3
+    description: 'Confirms that the fix does not disable or bypass the :undoc-members:
+      guard in filter_members: members without any docstring (neither from attr_docs
+      nor from __doc__) are still omitted when :undoc-members: is not set.'
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: 'Ensures that when a class uses :inherited-members: and a base class
+      defines a data attribute documented with a #: comment, the attribute''s docstring
+      appears in the output for the derived class, not an empty string or missing
+      entry.'
+    weight: 3
+  - id: R2
+    description: Ensures that data attributes defined directly on the derived class
+      (not inherited) continue to resolve their docstring from the derived class's
+      own namespace in attr_docs, preserving existing behavior for non-inherited attributes.
+    weight: 2
+  - id: R3
+    description: Ensures that the MRO traversal for attr_docs lookup terminates gracefully
+      when a base class has no associated analyzer (e.g., because it is a built-in
+      or C extension type), avoiding AttributeError or PycodeError propagation.
+    weight: 2

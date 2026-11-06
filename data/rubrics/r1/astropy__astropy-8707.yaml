@@ -1,0 +1,78 @@
+metadata:
+  task_summary: Modify Header.fromstring and Card.fromstring in astropy/io/fits to
+    accept Python 3 bytes objects in addition to unicode str.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies `Header.fromstring` in `astropy/io/fits/header.py` to handle
+      a `bytes` input by decoding it before processing.
+    weight: 3
+  - id: FC2
+    description: Modifies `Card.fromstring` in `astropy/io/fits/card.py` to handle
+      a `bytes` input by decoding it before processing.
+    weight: 3
+  - id: FC3
+    description: Limits edits to the fits-related files (e.g., `astropy/io/fits/header.py`,
+      `astropy/io/fits/card.py`, and possibly their test file) without modifying unrelated
+      modules.
+    weight: 2
+  - id: FC4
+    description: Uses the existing `decode_ascii` utility (from `astropy/io/fits/util.py`)
+      or an equivalent `bytes.decode('ascii')` call rather than introducing a new
+      decoding mechanism.
+    weight: 2
+  - id: FC5
+    description: Updates the docstring of `Header.fromstring` to document that the
+      `data` parameter accepts both `str` and `bytes`.
+    weight: 1
+  - id: FC6
+    description: Updates the docstring of `Card.fromstring` to document that the `image`
+      parameter accepts both `str` and `bytes`.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures `Header.fromstring` accepts a Python 3 `bytes` argument without
+      raising a `TypeError` or `AttributeError`, matching the PR description requirement
+      to accept byte string types.
+    weight: 3
+  - id: SA2
+    description: Ensures `Card.fromstring` accepts a Python 3 `bytes` argument, as
+      the PR description explicitly states `Card.fromstring` needs similar treatment.
+    weight: 3
+  - id: SA3
+    description: Preserves the existing unicode `str` path in both `Header.fromstring`
+      and `Card.fromstring` so that callers passing a plain `str` are unaffected.
+    weight: 2
+  - id: SA4
+    description: Adds at least one test case that passes a `bytes` object to `Header.fromstring`
+      or `Card.fromstring` and asserts the resulting header/card is equivalent to
+      passing the equivalent unicode string.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the public signature of `Header.fromstring(cls, data, sep='')`
+      without adding, removing, or renaming parameters.
+    weight: 2
+  - id: I2
+    description: Preserves the public signature of `Card.fromstring(cls, image)` without
+      adding, removing, or renaming parameters.
+    weight: 2
+  - id: I3
+    description: Avoids weakening or skipping existing tests (e.g., no addition of
+      `@pytest.mark.skip` or removal of assertions in the test suite).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Decodes bytes input using ASCII encoding in `Header.fromstring` so
+      that non-ASCII bytes produce a warning or error consistent with how `decode_ascii`
+      handles them elsewhere in the module.
+    weight: 2
+  - id: R2
+    description: Decodes bytes input before any string operations (such as `data.index`,
+      `set(sep).issubset`, or string slicing with `'CONTINUE'` and `'END'`) in `Header.fromstring`,
+      preventing `TypeError` at those call sites.
+    weight: 3
+  - id: R3
+    description: Decodes bytes input in `Card.fromstring` before passing it to `_pad`,
+      preventing downstream string operations from receiving a `bytes` object.
+    weight: 3

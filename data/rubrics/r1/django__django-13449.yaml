@@ -1,0 +1,57 @@
+metadata:
+  task_summary: Fix Lag() with DecimalField on SQLite by ensuring CAST(... AS NUMERIC)
+    wraps the entire window expression (expr OVER (...)) rather than only the inner
+    expression.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Adds an as_sqlite method (or equivalent fix) to the Window class
+      in django/db/models/expressions.py that applies CAST(... AS NUMERIC) around
+      the full window SQL output rather than only the inner expression SQL.
+    weight: 3
+  - id: FC2
+    description: Avoids modifying SQLiteNumericMixin.as_sqlite in a way that breaks
+      its behavior for non-Window usages of Func or CombinedExpression.
+    weight: 2
+  - id: FC3
+    description: Confines changes to files directly relevant to the Window SQL generation
+      bug (e.g., django/db/models/expressions.py or django/db/models/functions/window.py),
+      with no unrelated file churn.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause described in the PR: the CAST wrapping
+      from SQLiteNumericMixin.as_sqlite ends after LAG (the inner expression) rather
+      than after the OVER clause, producing invalid SQL near OVER.'
+    weight: 3
+  - id: SA2
+    description: Ensures the fix applies specifically when the output_field is a DecimalField
+      (i.e., the condition checks for DecimalField or get_internal_type() == 'DecimalField'),
+      matching the PR's described trigger condition.
+    weight: 2
+  - id: SA3
+    description: Adds a test case (anywhere in the diff) exercising a Window expression
+      (such as Lag or Lead) with a DecimalField source on SQLite, covering the crash
+      scenario described in the PR.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing window function tests (e.g., for Lag with
+      non-decimal fields like salary) are not weakened, removed, or skipped in the
+      patch.
+    weight: 2
+  - id: I2
+    description: Preserves the public API of Window, Lag, Lead, and LagLeadFunction
+      (no signature changes to __init__ or as_sql that would break existing callers).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Produces valid SQL of the form CAST(LAG(...) OVER (...) AS NUMERIC)
+      when a Window expression with a DecimalField source is compiled on SQLite, placing
+      the CAST outside the OVER clause.
+    weight: 3
+  - id: R2
+    description: Maintains correct behavior for Window expressions whose source expression
+      has a non-DecimalField output (e.g., FloatField, IntegerField), leaving their
+      SQL unchanged (no spurious CAST wrapping).
+    weight: 2

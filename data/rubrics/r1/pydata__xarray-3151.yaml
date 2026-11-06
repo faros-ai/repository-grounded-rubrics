@@ -1,0 +1,59 @@
+metadata:
+  task_summary: Fix combine_by_coords to skip the monotonic global index check for
+    coordinate dimensions that are identical across all datasets (bystander dimensions),
+    matching the documented behavior.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the monotonic global index check inside combine_by_coords
+      in xarray/core/combine.py so that it only applies to dimensions that were actually
+      concatenated (i.e., dims present in concat_dims), not to bystander coordinate
+      dimensions.
+    weight: 3
+  - id: FC2
+    description: Confines all production-code changes to xarray/core/combine.py without
+      modifying unrelated files such as concat.py, merge.py, or dataset.py.
+    weight: 2
+  - id: FC3
+    description: Adds at least one new test case in the combine test file that exercises
+      combine_by_coords with a non-monotonic coordinate dimension that is identical
+      across all input datasets (mirroring the MCVE with y=['a','c','b']).
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements behavior matching the documented contract that coordinate
+      dimensions which do not vary between datasets are ignored, so that combine_by_coords
+      no longer raises ValueError when identical coordinate dimensions are non-monotonic.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing ValueError raise for dimensions that ARE concatenated
+      but whose resulting combined index is non-monotonic (the 'does not have monotonic
+      global indexes along dimension' message path).
+    weight: 2
+  - id: SA3
+    description: Ensures the fix distinguishes between concat dimensions (those in
+      concat_dims) and bystander dimensions (those not in concat_dims) when deciding
+      whether to apply the monotonic check.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: 'Confirms the public signature of combine_by_coords (parameters:
+      datasets, compat, data_vars, coords, fill_value) is unchanged.'
+    weight: 2
+  - id: I2
+    description: Confirms no existing test for the 'does not have monotonic global
+      indexes' ValueError (e.g., test_check_for_impossible_ordering) is removed or
+      weakened.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when datasets share an identical non-monotonic coordinate
+      (bystander dim), combine_by_coords returns a combined dataset without raising
+      ValueError, preserving that bystander coordinate in the result unchanged.
+    weight: 3
+  - id: R2
+    description: Ensures that combine_by_coords still raises ValueError with a message
+      containing 'does not have monotonic global indexes along dimension' when the
+      concatenated dimension's resulting combined index is non-monotonic (e.g., ds1
+      with x=[0,1,5] followed by ds2 with x=[2,3]).
+    weight: 2

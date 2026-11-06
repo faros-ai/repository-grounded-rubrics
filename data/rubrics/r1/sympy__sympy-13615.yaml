@@ -1,0 +1,61 @@
+metadata:
+  task_summary: Fix Complement to correctly handle FiniteSet inputs that mix Symbols
+    and numbers when the second argument is an Interval, returning a Complement expression
+    for symbolic elements instead of a plain FiniteSet.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the complement logic in sympy/sets/sets.py (either in Set._complement,
+      Interval._complement, or FiniteSet._complement) to distinguish between elements
+      whose containment is definitively False versus elements with indeterminate (symbolic)
+      containment.
+    weight: 3
+  - id: FC2
+    description: Confines all changes to the sets module (sympy/sets/sets.py or sympy/sets/handlers/)
+      without modifying unrelated files outside the sets subsystem.
+    weight: 2
+  - id: FC3
+    description: Avoids removing or weakening existing complement-related test assertions
+      in sympy/sets/tests/test_sets.py (e.g., the assertions for test_issue_9637,
+      test_issue_9808, and test_complement).
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that Complement(FiniteSet(x, y, 2), Interval(-10, 10)) returns
+      a Complement expression containing FiniteSet(x, y) rather than the plain FiniteSet
+      {x, y}, matching the expected output described in the PR.
+    weight: 3
+  - id: SA2
+    description: Preserves correct behavior for the all-numeric case, so that elements
+      definitively inside the interval (such as 2 in Interval(-10, 10)) are excluded
+      from the result of the complement.
+    weight: 2
+  - id: SA3
+    description: Adds a test case (anywhere in sympy/sets/tests/test_sets.py) that
+      exercises Complement with a FiniteSet containing both Symbols and numbers against
+      an Interval, verifying the result is a proper Complement expression rather than
+      a bare FiniteSet.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Preserves existing behavior where Complement(FiniteSet(1, 2, x),
+      FiniteSet(x, y, 2, 3)) == Complement(FiniteSet(1), FiniteSet(y), evaluate=False),
+      confirming the FiniteSet-vs-FiniteSet complement path is unaffected.
+    weight: 2
+  - id: I2
+    description: Preserves existing behavior where Complement(FiniteSet(n), Interval(1,
+      3)) with a purely symbolic FiniteSet returns Complement(FiniteSet(n), Interval(1,
+      3), evaluate=False), confirming the no-numbers case is unchanged.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when a FiniteSet contains a mix of numeric and symbolic
+      elements and is complemented against an Interval, the symbolic elements end
+      up inside a Complement node (not a bare FiniteSet), so membership queries on
+      those symbols remain unevaluated rather than incorrectly resolved.
+    weight: 3
+  - id: R2
+    description: Ensures that numeric elements definitively contained in the Interval
+      (e.g., 2 in Interval(-10, 10)) are not present in any part of the returned result,
+      confirming the number-exclusion step is still performed correctly.
+    weight: 2

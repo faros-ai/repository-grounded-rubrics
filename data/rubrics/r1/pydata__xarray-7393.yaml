@@ -1,0 +1,59 @@
+metadata:
+  task_summary: Fix `Dataset.stack` casting int32 (and other non-default) dtype coordinates
+    to int64 when building a PandasMultiIndex.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies `PandasMultiIndexingAdapter.__array__` in `xarray/core/indexing.py`
+      so that when `self.level is not None`, the returned array is cast to `self.dtype`
+      (or the passed-in `dtype`) rather than ignoring it entirely.
+    weight: 3
+  - id: FC2
+    description: Confines the fix to the minimal set of files related to the dtype-preservation
+      bug (primarily `xarray/core/indexing.py` and/or `xarray/core/indexes.py`), without
+      introducing unrelated file churn.
+    weight: 2
+  - id: FC3
+    description: Adds a test case (anywhere in the test suite) that exercises `Dataset.stack`
+      or `DataArray.stack` with a coordinate whose dtype is `int32` (`'i4'`) and asserts
+      that the dtype is preserved after stacking.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that after calling `Dataset.stack`, the dtype of a level
+      coordinate (e.g., `int32`) is identical to its dtype before stacking, matching
+      the acceptance criterion stated in the PR description (`ds['a'].values.dtype
+      == ds.stack(b=('a',))['a'].values.dtype`).
+    weight: 3
+  - id: SA2
+    description: Preserves the `level_coords_dtype` mapping in `PandasMultiIndex`
+      (or equivalent mechanism) so that the original variable dtype is the source
+      of truth for level coordinate dtypes, not what pandas infers from `get_level_values`.
+    weight: 2
+  - id: SA3
+    description: Handles the dtype-preservation for any numeric dtype (not only `int32`)
+      that pandas might silently promote during MultiIndex level retrieval, consistent
+      with the general principle stated in the PR description.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing `PandasMultiIndex.stack` logic for building
+      `level_coords_dtype` from `var.dtype` is not removed or weakened — the fix builds
+      on this already-correct dtype tracking rather than replacing it.
+    weight: 2
+  - id: I2
+    description: Confirms that the `PandasMultiIndexingAdapter.__array__` change does
+      not break the code path where `self.level is None` (the non-level MultiIndex
+      adapter case), leaving that branch unchanged.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that `PandasMultiIndexingAdapter.__array__` applies `self.dtype`
+      (or the caller-supplied `dtype`) when converting a MultiIndex level to a numpy
+      array, so that dtypes smaller than int64 (e.g., int32) are not silently upcast.
+    weight: 3
+  - id: R2
+    description: Maintains backward-compatibility for coordinate dtypes that already
+      match what pandas returns (e.g., int64, float64, object), so that those cases
+      are unaffected by the dtype-cast added for level retrieval.
+    weight: 2

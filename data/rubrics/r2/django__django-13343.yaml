@@ -1,0 +1,58 @@
+metadata:
+  task_summary: Fix FileField with a callable storage parameter so that deconstruct()
+    returns a reference to the original callable instead of the evaluated Storage
+    instance.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/db/models/fields/files.py and confines all changes
+      to that file (or its tests), without unrelated file churn.
+    weight: 2
+  - id: FC2
+    description: Preserves the original callable passed to FileField.__init__ by storing
+      it separately (e.g., as self._storage or another attribute) before or instead
+      of evaluating it, so the reference is available during deconstruct().
+    weight: 3
+  - id: FC3
+    description: Modifies the FileField.deconstruct() method so that when storage
+      was originally provided as a callable, kwargs['storage'] is set to the original
+      callable rather than the evaluated Storage instance.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that FileField.deconstruct() does not evaluate a callable
+      storage — instead it returns the callable reference itself in kwargs['storage'],
+      matching the documented intent that storage may vary at runtime.
+    weight: 3
+  - id: SA2
+    description: 'Mirrors the existing behavior of upload_to: just as a callable upload_to
+      is preserved as-is in deconstruct(), a callable storage is now also preserved
+      as-is.'
+    weight: 2
+  - id: SA3
+    description: Adds or updates a test (anywhere in the diff) that exercises FileField.deconstruct()
+      with a callable storage argument and asserts that kwargs['storage'] equals the
+      original callable, not an evaluated Storage instance.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: 'Confirms that non-callable storage behavior is preserved: when storage
+      is a Storage instance (not a callable), deconstruct() still returns that instance
+      in kwargs[''storage''].'
+    weight: 3
+  - id: I2
+    description: Confirms that the callable storage is still evaluated at runtime
+      (i.e., self.storage holds a real Storage instance for file operations), so that
+      normal field functionality is not broken.
+    weight: 3
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a FileField constructed with a callable storage has
+      a usable (evaluated) Storage object for runtime operations such as file saving
+      and URL generation, separate from what deconstruct() returns.
+    weight: 2
+  - id: R2
+    description: Ensures that reconstructing a FileField from its deconstructed form
+      (passing the callable back as the storage argument) produces a field with an
+      equivalent evaluated storage, so round-trip reconstruction is consistent.
+    weight: 2

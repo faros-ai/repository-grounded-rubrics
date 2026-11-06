@@ -1,0 +1,60 @@
+metadata:
+  task_summary: Fix model_to_dict() to return an empty dict when called with fields=[]
+    by changing the truthiness check `if fields` to an explicit None check `if fields
+    is not None`.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the guard condition in model_to_dict() inside django/forms/models.py,
+      replacing the truthiness check `if fields` with an explicit identity check `if
+      fields is not None`.
+    weight: 3
+  - id: FC2
+    description: Confines the change to the single condition inside model_to_dict()
+      in django/forms/models.py without modifying unrelated logic elsewhere in the
+      file (e.g., fields_for_model or construct_instance).
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test in the model_forms test suite that exercises
+      model_to_dict() with an empty list or tuple as the fields argument and asserts
+      the returned dict is empty.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Replaces the condition `if fields and f.name not in fields:` with
+      a condition that uses `if fields is not None and f.name not in fields:` (or
+      equivalent None-identity guard) inside model_to_dict().
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior that when fields=None (the default),
+      model_to_dict() still returns all editable fields without filtering.
+    weight: 3
+  - id: SA3
+    description: Preserves the behavior that when a non-empty fields list is provided,
+      model_to_dict() still filters to only include the named fields.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms the public signature of model_to_dict(instance, fields=None,
+      exclude=None) is unchanged in the diff.
+    weight: 2
+  - id: I2
+    description: Confirms no existing tests related to model_to_dict() or fields_for_model
+      are weakened, deleted, or skipped in the diff.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that passing fields=[] to model_to_dict() short-circuits
+      the iteration so no field names are added to the returned dict, yielding an
+      empty dict rather than a fully-populated one.
+    weight: 3
+  - id: R2
+    description: Ensures that passing fields=() (empty tuple) to model_to_dict() is
+      also handled correctly by the None-identity guard, returning an empty dict rather
+      than all fields.
+    weight: 2
+  - id: R3
+    description: Ensures the exclude parameter in model_to_dict() continues to operate
+      independently of the fields guard, so exclude=[] or exclude=None still behaves
+      correctly alongside the fixed fields check.
+    weight: 2

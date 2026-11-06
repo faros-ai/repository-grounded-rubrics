@@ -1,0 +1,60 @@
+metadata:
+  task_summary: Fix a bug where evaluating a derived queryset (e.g., via order_by().values_list())
+    on a union queryset mutates the shared combined_queries query objects, causing
+    subsequent evaluation of the original union queryset to produce an invalid SQL
+    ORDER BY position error.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/db/models/sql/compiler.py in the get_combinator_sql
+      method to prevent mutation of the original combined_queries query objects.
+    weight: 3
+  - id: FC2
+    description: Adds a clone() call (somewhere in get_combinator_sql) that ensures
+      each combined query compiler works on its own isolated copy rather than a shared
+      reference, so that mutations from set_values or as_sql do not persist back to
+      the original combined_queries entries.
+    weight: 3
+  - id: FC3
+    description: Confines changes to at most one or two files related to queryset
+      combining or SQL compilation (e.g., django/db/models/sql/compiler.py and/or
+      django/db/models/query.py), avoiding unrelated file churn.
+    weight: 2
+  - id: FC4
+    description: Adds or updates a test in the queryset combinator test file (tests/queries/test_qs_combinators.py)
+      that exercises re-evaluation of a union queryset after a derived order_by().values_list()
+      call has been executed.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the scenario from the PR description where qs.order_by().values_list('pk',
+      flat=True) on a union queryset causes subsequent evaluation of the original
+      qs to raise a database error about ORDER BY position not being in the select
+      list.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior that combined queries with values_select
+      settings have set_values applied to their sub-compilers, so that union queries
+      with values_list() still return the correct limited column set.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing test assertions in test_qs_combinators.py
+      or related files are weakened, removed, or skipped by the patch.
+    weight: 2
+  - id: I2
+    description: Confirms that the public QuerySet API (union(), order_by(), values_list())
+      signatures and return types are unchanged by the patch.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that after calling qs.order_by().values_list('pk', flat=True)
+      on a union queryset, re-evaluating the original qs does not produce an invalid
+      SQL ORDER BY positional reference (e.g., 'ORDER BY (4) ASC' when position 4
+      is not in the select list).
+    weight: 3
+  - id: R2
+    description: Maintains correct behavior for union querysets where order_by() with
+      valid selected columns (e.g., order_by('-num') or order_by(F('num').desc()))
+      still produces correct positional ORDER BY references in the generated SQL.
+    weight: 2

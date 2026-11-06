@@ -1,0 +1,59 @@
+metadata:
+  task_summary: Fix --runxfail causing pytest.mark.skip/skipif to report incorrect
+    skip location (pointing to skipping.py instead of the test item) by separating
+    skip-location correction from xfail handling in pytest_runtest_makereport.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies only src/_pytest/skipping.py (no unrelated files are changed)
+      to fix the skip location reporting bug.
+    weight: 3
+  - id: FC2
+    description: 'Restructures the elif-chain in pytest_runtest_makereport so that
+      the skipped_by_mark_key location-correction block is no longer reachable only
+      when item.config.option.runxfail is False (i.e., the correction is no longer
+      short-circuited by the ''elif item.config.option.runxfail: pass'' branch).'
+    weight: 3
+  - id: FC3
+    description: 'Preserves the existing ''elif item.config.option.runxfail: pass''
+      guard (or an equivalent mechanism) so that xfail-specific outcome mutations
+      are still skipped when --runxfail is active.'
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures the fix is confined to the pytest_runtest_makereport hook
+      in src/_pytest/skipping.py, as specified by the PR description hint.
+    weight: 2
+  - id: SA2
+    description: Decouples the skip-location correction logic (the skipped_by_mark_key
+      / rep.longrepr tuple rewrite block) from the runxfail flag, so that --runxfail
+      no longer suppresses correct skip location reporting for pytest.mark.skip and
+      pytest.mark.skipif.
+    weight: 3
+  - id: SA3
+    description: Adds or updates a test that exercises pytest.mark.skip (or skipif)
+      together with --runxfail and asserts the reported skip location points to the
+      test item file/line rather than to skipping.py.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing xfail-related behavior (wasxfail assignment,
+      xpass/strict handling, xfail.Exception handling) is not altered by the change,
+      preserving the public semantics of --runxfail for xfail-marked tests.
+    weight: 2
+  - id: I2
+    description: Confirms no existing tests are weakened, removed, or skipped as part
+      of the change.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: When --runxfail is active and a test is decorated with @pytest.mark.skip
+      or @pytest.mark.skipif, the reported skip location (rep.longrepr) is rewritten
+      to use item.reportinfo() coordinates (pointing to the test item), not the internal
+      pytest file location.
+    weight: 3
+  - id: R2
+    description: 'When --runxfail is not active, skip location reporting continues
+      to behave as before: the skipped_by_mark_key guard still rewrites rep.longrepr
+      to item.reportinfo() for mark-skipped tests.'
+    weight: 2

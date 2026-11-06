@@ -1,0 +1,56 @@
+metadata:
+  task_summary: Fix IndexError in LogisticRegressionCV when refit=False by using the
+    resolved multi_class variable instead of self.multi_class when selecting the coefs_paths
+    indexing branch.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the refit=False branch in sklearn/linear_model/logistic.py
+      to replace the comparison using self.multi_class with the resolved local variable
+      multi_class when selecting the coefs_paths indexing strategy.
+    weight: 3
+  - id: FC2
+    description: Confines changes to sklearn/linear_model/logistic.py and/or its test
+      file, without modifying unrelated files or introducing extraneous churn.
+    weight: 2
+  - id: FC3
+    description: Adds or extends a test that exercises LogisticRegressionCV with refit=False
+      on a binary classification dataset (where multi_class resolves to 'ovr' even
+      if the user specifies 'auto' or leaves the default).
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures the fix covers the binary classification scenario (2 classes)
+      with solvers such as 'saga' or 'liblinear' and default or 'auto' multi_class,
+      which is exactly the configuration reported in the PR description.
+    weight: 3
+  - id: SA2
+    description: Ensures the fix does not alter behavior when refit=True, preserving
+      the existing refit path in LogisticRegressionCV.fit.
+    weight: 2
+  - id: SA3
+    description: Preserves correct behavior for explicitly set multi_class='ovr' and
+      multi_class='multinomial' with refit=False, i.e., does not break the cases that
+      previously worked.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing tests are weakened, skipped, or deleted
+      in the patch (no addition of @pytest.mark.skip, xfail, or removal of assert
+      statements from test_LogisticRegressionCV_no_refit).
+    weight: 2
+  - id: I2
+    description: Confirms that the public API signatures of LogisticRegressionCV (including
+      the refit parameter) remain unchanged in the patch.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when multi_class resolves to 'ovr' at runtime (via _check_multi_class),
+      the refit=False branch indexes coefs_paths as a 3D array using coefs_paths[i,
+      best_indices[i], :], preventing the IndexError reported in the PR.
+    weight: 3
+  - id: R2
+    description: Ensures that when multi_class resolves to 'multinomial' at runtime,
+      the refit=False branch still indexes coefs_paths as a 4D array using coefs_paths[:,
+      i, best_indices[i], :], preserving correct multinomial behavior.
+    weight: 2

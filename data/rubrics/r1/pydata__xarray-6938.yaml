@@ -1,0 +1,65 @@
+metadata:
+  task_summary: Fix Dataset.swap_dims() mutating the original dataset's variable dims
+    by avoiding in-place modification of variables returned by to_index_variable()
+    or to_base_variable().
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Confines edits to xarray/core/dataset.py within the swap_dims method,
+      without modifying unrelated files.
+    weight: 2
+  - id: FC2
+    description: Removes or replaces the direct in-place assignment pattern 'var.dims
+      = dims' (for variable objects obtained from to_index_variable() or to_base_variable())
+      in the swap_dims loop inside xarray/core/dataset.py.
+    weight: 3
+  - id: FC3
+    description: Replaces the mutation pattern with a copy-first or constructor-first
+      approach (e.g., calls .copy() before setting dims, or constructs a new Variable/IndexVariable
+      with the updated dims tuple) so no variable from self.variables is mutated directly.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause of the bug: IndexVariable.to_index_variable()
+      returns self, so assigning var.dims = dims after calling to_index_variable()
+      mutates the original variable stored in the dataset; the patch eliminates this
+      mutation.'
+    weight: 3
+  - id: SA2
+    description: 'Ensures the fix covers both branches of the swap_dims variable loop:
+      the result_dims branch (handling variables promoted to dimension coordinates
+      via to_index_variable()) and the else branch (handling base variables via to_base_variable()),
+      so neither path can mutate the original.'
+    weight: 2
+  - id: SA3
+    description: Preserves the existing swap_dims public API signature accepting dims_dict
+      and **dims_kwargs in xarray/core/dataset.py without any signature changes.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing tests for swap_dims are removed, weakened,
+      or marked with skip/xfail in the patch.
+    weight: 2
+  - id: I2
+    description: Confirms that IndexVariable.to_index_variable() in xarray/core/variable.py
+      is not modified to return a copy instead of self, keeping its documented semantics
+      intact.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Adds a structural guard (copy or new construction) in swap_dims such
+      that the dims attribute of any variable in self.variables is never reassigned
+      during the swap_dims call, preventing the mutation of the original dataset object
+      described in the MVCE.
+    weight: 3
+  - id: R2
+    description: Maintains correct swap_dims output by producing new variable objects
+      that carry the updated dimension names (the mapped dims tuple), so the returned
+      Dataset reflects the swapped dimensions rather than the originals.
+    weight: 2
+  - id: R3
+    description: Preserves backward-compatible behavior for DataArray.swap_dims(),
+      which delegates to Dataset.swap_dims() via _to_temp_dataset(), so the mutation
+      fix propagates to DataArray without requiring additional DataArray-specific
+      changes.
+    weight: 1

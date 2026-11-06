@@ -1,0 +1,49 @@
+metadata:
+  task_summary: Add has_add_permission check to show_save_as_new in admin submit_row
+    so that the 'Save as new' button is hidden from users who lack add permission.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the show_save_as_new expression in django/contrib/admin/templatetags/admin_modify.py
+      to include has_add_permission as a condition.
+    weight: 3
+  - id: FC2
+    description: Confines the change to django/contrib/admin/templatetags/admin_modify.py
+      only, without modifying unrelated files.
+    weight: 2
+  - id: FC3
+    description: Preserves all existing conditions (not is_popup, has_change_permission,
+      change, save_as) in the show_save_as_new expression alongside the new has_add_permission
+      condition.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Adds has_add_permission as a conjunctive guard in the show_save_as_new
+      boolean expression within the submit_row function, matching the fix proposed
+      in the PR description.
+    weight: 3
+  - id: SA2
+    description: Ensures show_save_as_new evaluates to False when has_add_permission
+      is False, even if has_change_permission and all other conditions are True.
+    weight: 3
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public submit_row function signature and its returned
+      context keys are unchanged, preserving API compatibility.
+    weight: 2
+  - id: I2
+    description: Confirms that existing test assertions covering show_save_as_new
+      (e.g., assertTrue(response.context['show_save_as_new'])) are not weakened or
+      removed.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that the show_save_as_new button is hidden for a user who
+      has change permission but not add permission on a model with save_as=True, preventing
+      unauthorized object creation.
+    weight: 3
+  - id: R2
+    description: Ensures that the show_save_as_new button remains visible for superusers
+      or users who hold both has_add_permission and has_change_permission when save_as=True
+      and change=True.
+    weight: 2

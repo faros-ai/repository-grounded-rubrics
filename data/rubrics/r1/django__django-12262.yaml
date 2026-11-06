@@ -1,0 +1,60 @@
+metadata:
+  task_summary: Fix parse_bits in django/template/library.py so that keyword-only
+    arguments with defaults are not incorrectly rejected as 'unexpected keyword argument',
+    and duplicate kwonly args with defaults correctly raise 'multiple values' instead.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the conditional check in the parse_bits function (in django/template/library.py)
+      that tests whether a kwarg param is a recognized keyword-only argument, replacing
+      or augmenting the check against unhandled_kwargs with a check against the full
+      kwonly list so that kwonly args with defaults are accepted.
+    weight: 3
+  - id: FC2
+    description: Confines changes to django/template/library.py (primarily the parse_bits
+      function) without introducing unrelated edits to other source files.
+    weight: 2
+  - id: FC3
+    description: Adds a test case (in a test file or templatetag file) that exercises
+      supplying a non-default value to a keyword-only argument with a default, such
+      as a tag analogous to the 'hello' example from the PR description.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Fixes the bug where calling a simple_tag with a keyword-only argument
+      that has a default value (e.g., def hello(*, greeting='hello')) raises TemplateSyntaxError
+      with 'received unexpected keyword argument' instead of accepting the supplied
+      value.
+    weight: 3
+  - id: SA2
+    description: Fixes the bug where supplying a kwonly argument with a default a
+      second time raises 'received unexpected keyword argument' instead of the correct
+      'received multiple values for keyword argument'.
+    weight: 2
+  - id: SA3
+    description: Applies the fix equally to inclusion_tag handling (which calls parse_bits
+      with the same signature), as the PR description explicitly states the bug affects
+      inclusion tags as well.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing behavior for kwonly arguments without defaults
+      (e.g., simple_keyword_only_param), which must still raise 'did not receive value(s)
+      for the argument(s)' when not supplied.
+    weight: 3
+  - id: I2
+    description: Preserves the existing 'received unexpected keyword argument' error
+      for genuinely unrecognized kwargs (arguments that are not in params, not in
+      kwonly, and varkw is None).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a simple_tag with a keyword-only argument with default
+      (e.g., def hello(*, greeting='hello')) renders correctly when called as {% hello
+      greeting='hi' %} without raising TemplateSyntaxError.
+    weight: 3
+  - id: R2
+    description: Ensures that supplying a kwonly argument with a default value twice
+      (e.g., {% hi greeting='hi' greeting='hello' %}) raises TemplateSyntaxError with
+      the message containing 'received multiple values for keyword argument'.
+    weight: 2

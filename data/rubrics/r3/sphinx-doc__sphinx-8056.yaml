@@ -1,0 +1,61 @@
+metadata:
+  task_summary: 'Fix Napoleon so that comma-separated parameter names like ''x1, x2
+    : array_like, optional'' in numpydoc docstrings render correctly with both the
+    ''optional'' qualifier and each parameter name visible.'
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sphinx/ext/napoleon/docstring.py as the primary (and ideally
+      only) changed production file, keeping edits local to the napoleon docstring
+      rendering logic.
+    weight: 3
+  - id: FC2
+    description: Adds or modifies logic inside _format_docutils_params (in sphinx/ext/napoleon/docstring.py)
+      to handle the case where a field _name contains a comma-separated list of parameter
+      names (e.g., 'x1, x2').
+    weight: 3
+  - id: FC3
+    description: Adds or modifies logic inside _format_field (in sphinx/ext/napoleon/docstring.py)
+      so that comma-separated parameter names are rendered individually (e.g., each
+      in bold **x1**, **x2**) rather than as a single concatenated bold token **x1,
+      x2**.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Ensures that when _format_docutils_params processes a field whose
+      _name is ''x1, x2'', it emits individual :param x1: and :param x2: (or equivalent
+      separate per-name) directives rather than a single '':param x1, x2:'' directive.'
+    weight: 3
+  - id: SA2
+    description: Ensures that when a type spec contains 'optional' (e.g., 'array_like,
+      optional'), the rendered output includes a visible 'optional' qualifier for
+      each of the comma-separated parameter names, consistent with the expected behavior
+      described in the PR ('x1, x2 (array_like, optional)').
+    weight: 3
+  - id: SA3
+    description: Ensures the fix covers both the napoleon_use_param=True path (_format_docutils_params)
+      and the napoleon_use_param=False path (_format_fields / _format_field), so multi-name
+      parameters render correctly regardless of configuration.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: 'Confirms that single-name parameter fields (e.g., ''x : int'') continue
+      to produce the same output as before, with no regression in the existing :param:
+      / :type: rendering logic.'
+    weight: 3
+  - id: I2
+    description: Confirms that the NumpyDocstring._escape_args_and_kwargs method's
+      existing behavior of splitting on ', ' for *args/**kwargs escaping is preserved
+      and not broken by the multi-name fix.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: 'Produces separate :param: and :type: entries for each individual
+      name in a comma-separated parameter group when napoleon_use_param=True, so that
+      Sphinx autodoc can resolve each parameter''s documentation independently.'
+    weight: 3
+  - id: R2
+    description: 'Preserves the ''optional'' keyword rendering (via *optional* or
+      equivalent markup) in the :type: or inline type annotation output for each split
+      parameter name, so the optional qualifier is not silently dropped.'
+    weight: 2

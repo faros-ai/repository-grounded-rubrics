@@ -1,0 +1,63 @@
+metadata:
+  task_summary: Fix CountVectorizer.get_feature_names() to call _validate_vocabulary()
+    before _check_vocabulary() so that a vocabulary provided at construction time
+    (via the vocabulary parameter) does not erroneously raise NotFittedError.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sklearn/feature_extraction/text.py and no unrelated production
+      files, keeping the diff minimal and focused on the CountVectorizer vocabulary-validation
+      logic.
+    weight: 2
+  - id: FC2
+    description: Adds a call to _validate_vocabulary() (or equivalent logic that populates
+      vocabulary_ from the vocabulary constructor parameter) inside get_feature_names()
+      before the call to _check_vocabulary(), mirroring the pattern already used in
+      transform().
+    weight: 3
+  - id: FC3
+    description: Applies the same _validate_vocabulary() guard to inverse_transform()
+      (which also calls only _check_vocabulary() in the pre-patch code at line 976),
+      so that the fix is consistent across all methods that access vocabulary_.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that get_feature_names() does not raise NotFittedError when
+      a vocabulary parameter was supplied at CountVectorizer construction but fit()
+      has not been called, matching the PR description's acceptance criterion.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior where get_feature_names() raises
+      an error (ValueError or NotFittedError) when neither a vocabulary parameter
+      was provided nor fit() was called, consistent with the pre-existing test at
+      line 546 of test_text.py.
+    weight: 3
+  - id: SA3
+    description: Aligns the behavior of get_feature_names() with transform(), which
+      already calls _validate_vocabulary() to set vocabulary_ from the constructor
+      parameter before proceeding, as described in the PR description.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing tests for get_feature_names() are not weakened,
+      removed, or skipped, and that the test verifying a ValueError is raised on an
+      unfitted/empty vocabulary (assert_raises(ValueError, cv.get_feature_names) in
+      test_feature_names) remains intact.
+    weight: 3
+  - id: I2
+    description: Confirms that the public signatures of get_feature_names(), _check_vocabulary(),
+      and _validate_vocabulary() are not changed, preserving backward compatibility.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that after the fix, calling get_feature_names() on a CountVectorizer
+      initialized with vocabulary=['and', 'document', ...] (without calling fit())
+      returns the vocabulary terms sorted by index rather than raising NotFittedError,
+      because _validate_vocabulary() sets vocabulary_ before _check_vocabulary() is
+      reached.
+    weight: 3
+  - id: R2
+    description: Ensures that after the fix, get_feature_names() still raises an appropriate
+      error (ValueError) when vocabulary_ is empty, because _check_vocabulary() still
+      verifies len(self.vocabulary_) == 0 after _validate_vocabulary() runs.
+    weight: 2

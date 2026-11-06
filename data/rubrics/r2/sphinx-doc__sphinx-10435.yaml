@@ -1,0 +1,70 @@
+metadata:
+  task_summary: Fix LaTeX inline highlighted code output in visit_literal to suppress
+    spurious whitespace by using the percent comment character to neutralize newlines
+    after the opening brace and before the closing braces.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the inline highlighting code path inside the visit_literal
+      method in sphinx/writers/latex.py to eliminate whitespace introduced at the
+      start and end of highlighted inline code in LaTeX output.
+    weight: 3
+  - id: FC2
+    description: Changes the replacement string used for the begin{Verbatim}[commandchars=...]
+      pattern in visit_literal so that the replacement ends with a percent sign (the
+      LaTeX comment character) immediately before the newline, producing output like
+      sphinxcode{sphinxupquote{% rather than sphinxcode{sphinxupquote{ with a bare
+      newline.
+    weight: 3
+  - id: FC3
+    description: Ensures that a percent sign is emitted immediately before the closing
+      }} of the inline highlighted block in visit_literal, suppressing the trailing
+      newline that Pygments places after the last highlighted token before end{Verbatim}.
+    weight: 3
+  - id: FC4
+    description: Confines all changes to sphinx/writers/latex.py and optionally the
+      test_build_latex.py test file; does not alter any other writer such as html5.py,
+      text.py, texinfo.py, or manpage.py, nor any unrelated module.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the specific visit_literal code path that calls self.highlighter.highlight_block
+      and replaces the begin{Verbatim}[commandchars=...] header with an inline sphinxcode{sphinxupquote{
+      invocation, so that the resulting LaTeX markup uses a percent comment character
+      to prevent LaTeX from treating the following newline as a space.
+    weight: 3
+  - id: SA2
+    description: Preserves the behavior of non-highlighted inline literals in visit_literal
+      (those that do not call highlight_block and fall through to a plain sphinxcode{sphinxupquote{
+      append) without modifying their output, since they do not emit a trailing newline
+      from Pygments.
+    weight: 2
+  - id: SA3
+    description: Updates the test_latex_code_role assertion or equivalent test coverage
+      so it expects the percent-suppressed form sphinxcode{sphinxupquote{% rather
+      than sphinxcode{sphinxupquote{ followed by a bare newline.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that any changes to test_latex_code_role tighten the assertion
+      to match the corrected percent-suppressed output rather than weakening or removing
+      the check.
+    weight: 2
+  - id: I2
+    description: Confirms that the visit_literal_block code path (handling block-level
+      begin{sphinxVerbatim} replacements) is not changed by this fix, preserving existing
+      block code behavior.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when a highlighted inline code role is rendered to LaTeX,
+      the sphinxcode{sphinxupquote{ opening is immediately followed by a percent sign
+      so that the Pygments-emitted newline is treated as a LaTeX comment, preventing
+      a leading space from appearing in the PDF output before the first PYG token.
+    weight: 3
+  - id: R2
+    description: Ensures that when a highlighted inline code role is rendered to LaTeX,
+      a percent sign immediately precedes the closing }} so that the Pygments trailing
+      newline is suppressed and no trailing space appears in the PDF output after
+      the last highlighted token.
+    weight: 3

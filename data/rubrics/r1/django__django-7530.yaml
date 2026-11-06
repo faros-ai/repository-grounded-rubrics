@@ -1,0 +1,62 @@
+metadata:
+  task_summary: Fix makemigrations to call router.allow_migrate() with each app's
+    own models rather than all project models, correcting the (app_label, model) pairing
+    in consistency checks.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `allow_migrate` call site inside the consistency-check
+      loop in `django/core/management/commands/makemigrations.py` to iterate only
+      over models belonging to each specific app, replacing `apps.get_models(app_label)`
+      (which incorrectly returns all project models) with a call scoped to the individual
+      app config.
+    weight: 3
+  - id: FC2
+    description: Confines all production-code changes to `django/core/management/commands/makemigrations.py`
+      without modifying unrelated files such as migration loaders, autodetectors,
+      or database backend files.
+    weight: 2
+  - id: FC3
+    description: Updates or adds a test in the migrations test suite (e.g., `tests/migrations/test_commands.py`)
+      that verifies `allow_migrate` is called with model names belonging only to the
+      app being checked, not models from other apps.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that each `router.allow_migrate(connection.alias, app_label,
+      model_name=...)` call within the consistency-check loop passes only models whose
+      `app_label` matches the outer loop variable, eliminating invalid cross-app (app_label,
+      model) combinations.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing guard that skips the consistency check when
+      no app is allowed to migrate to the connection (i.e., the `any(router.allow_migrate(...)
+      ...)` condition remains in place).
+    weight: 2
+  - id: SA3
+    description: Keeps the `consistency_check_labels` collection (derived from `apps.get_app_configs()`)
+      intact so that all installed apps are still considered for consistency checking.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Avoids weakening any existing test assertions in `tests/migrations/test_commands.py`,
+      particularly the `allow_migrate.assert_called_with` assertion that checks the
+      last call includes the correct `app_label` and `model_name`.
+    weight: 2
+  - id: I2
+    description: Preserves the public `handle` method signature and all existing keyword
+      options (`--dry-run`, `--merge`, `--empty`, `--check`, etc.) in `django/core/management/commands/makemigrations.py`
+      without removal or renaming.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that at runtime, `router.allow_migrate` is called with `app_label`
+      equal to the app owning the model being tested (i.e., the app label and model
+      name come from the same app config iteration), preventing routers that reject
+      cross-app pairs from raising unexpected errors or returning incorrect results.
+    weight: 3
+  - id: R2
+    description: 'Maintains backward-compatible behavior for projects without `DATABASE_ROUTERS`
+      configured: the code path that only checks the `DEFAULT_DB_ALIAS` and skips
+      the router-scoped loop remains unaffected.'
+    weight: 2

@@ -1,0 +1,85 @@
+metadata:
+  task_summary: Extend Sphinx autodoc to document methods decorated with both @classmethod
+    and @property (class properties introduced in Python 3.9).
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies `sphinx/util/inspect.py` to extend `isproperty` (or adds
+      a peer helper such as `isclassmethodproperty`) so that an object that is a `classmethod`
+      wrapping a `property` (e.g., the raw value from `cls.__dict__[name]`) is recognized
+      as a property-like descriptor.
+    weight: 3
+  - id: FC2
+    description: Modifies `PropertyDocumenter.can_document_member` in `sphinx/ext/autodoc/__init__.py`
+      so that it returns `True` for members that are classmethod-wrapped properties
+      (not only plain `property` instances).
+    weight: 3
+  - id: FC3
+    description: Modifies `PropertyDocumenter.add_directive_header` in `sphinx/ext/autodoc/__init__.py`
+      to emit a `:classmethod:` option line when the property is a classmethod-wrapped
+      property.
+    weight: 2
+  - id: FC4
+    description: Adds an `import_object` override (or adjusts existing object-retrieval
+      logic) in `PropertyDocumenter` in `sphinx/ext/autodoc/__init__.py` that unwraps
+      the classmethod layer so that `self.object` is the underlying `property` descriptor
+      rather than the `classmethod` wrapper.
+    weight: 2
+  - id: FC5
+    description: Adds a target fixture file (e.g., inside `tests/roots/test-ext-autodoc/target/`)
+      that defines at least one class with a `@classmethod @property`-decorated method
+      to serve as a test subject.
+    weight: 1
+  - id: FC6
+    description: Adds or extends a test in `tests/test_ext_autodoc_autoproperty.py`
+      (or a related autodoc test file) that exercises documentation of a classmethod-wrapped
+      property and asserts the expected `.. py:property::` output with a `:classmethod:`
+      option.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that classmethod-wrapped properties (`@classmethod @property`)
+      defined on a class are picked up by `PropertyDocumenter` rather than falling
+      through to `MethodDocumenter` or `AttributeDocumenter` as undocumented attributes.
+    weight: 3
+  - id: SA2
+    description: Ensures that the docstring of a classmethod-wrapped property is extracted
+      from the underlying `property` object's `__doc__` attribute (accessed via `__dict__`
+      on the class, not via `getattr` which invokes the descriptor) so that the docstring
+      is not lost.
+    weight: 3
+  - id: SA3
+    description: Ensures that the fix does not break documentation of plain `@property`-decorated
+      methods (i.e., `PropertyDocumenter.can_document_member` still returns `True`
+      for plain `property` instances and `isproperty` still recognizes `property`
+      and `cached_property`).
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing test assertions are weakened or removed
+      (no `pytest.mark.skip`, `xfail`, or deletion of assertions) to accommodate the
+      new behavior.
+    weight: 2
+  - id: I2
+    description: Confirms that the public API signatures of `isproperty` in `sphinx/util/inspect.py`
+      and `PropertyDocumenter` in `sphinx/ext/autodoc/__init__.py` are preserved (same
+      parameter names and types), with any new helpers added alongside rather than
+      replacing existing public symbols.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: 'Maintains correct behavior for the `:abstractmethod:` directive
+      option: when a classmethod-wrapped property also carries `__isabstractmethod__
+      = True`, the `add_directive_header` logic still emits `:abstractmethod:`.'
+    weight: 2
+  - id: R2
+    description: Preserves correct docstring retrieval by reading the docstring from
+      the raw `property` object obtained via `cls.__dict__[name]` (or equivalent unwrapping),
+      preventing the case where `getattr(cls, name)` silently returns the computed
+      value instead of the property descriptor.
+    weight: 3
+  - id: R3
+    description: Ensures that `PropertyDocumenter.add_directive_header` only emits
+      `:classmethod:` for classmethod-wrapped properties and not for plain instance
+      `property` objects, avoiding regression in plain-property documentation output.
+    weight: 2

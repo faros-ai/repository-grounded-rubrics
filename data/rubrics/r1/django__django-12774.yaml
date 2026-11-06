@@ -1,0 +1,57 @@
+metadata:
+  task_summary: Allow QuerySet.in_bulk() to accept a field_name that is unique via
+    a total UniqueConstraint (without condition), not just fields with unique=True.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the uniqueness check in the `in_bulk` method inside `django/db/models/query.py`
+      to also accept fields covered by a total UniqueConstraint, not only fields where
+      `field.unique` is True.
+    weight: 3
+  - id: FC2
+    description: Limits changes to `django/db/models/query.py` (and optionally test
+      files) without modifying unrelated production files such as `django/db/models/options.py`
+      or `django/db/models/constraints.py`.
+    weight: 2
+  - id: FC3
+    description: Adds or updates test coverage (in a lookup or queryset test file)
+      that exercises `in_bulk()` with a `field_name` that is unique only via a `UniqueConstraint`
+      without a `condition`.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Extends the `in_bulk` uniqueness validation to check whether the
+      given `field_name` appears as the sole field in any `UniqueConstraint` with
+      no `condition` (i.e., a total unique constraint), in addition to checking `field.unique`.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing `ValueError` with the message string `"in_bulk()'s
+      field_name must be a unique field but %r isn't."` for fields that are neither
+      `unique=True` nor covered by a total `UniqueConstraint`.
+    weight: 2
+  - id: SA3
+    description: Continues to allow `in_bulk(field_name='pk')` to bypass the uniqueness
+      check, consistent with the existing `field_name != 'pk'` short-circuit guard.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the existing `test_in_bulk_non_unique_field` test (which
+      asserts a `ValueError` for a non-unique field) is not removed or weakened.
+    weight: 3
+  - id: I2
+    description: Confirms that `in_bulk()` still rejects a field covered only by a
+      conditional `UniqueConstraint` (one with `condition` set), since conditional
+      constraints do not guarantee uniqueness for all rows.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that calling `in_bulk(field_name='slug')` on a model whose
+      `slug` field is unique only via a `UniqueConstraint` without a `condition` no
+      longer raises a `ValueError` at runtime.
+    weight: 3
+  - id: R2
+    description: Ensures that calling `in_bulk(field_name=...)` with a field covered
+      by a `UniqueConstraint` that has a `condition` (i.e., a partial index) still
+      raises a `ValueError` with the appropriate message, since partial uniqueness
+      is not total uniqueness.
+    weight: 2

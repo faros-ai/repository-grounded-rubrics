@@ -1,0 +1,61 @@
+metadata:
+  task_summary: 'Fix false ambiguous cross-reference warnings for unqualified type
+    names in :type: and :rtype: info fields by making them resolve using the current
+    module context like explicit :py:class: xref roles do.'
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Adds a `process_field_xref` method to `PyDomain` in `sphinx/domains/python.py`
+      that attaches current-module context to field xref pending nodes.
+    weight: 3
+  - id: FC2
+    description: Confirms that `type_to_xref` in `sphinx/domains/python.py` sets `refspecific`
+      to `True` on the returned `pending_xref` node, or that the new `process_field_xref`
+      sets it, so that `searchmode=1` is used during resolution.
+    weight: 3
+  - id: FC3
+    description: Avoids modifying unrelated files outside `sphinx/domains/python.py`
+      (and optional test files) to accomplish the fix, keeping the diff minimal and
+      targeted.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that field xref nodes created for `:type:` and `:rtype:`
+      info fields carry `py:module` context from `env.ref_context` so that unqualified
+      names like `A` resolve within the current module (e.g., `mod.submod`) before
+      falling back to fuzzy search.
+    weight: 3
+  - id: SA2
+    description: Ensures that field xref nodes created for `:type:` and `:rtype:`
+      info fields carry `py:class` context from `env.ref_context`, mirroring the behavior
+      of explicit `:py:class:` xref roles.
+    weight: 2
+  - id: SA3
+    description: Adds a test case (anywhere in the diff) that exercises unqualified
+      type name resolution in `:type:` or `:rtype:` info fields under a `py:currentmodule`
+      directive with multiple same-named classes in different submodules, verifying
+      no ambiguity warning is raised.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that fully-qualified type references in `:type:` and `:rtype:`
+      fields (e.g., `mod.A`, `mod.submod.A`) continue to resolve correctly and are
+      not broken by the change.
+    weight: 2
+  - id: I2
+    description: Confirms that the existing `PyXrefMixin.make_xref` method setting
+      `refspecific=True` at line 274 of `sphinx/domains/python.py` is preserved and
+      not removed or weakened.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: 'Ensures that when `py:currentmodule` is set to `mod.submod` and
+      both `mod.A` and `mod.submod.A` exist, an unqualified `:param A a:` or `:rtype:
+      A` resolves to `mod.submod.A` (the current module''s class) rather than triggering
+      a ''more than one target found'' warning.'
+    weight: 3
+  - id: R2
+    description: Ensures that without a `py:currentmodule` directive context, unqualified
+      type names in info fields that match exactly one object still resolve without
+      warnings, preserving backward-compatible lookup behavior.
+    weight: 2

@@ -1,0 +1,63 @@
+metadata:
+  task_summary: Fix Point.__new__ raising 'Imaginary coordinates are not permitted.'
+    spuriously when the global evaluate=False context is active, because im(a) returns
+    an unevaluated (truthy) expression instead of 0.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the imaginary-coordinate check (the line containing 'Imaginary
+      coordinates are not permitted.' or the condition guarding it) inside sympy/geometry/point.py
+      and no other production files.
+    weight: 3
+  - id: FC2
+    description: Confines the change to the Point.__new__ method in sympy/geometry/point.py,
+      leaving Point2D.__new__ and Point3D.__new__ untouched.
+    weight: 2
+  - id: FC3
+    description: Adds or modifies a test (in the geometry or core test suite) that
+      exercises Point or Point2D construction inside a 'with evaluate(False)' or equivalent
+      global-parameters-evaluate=False context.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Replaces or augments the condition 'a.is_number and im(a)' so that
+      the imaginary-part check no longer depends on the global evaluate flag to produce
+      a simplified result.
+    weight: 3
+  - id: SA2
+    description: Preserves the original intent of rejecting genuinely imaginary coordinates
+      (e.g., coordinates with a nonzero imaginary part) while allowing real integer
+      or rational coordinates when evaluate=False.
+    weight: 3
+  - id: SA3
+    description: Does not alter the sympify or parse_expr call paths in sympy/core/sympify.py
+      or sympy/parsing/sympy_parser.py, keeping the fix local to the Point class.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public signature of Point.__new__ (positional *args
+      and keyword kwargs including 'evaluate', 'dim', 'on_morph') is unchanged in
+      the diff.
+    weight: 2
+  - id: I2
+    description: Avoids weakening any existing test for imaginary-coordinate rejection
+      (e.g., does not remove or skip raises(ValueError, ...) tests guarding 'Imaginary
+      coordinates are not permitted.').
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that constructing Point2D(Integer(1), Integer(2)) inside
+      a 'with evaluate(False)' context no longer triggers the 'Imaginary coordinates
+      are not permitted.' ValueError, as shown by the fixed condition not raising
+      for real numeric inputs when evaluate is globally False.
+    weight: 3
+  - id: R2
+    description: Ensures that passing a genuinely imaginary coordinate such as S.ImaginaryUnit
+      (or a number whose imaginary part is nonzero) still raises ValueError with the
+      message 'Imaginary coordinates are not permitted.' regardless of the global
+      evaluate setting.
+    weight: 3
+  - id: R3
+    description: Maintains backward compatibility so that Point2D(Integer(1), Integer(2))
+      without any evaluate context continues to return a valid Point2D object.
+    weight: 2

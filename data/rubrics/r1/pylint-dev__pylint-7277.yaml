@@ -1,0 +1,56 @@
+metadata:
+  task_summary: Guard the unconditional `sys.path.pop(0)` in `modify_sys_path()` so
+    it only removes the first entry when it equals `""`, `"."`, or `os.getcwd()`.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies `pylint/__init__.py` and no other production source files,
+      keeping the diff minimal and localized to the `modify_sys_path` function.
+    weight: 2
+  - id: FC2
+    description: Replaces or guards the unconditional `sys.path.pop(0)` call inside
+      `modify_sys_path` with a conditional check, so the removal is no longer always
+      executed.
+    weight: 3
+  - id: FC3
+    description: Updates the docstring or inline comment inside `modify_sys_path`
+      to reflect that the first entry is only removed when it is a cwd-equivalent
+      value rather than unconditionally.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements a guard that checks whether `sys.path[0]` equals `""`
+      before removing it, matching one of the three values explicitly listed in the
+      PR description.
+    weight: 3
+  - id: SA2
+    description: Implements a guard that checks whether `sys.path[0]` equals `"."`
+      before removing it, matching one of the three values explicitly listed in the
+      PR description.
+    weight: 3
+  - id: SA3
+    description: Implements a guard that checks whether `sys.path[0]` equals `os.getcwd()`
+      before removing it, matching one of the three values explicitly listed in the
+      PR description.
+    weight: 3
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the public signature of `modify_sys_path()` (no parameters
+      added or removed) so callers in `pylint/__main__.py` and downstream code are
+      unaffected.
+    weight: 3
+  - id: I2
+    description: Retains the secondary PYTHONPATH-based removal logic (the `env_pythonpath.startswith`
+      / `env_pythonpath.endswith` branches) without weakening or deleting it.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when `sys.path[0]` is a user-supplied non-cwd path (e.g.,
+      `"something"` as in the reproduction script), `modify_sys_path` leaves it intact
+      instead of popping it.
+    weight: 3
+  - id: R2
+    description: Ensures that when `sys.path[0]` is `""`, `"."`, or the current working
+      directory, `modify_sys_path` still removes it to prevent inadvertent shadowing
+      of stdlib or pylint modules.
+    weight: 3

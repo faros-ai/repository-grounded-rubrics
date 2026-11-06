@@ -1,0 +1,65 @@
+metadata:
+  task_summary: 'Add support for specifying union types using the | (pipe) operator
+    in docstring :type: and :param: fields in the Python domain.'
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: 'Modifies the `delims` regex pattern inside `PyXrefMixin.make_xrefs`
+      in `sphinx/domains/python.py` to include a `|` (pipe) as a valid delimiter so
+      that `:type text: bytes | str` is split into separate cross-reference targets.'
+    weight: 3
+  - id: FC2
+    description: Confines changes to files directly relevant to union type parsing
+      (e.g., `sphinx/domains/python.py` and/or `sphinx/util/typing.py`), without modifying
+      unrelated domain files such as `sphinx/domains/cpp.py` or `sphinx/domains/javascript.py`.
+    weight: 2
+  - id: FC3
+    description: Adds or updates test cases covering `:type:` field or `:param:` field
+      with a pipe-separated union type (e.g., `bytes | str`) to verify cross-reference
+      node generation.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Ensures that `:type text: bytes | str` in a docstring produces separate
+      cross-reference (`pending_xref`) nodes for each type component (`bytes` and
+      `str`) rather than treating the whole string as a single unresolvable reference.'
+    weight: 3
+  - id: SA2
+    description: Renders the `|` separator as a punctuation node (e.g., `desc_sig_punctuation`
+      with value `|`) between the individual type cross-references, consistent with
+      how `_parse_annotation` already handles `ast.BitOr` in function signatures.
+    weight: 2
+  - id: SA3
+    description: 'Preserves the existing `or` keyword delimiter behavior in `make_xrefs`
+      so that `:type text: bytes or str` continues to be split correctly alongside
+      the new `|` syntax.'
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing tests for `_parse_annotation` (e.g., `test_parse_annotation`
+      exercising `List[int]`, `Tuple`, `None`) remain passing without modification
+      to their assertion logic.
+    weight: 2
+  - id: I2
+    description: Confirms that the `PyXrefMixin.make_xref` and `PyTypedField.make_xref`
+      public method signatures are unchanged, preserving backward compatibility of
+      the cross-reference API.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: 'At runtime, a `:type text: bytes | str` field in a docstring produces
+      two distinct `pending_xref` nodes targeting `bytes` and `str` respectively,
+      each resolvable independently within the `py` domain.'
+    weight: 3
+  - id: R2
+    description: Handles whitespace variants around the pipe (e.g., `bytes|str`, `bytes
+      | str`, `bytes  |  str`) without producing a malformed cross-reference or raising
+      a `SyntaxError`, because the delimiter regex or parser tolerates optional surrounding
+      spaces.
+    weight: 2
+  - id: R3
+    description: Does not regress the existing `test_pyfunction_with_union_type_operator`
+      and `test_pydata_with_union_type_operator` behaviors, which rely on `_parse_annotation`
+      correctly parsing `int | None` and `int | str` in directive signatures and `:type:`
+      options.
+    weight: 2

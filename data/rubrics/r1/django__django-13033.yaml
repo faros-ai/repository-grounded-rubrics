@@ -1,0 +1,65 @@
+metadata:
+  task_summary: Fix find_ordering_name in compiler.py so that ordering by a relation's
+    _id attname field (e.g. record__root_id) uses the stored FK column directly instead
+    of incorrectly triggering the related model's default ordering.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the condition in find_ordering_name inside django/db/models/sql/compiler.py
+      that guards against inheriting a related model's default ordering.
+    weight: 3
+  - id: FC2
+    description: Changes the attname comparison in find_ordering_name so it checks
+      the last component of the lookup path (pieces[-1] or equivalent) rather than
+      the full multi-segment name string.
+    weight: 3
+  - id: FC3
+    description: Confines the production-code change to django/db/models/sql/compiler.py
+      (the find_ordering_name function) without modifying unrelated files or modules.
+    weight: 2
+  - id: FC4
+    description: Adds or updates a test exercising order_by with a self-referential
+      foreign key attname lookup (e.g. record__root_id) in a test file related to
+      ordering or queries.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the case where ordering by a relation's _id attname through
+      a multi-level lookup (e.g. record__root_id on a self-referential FK) was incorrectly
+      inheriting the related model's Meta.ordering instead of using the stored FK
+      column.
+    weight: 3
+  - id: SA2
+    description: Ensures that the fix also handles the 'pk' shortcut guard correctly
+      alongside the attname guard so both short-circuit the related-model ordering
+      path.
+    weight: 2
+  - id: SA3
+    description: Preserves the existing behavior of single-level attname ordering
+      (e.g. author_id) which already worked correctly before the patch, as demonstrated
+      by the existing test_order_by_fk_attname test in the ordering tests.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Does not weaken or skip existing tests related to ordering by FK
+      attname (e.g. test_order_by_fk_attname) or related-model default ordering behavior.
+    weight: 2
+  - id: I2
+    description: 'Preserves the public signature of find_ordering_name (parameters:
+      name, opts, alias, default_order, already_seen) without adding, removing, or
+      renaming parameters.'
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: When order_by('record__root_id') is applied to a queryset where root
+      is a self-referential ForeignKey with Meta.ordering on the related model, the
+      generated SQL uses the stored FK column directly (e.g. onemodel.root_id) with
+      ASC order rather than performing an extra JOIN to the self-referential table
+      and applying the model's DESC default ordering.
+    weight: 3
+  - id: R2
+    description: When order_by('-record__root_id') is applied, the generated SQL produces
+      a DESC sort on the FK column rather than an inverted-relative-to-default sort,
+      confirming that the fix correctly bypasses the related model's Meta.ordering
+      in both ascending and descending explicit ordering.
+    weight: 2

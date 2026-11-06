@@ -1,0 +1,56 @@
+metadata:
+  task_summary: Fix kahane_simplify() in sympy/physics/hep/gamma_matrices.py so that
+    leading uncontracted gamma matrices are prepended in their original order, not
+    reversed.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the leading-gamma-matrix insertion loop inside `kahane_simplify`
+      in `sympy/physics/hep/gamma_matrices.py` and nowhere else (i.e., no unrelated
+      files are changed).
+    weight: 3
+  - id: FC2
+    description: Changes the iteration order of the loop `for i in range(0, first_dum_pos):`
+      so that `free_pos[i]` values are inserted into `resulting_indices` in correct
+      (non-reversed) order, for example by iterating `range(first_dum_pos - 1, -1,
+      -1)` instead of `range(0, first_dum_pos)`.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the case described in the PR where trailing leading gamma
+      matrices (e.g., `G(rho)*G(sigma)` in `G(rho)*G(sigma)*G(mu)*G(-mu)`) were being
+      prepended in reversed order by the `ri.insert(0, free_pos[i])` list-comprehension
+      loop.
+    weight: 3
+  - id: SA2
+    description: Preserves the behavior for the symmetric case where leading gamma
+      matrices appear after the contraction (e.g., `G(mu)*G(-mu)*G(rho)*G(sigma)`)
+      which was already correct according to the PR description.
+    weight: 2
+  - id: SA3
+    description: Adds or updates a test case in `sympy/physics/hep/tests/test_gamma_matrices.py`
+      that exercises `kahane_simplify` with leading uncontracted gamma matrices in
+      front of a contraction, asserting that `G(rho)*G(sigma)*G(mu)*G(-mu)` simplifies
+      to `4*G(rho)*G(sigma)` (i.e., order is preserved).
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public signature of `kahane_simplify` is unchanged
+      (same parameters, same return type contract).
+    weight: 2
+  - id: I2
+    description: Confirms that no existing assertions in `test_kahane_simplify1` or
+      `test_kahane_algorithm` are weakened, skipped, or removed.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when `first_dum_pos > 1`, the indices at positions `0`
+      through `first_dum_pos - 1` in `free_pos` are prepended to each element of `resulting_indices`
+      such that index at position 0 ends up first (leftmost) in the product, matching
+      the original tensor expression order.
+    weight: 3
+  - id: R2
+    description: Ensures that when `first_dum_pos == 0` (no leading free gamma matrices),
+      the loop body is not entered and the result is unchanged, preserving backward-compatible
+      behavior for fully-contracted expressions.
+    weight: 2

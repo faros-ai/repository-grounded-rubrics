@@ -1,0 +1,62 @@
+metadata:
+  task_summary: Extend the linkcheck builder to detect and report broken local/internal
+    links (non-http/https URIs) instead of silently marking them as 'local'.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the check() function (or equivalent logic) inside sphinx/builders/linkcheck.py
+      to replace the unconditional 'return local, "", 0' branch for non-http/https
+      URIs with an actual file-existence verification.
+    weight: 3
+  - id: FC2
+    description: Adds logic in sphinx/builders/linkcheck.py that resolves a local
+      URI to a filesystem path (using self.env.srcdir, self.env.doc2path, or a path
+      relative to the referencing document) in order to check whether the target exists.
+    weight: 3
+  - id: FC3
+    description: Confines all changes to sphinx/builders/linkcheck.py (and optionally
+      its associated test file) without modifying unrelated builder modules or core
+      Sphinx source files.
+    weight: 2
+  - id: FC4
+    description: Adds or updates test fixtures or test cases in tests/test_build_linkcheck.py
+      (or tests/roots/test-linkcheck/) to exercise the new local-link checking behavior.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements behavior where a local URI pointing to a non-existent
+      file is reported with status 'broken' (rather than 'local') so that it contributes
+      to build failure.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing 'local' status for local URIs that cannot
+      be checked (e.g., special schemes such as 'mailto:' or fragment-only '#...'
+      links) or for successfully resolved local paths, so that pre-existing linkcheck_ignore
+      patterns and unchecked statuses are unaffected.
+    weight: 2
+  - id: SA3
+    description: Ensures that self.app.statuscode is set to 1 when a broken local
+      link is detected, consistent with how broken external links are handled in the
+      write_doc method.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public builder name 'linkcheck' and the setup()
+      function's registered config values (linkcheck_ignore, linkcheck_anchors, etc.)
+      remain unchanged and backward-compatible.
+    weight: 2
+  - id: I2
+    description: Confirms that the existing handling for external HTTP/HTTPS links,
+      image nodes, anchor checking, redirects, and ignored URIs is not altered or
+      removed by the patch.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Produces a 'broken' status entry (visible in output.txt and output.json)
+      for a local URI such as 'doesntexist' that has no corresponding file in the
+      source directory, matching the behavior the PR description reports as missing.
+    weight: 3
+  - id: R2
+    description: Does not regress the handling of valid local URIs (e.g., a URI that
+      resolves to an existing document) by incorrectly marking them as broken.
+    weight: 2

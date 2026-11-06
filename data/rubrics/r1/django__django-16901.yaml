@@ -1,0 +1,62 @@
+metadata:
+  task_summary: Fix Q(…) ^ Q(…) ^ Q(…) fallback SQL on XOR-unsupported databases to
+    use parity semantics (odd count) instead of exactly-one semantics.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the XOR fallback branch in the `as_sql` method of `WhereNode`
+      inside `django/db/models/sql/where.py`, which is the sole location of the bug.
+    weight: 3
+  - id: FC2
+    description: Replaces the `Exact(1, rhs_sum)` expression (or equivalent exactly-one
+      check) with a parity check (e.g., uses modulo 2 or equivalent) so that the generated
+      SQL evaluates to true when an odd number of children are true.
+    weight: 3
+  - id: FC3
+    description: Updates the inline comment in the XOR fallback block (which previously
+      described the conversion as `(a + b + c + ...) == 1`) to reflect the corrected
+      parity-based logic.
+    weight: 1
+  - id: FC4
+    description: Confines all changes to files directly related to XOR query logic
+      or its tests, with no unrelated file modifications.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements parity semantics for the XOR fallback so that a chain
+      of N XOR operands returns true when an odd number of conditions are true, matching
+      the behaviour of databases with native XOR support (e.g., MySQL).
+    weight: 3
+  - id: SA2
+    description: Preserves the two-operand XOR case (a ^ b) so it still yields the
+      correct result (true when exactly one of two conditions is true, which coincides
+      with both parity and exactly-one for N=2).
+    weight: 2
+  - id: SA3
+    description: Adds or updates a test case covering a chain of three or more XOR-combined
+      Q objects (such as `Q(…) ^ Q(…) ^ Q(…)`) to verify parity-correct filtering
+      results.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the `supports_logical_xor` feature flag and the guard
+      `if self.connector == XOR and not connection.features.supports_logical_xor`
+      remain untouched, preserving the existing dispatch between native-XOR and fallback
+      paths.
+    weight: 2
+  - id: I2
+    description: Confirms that no existing tests for XOR lookups (e.g., `test_filter`,
+      `test_filter_negated`, `test_exclude` in `tests/xor_lookups/tests.py`) are weakened,
+      skipped, or removed.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that `Q(id=x) ^ Q(id=x) ^ Q(id=x)` (three identical truthy
+      conditions) produces a match (odd count = 1 result) rather than no match, correcting
+      the described regression where the count was 0 instead of 1.
+    weight: 3
+  - id: R2
+    description: Ensures that `Q(id=x) ^ Q(id=x)` (two identical truthy conditions)
+      still produces no match (even count = 0 results), confirming backward compatibility
+      for the two-operand case.
+    weight: 2

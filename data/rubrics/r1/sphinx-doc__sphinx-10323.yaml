@@ -1,0 +1,55 @@
+metadata:
+  task_summary: Fix the `literalinclude` directive so that `dedent` is applied only
+    to the included file body and not to `prepend`/`append` content, by reordering
+    the filter pipeline in `LiteralIncludeReader.read()`.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies `sphinx/directives/code.py` as the primary (and ideally
+      only) changed production file, keeping the fix local to the `LiteralIncludeReader`
+      class.
+    weight: 3
+  - id: FC2
+    description: Reorders the filter list in `LiteralIncludeReader.read()` so that
+      `self.dedent_filter` appears before `self.prepend_filter` and `self.append_filter`
+      in the `filters` list.
+    weight: 3
+  - id: FC3
+    description: Does not introduce unrelated changes to other methods or classes
+      (e.g., `CodeBlock`, `Highlight`, `container_wrapper`) beyond the reordering
+      fix.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that `dedent_filter` is no longer applied to lines inserted
+      by `prepend_filter` or `append_filter`, matching the PR description's acceptance
+      criterion that 'dedent was applied only to the literalinclude and not to the
+      prepend and append content'.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior of `prepend_filter` and `append_filter`
+      themselves (inserting `prepend + '\n'` at index 0 and appending `append + '\n'`)
+      without altering their internal logic.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing tests for `LiteralIncludeReader` prepend/append
+      behavior (e.g., `test_LiteralIncludeReader_prepend`) remain valid and are not
+      weakened, skipped, or deleted.
+    weight: 2
+  - id: I2
+    description: Confirms that the `dedent_filter` function and the `dedent_lines`
+      helper are not modified in a way that changes their existing semantics (e.g.,
+      warning on non-whitespace stripped by dedent still emitted).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when both `dedent` and `prepend`/`append` options are
+      used together, the dedented body lines are correct while prepend/append lines
+      retain their exact string values without being passed through `dedent_lines`.
+    weight: 3
+  - id: R2
+    description: Ensures that when only `prepend` or `append` is used without `dedent`,
+      the behavior is unchanged from the pre-patch state (prepend/append lines are
+      still inserted as the first/last lines respectively).
+    weight: 2

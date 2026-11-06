@@ -1,0 +1,51 @@
+metadata:
+  task_summary: Fix mathematica_code to output Max[x,2] and Min[x,2] using Mathematica
+    square-bracket notation instead of the Python-style Max(2, x).
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Implements the fix exclusively within sympy/printing/mathematica.py
+      (the MCodePrinter module), without modifying unrelated printer files.
+    weight: 3
+  - id: FC2
+    description: Adds handling for Max (and Min) either by adding _print_Max/_print_Min
+      methods, a _print_LatticeOp override, or by adding 'Max' and 'Min' entries to
+      the known_functions dict in sympy/printing/mathematica.py so that the dispatch
+      no longer falls through to the StrPrinter's parenthesis-based _print_LatticeOp.
+    weight: 3
+  - id: FC3
+    description: Adds a test case (in sympy/printing/tests/test_mathematica.py or
+      equivalent) that asserts mathematica_code(Max(x, 2)) produces a string containing
+      'Max[' with square brackets.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Produces output containing square-bracket notation (e.g., 'Max[x,
+      2]') for Max expressions, matching valid Mathematica syntax as stated in the
+      PR description.
+    weight: 3
+  - id: SA2
+    description: Applies the same square-bracket fix to Min expressions (e.g., mathematica_code(Min(x,
+      2)) yields 'Min[x, 2]'), since Min shares the same LatticeOp dispatch path as
+      Max.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing test assertions in test_mathematica.py are
+      not weakened, removed, or commented out as part of the change.
+    weight: 3
+  - id: I2
+    description: Confirms that the public signature of mathematica_code and MCodePrinter
+      is unchanged (no parameters added or removed).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures the output string for Max/Min uses square brackets '[' and
+      ']' rather than parentheses '(' and ')' as delimiters, so the result is valid
+      Wolfram Mathematica syntax.
+    weight: 3
+  - id: R2
+    description: Ensures that arguments of Max and Min are printed using the printer's
+      own doprint/stringify mechanism (not bare str()), so nested symbolic expressions
+      such as Max(x**2, sin(x)) are also rendered correctly in Mathematica notation.
+    weight: 2

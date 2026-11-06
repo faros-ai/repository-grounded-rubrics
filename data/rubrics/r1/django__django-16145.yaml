@@ -1,0 +1,58 @@
+metadata:
+  task_summary: Fix `runserver 0:8000` so the startup message displays `http://0.0.0.0:8000/`
+    instead of `http://0:8000/`, matching the documented equivalence.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies `django/core/management/commands/runserver.py` as the primary
+      production file changed, without introducing modifications to unrelated files.
+    weight: 2
+  - id: FC2
+    description: Adds address-normalization logic in `runserver.py` that expands the
+      shorthand address `0` to the full IPv4 form `0.0.0.0` before `self.addr` is
+      finalized.
+    weight: 3
+  - id: FC3
+    description: Places the normalization in the `handle` method (or equivalent address-parsing
+      section), not duplicated across multiple methods such as both `handle` and `inner_run`.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Sets `self.addr` to `0.0.0.0` when the user provides `0` as the address
+      part of `addrport` (e.g., `0:8000`), directly matching the documented equivalence
+      between `0:8000` and `0.0.0.0:8000`.
+    weight: 3
+  - id: SA2
+    description: Leaves `self.addr` unchanged for standard fully-qualified IPv4 addresses
+      like `1.2.3.4` and for the default `127.0.0.1` path where no address is supplied.
+    weight: 2
+  - id: SA3
+    description: Does not alter handling of FQDN-style hostnames such as `localhost`
+      or `test.domain.local`, which must not be expanded by the `0`-to-`0.0.0.0` normalization.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Does not remove, skip, or weaken any existing runserver-related tests
+      (e.g., test methods calling `assertServerSettings` in the admin_scripts test
+      suite).
+    weight: 2
+  - id: I2
+    description: Preserves the `naiveip_re` regular expression without modification,
+      since the regex correctly parses `0` as an address component and the bug fix
+      belongs in post-parse normalization.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Passes `0.0.0.0` (not bare `0`) as the bind address to the `run()`
+      call in `basehttp.py`, so the development server listens on all network interfaces
+      when `0:PORT` is specified.
+    weight: 3
+  - id: R2
+    description: Preserves correct handling of IPv6 bracket notation addresses (e.g.,
+      `[::1]:8000`) so the `_raw_ipv6` stripping logic is not interfered with by the
+      `0`-normalization branch.
+    weight: 2
+  - id: R3
+    description: Adds a test case (anywhere in the diff) that supplies `addrport`
+      as `0:PORT` and asserts the resolved address equals `0.0.0.0`.
+    weight: 1

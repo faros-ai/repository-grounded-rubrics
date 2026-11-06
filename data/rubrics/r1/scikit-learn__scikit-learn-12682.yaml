@@ -1,0 +1,89 @@
+metadata:
+  task_summary: Add a `transform_max_iter` parameter to `SparseCoder` (and `SparseCodingMixin`)
+    so users can control the maximum number of iterations when `transform_algorithm='lasso_cd'`
+    is used, preventing spurious non-convergence warnings.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Adds `transform_max_iter` (or analogous parameter name for max Lasso
+      iterations) to the `_set_sparse_coding_params` method signature in `SparseCodingMixin`
+      inside `sklearn/decomposition/dict_learning.py`.
+    weight: 3
+  - id: FC2
+    description: Adds `transform_max_iter` (or analogous parameter name) to `SparseCoder.__init__`
+      in `sklearn/decomposition/dict_learning.py` and stores it as an instance attribute
+      via `self.transform_max_iter` or equivalent.
+    weight: 3
+  - id: FC3
+    description: Passes the `transform_max_iter` attribute (or equivalent) from `SparseCodingMixin.transform`
+      to `sparse_encode` as the `max_iter` keyword argument in `sklearn/decomposition/dict_learning.py`.
+    weight: 3
+  - id: FC4
+    description: Adds a docstring entry for the new `transform_max_iter` parameter
+      in the `SparseCoder` class docstring inside `sklearn/decomposition/dict_learning.py`,
+      explaining it applies when `transform_algorithm='lasso_cd'`.
+    weight: 2
+  - id: FC5
+    description: Confines all changes relevant to the `transform_max_iter` feature
+      to `sklearn/decomposition/dict_learning.py` (and optionally the example or test
+      files), without introducing unrelated file modifications.
+    weight: 2
+  - id: FC6
+    description: Adds or updates at least one test in `sklearn/decomposition/tests/test_dict_learning.py`
+      that exercises `SparseCoder` with `transform_algorithm='lasso_cd'` and a custom
+      `transform_max_iter` value.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements the ability for users to specify `max_iter` for the underlying
+      `Lasso` estimator when using `SparseCoder` with `transform_algorithm='lasso_cd'`,
+      directly addressing the missing parameter described in the PR.
+    weight: 3
+  - id: SA2
+    description: Sets a sensible default value for `transform_max_iter` in `SparseCoder.__init__`
+      (e.g., `1000`) that preserves existing behavior when the parameter is not explicitly
+      specified by the user.
+    weight: 2
+  - id: SA3
+    description: Propagates the new `transform_max_iter` parameter through `_set_sparse_coding_params`,
+      stores it on the instance, and uses it in `transform`, matching the existing
+      pattern for how `transform_n_nonzero_coefs` and `transform_alpha` are handled.
+    weight: 2
+  - id: SA4
+    description: Does not alter the public interface of `sparse_encode` or `_sparse_encode`
+      in a breaking way; the existing `max_iter` parameter of those functions continues
+      to work as before.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing `SparseCoder` parameters (`dictionary`, `transform_algorithm`,
+      `transform_n_nonzero_coefs`, `transform_alpha`, `split_sign`, `n_jobs`, `positive_code`)
+      are preserved in `SparseCoder.__init__` with unchanged names and default values.
+    weight: 3
+  - id: I2
+    description: Confirms that no existing tests are removed, weakened (e.g., assert
+      replaced with a no-op), or skipped to accommodate the change.
+    weight: 2
+  - id: I3
+    description: Avoids introducing the `transform_max_iter` parameter into `DictionaryLearning`
+      or `MiniBatchDictionaryLearning` in a way that conflicts with those classes'
+      existing `max_iter` parameters used for fitting.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when `transform_algorithm='lasso_cd'` and a sufficiently
+      large `transform_max_iter` is passed to `SparseCoder`, the underlying `Lasso`
+      solver is constructed with that `max_iter` value, preventing premature-convergence
+      warnings from the `lasso_cd` path in `_sparse_encode`.
+    weight: 3
+  - id: R2
+    description: 'Ensures backward compatibility: when `SparseCoder` is constructed
+      without specifying `transform_max_iter`, the behavior is identical to the pre-patch
+      behavior (default `max_iter=1000` passed to `Lasso`).'
+    weight: 2
+  - id: R3
+    description: Ensures the new `transform_max_iter` parameter is ignored (has no
+      runtime effect) when `transform_algorithm` is not `'lasso_cd'`, consistent with
+      the fact that `max_iter` in `_sparse_encode` only applies to the `lasso_cd`
+      branch.
+    weight: 1

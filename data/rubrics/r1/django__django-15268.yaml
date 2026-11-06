@@ -1,0 +1,66 @@
+metadata:
+  task_summary: Add optimizer support to collapse consecutive same-type AlterTogetherOptionOperation
+    (AlterUniqueTogether / AlterIndexTogether) pairs separated by the other type into
+    a single operation each.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/db/migrations/operations/models.py to add or extend
+      a reduce method on AlterTogetherOptionOperation (or one of its subclasses) to
+      enable the new optimization logic.
+    weight: 3
+  - id: FC2
+    description: Confines production code changes to the migration operations or optimizer
+      layer (e.g., django/db/migrations/operations/models.py and/or django/db/migrations/optimizer.py)
+      without touching unrelated modules.
+    weight: 2
+  - id: FC3
+    description: Updates or adds test cases in the migrations test suite (e.g., tests/migrations/test_optimizer.py
+      or tests/migrations/test_autodetector.py) to cover the new AlterTogetherOptionOperation
+      optimization scenario.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements logic so that two consecutive AlterUniqueTogether operations
+      for the same model name, separated only by an AlterIndexTogether on the same
+      model, are collapsed into a single AlterUniqueTogether (the later one).
+    weight: 3
+  - id: SA2
+    description: Implements logic so that two consecutive AlterIndexTogether operations
+      for the same model name, separated only by an AlterUniqueTogether on the same
+      model, are collapsed into a single AlterIndexTogether (the later one).
+    weight: 3
+  - id: SA3
+    description: Preserves the existing same-class reduction behaviour where two consecutive
+      AlterUniqueTogether (or two consecutive AlterIndexTogether) for the same model
+      are still reduced to the second operation, as tested by test_alter_alter_unique_model
+      and test_alter_alter_index_model.
+    weight: 2
+  - id: SA4
+    description: Does not optimize across AlterTogetherOptionOperation boundaries
+      when the interleaved operation references a different model name, leaving non-reducible
+      sequences intact.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Avoids weakening existing optimizer tests (e.g., does not relax assertions
+      in test_alter_alter_unique_model or test_alter_alter_index_model, or remove
+      any assertOptimizesTo / assertDoesNotOptimize calls).
+    weight: 3
+  - id: I2
+    description: Preserves the public API of AlterUniqueTogether and AlterIndexTogether
+      (constructor signatures, option_name attributes, deconstruct output) without
+      changes unrelated to the reduce/optimization logic.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that an AlterTogetherOptionOperation's reduce method returns
+      True (can optimize through) when the other operation is an AlterTogetherOptionOperation
+      of a different subclass on the same model, allowing the optimizer to scan past
+      it and find the matching same-class operation.
+    weight: 3
+  - id: R2
+    description: Ensures that the optimization does not incorrectly merge AlterUniqueTogether
+      with AlterIndexTogether into a single operation — each operation type must remain
+      a separate output operation targeting its own option_name.
+    weight: 3

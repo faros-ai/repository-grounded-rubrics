@@ -1,0 +1,93 @@
+metadata:
+  task_summary: Add support for C++ User Defined Literals (UDLs) in the Sphinx C++
+    domain parser, so expressions like `6.62607015e-34q_J` no longer cause 'Expected
+    end of definition' warnings.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: 'Modifies the `_parse_literal` method in `sphinx/domains/cpp.py`
+      (or a shared base in `sphinx/util/cfamily.py`) to remove the `# TODO: user-defined
+      lit` stub and replace it with actual UDL parsing logic.'
+    weight: 3
+  - id: FC2
+    description: Adds a new AST node class (e.g., `ASTUserDefinedLiteral`) in `sphinx/domains/cpp.py`
+      or `sphinx/util/cfamily.py` that wraps the parsed literal and its ud-suffix
+      identifier, implementing at minimum `_stringify` and `describe_signature` methods.
+    weight: 3
+  - id: FC3
+    description: Implements `get_id` on the new UDL AST node class, producing a mangled
+      identifier string consistent with the Itanium ABI format used by other literal
+      nodes (e.g., using `ul` or a similar prefix).
+    weight: 2
+  - id: FC4
+    description: Restricts edits to files directly relevant to C++ expression parsing
+      (e.g., `sphinx/domains/cpp.py` and/or `sphinx/util/cfamily.py`) without modifying
+      unrelated domain files such as `sphinx/domains/c.py` or Python/JS domain files.
+    weight: 2
+  - id: FC5
+    description: Updates the ud-suffix consumption logic in `_parse_literal` so that
+      after matching a numeric literal (via `float_literal_re`, `integer_literal_re`,
+      etc.) or a char/string literal, the parser attempts to match a following identifier
+      as the UDL suffix instead of stopping immediately.
+    weight: 3
+  - id: FC6
+    description: 'Adds or updates test cases (in `tests/test_domain_cpp.py`) that
+      exercise UDL expressions such as integer, float, char, or string literals followed
+      by an identifier suffix (e.g., `1q_s` or `6.62607015e-34q_J`), replacing or
+      supplementing the existing `# TODO: user-defined lit` comment.'
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Ensures the parser correctly handles the specific failing pattern
+      from the PR description: a floating-point literal immediately followed by a
+      non-standard identifier suffix (e.g., `6.62607015e-34q_J` and `1q_s`) without
+      raising ''Expected end of definition''.'
+    weight: 3
+  - id: SA2
+    description: 'Implements UDL support for all applicable literal categories mentioned
+      in the C++ grammar comment inside `_parse_literal`: integer-literal, floating-literal,
+      character-literal, and string-literal with ud-suffix.'
+    weight: 2
+  - id: SA3
+    description: Preserves the existing behavior for non-UDL literals (integers, floats,
+      booleans, pointers, chars, strings) by not altering their parse paths when no
+      identifier suffix is present.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: 'Avoids weakening existing tests: does not remove, skip, or relax
+      any existing `exprCheck` calls or other assertions in `tests/test_domain_cpp.py`
+      that were passing before the change.'
+    weight: 3
+  - id: I2
+    description: Preserves the public API of `ASTNumberLiteral`, `ASTStringLiteral`,
+      and `ASTCharLiteral` classes (their constructors and method signatures remain
+      unchanged) since UDL support is additive.
+    weight: 2
+  - id: I3
+    description: Avoids introducing new imports from third-party packages; any new
+      regex patterns or helpers are added within `sphinx/util/cfamily.py` or inline
+      in `sphinx/domains/cpp.py`.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a C++ expression containing a UDL (e.g., `6.62607015e-34q_J
+      * 1q_s`) is parsed completely without triggering the `assert_end` failure path
+      that emits 'Expected end of definition'.
+    weight: 3
+  - id: R2
+    description: Ensures the `_stringify` (or `__str__`) output of the new UDL AST
+      node reproduces the original literal text including the ud-suffix (e.g., `6.62607015e-34q_J`),
+      preserving round-trip fidelity.
+    weight: 2
+  - id: R3
+    description: Ensures that existing non-UDL numeric suffixes (`u`, `U`, `l`, `L`,
+      `f`, `F`) consumed by the `while self.current_char in 'uUlLfF'` loop are not
+      misidentified as UDL suffixes, so integer and float literals with standard suffixes
+      continue to parse correctly.
+    weight: 2
+  - id: R4
+    description: Ensures that the operator literal suffix declarations (parsed via
+      `ASTOperatorLiteral`) are not broken by the new UDL literal-suffix parsing in
+      `_parse_literal`, since these are distinct code paths.
+    weight: 1

@@ -1,0 +1,55 @@
+metadata:
+  task_summary: Fix models.E015 being incorrectly raised when Meta.ordering contains
+    'pk' of a related field (e.g., 'option__pk'), because the check loop does not
+    treat 'pk' as a valid alias when traversing related-field parts.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the _check_ordering method inside django/db/models/base.py
+      and no other production files, keeping the change minimal and local to the ordering-validation
+      logic.
+    weight: 3
+  - id: FC2
+    description: Adds a guard or special-case within the related-field traversal loop
+      in _check_ordering that skips or breaks when the current part equals 'pk', mirroring
+      the existing direct-field skip ('fields = {f for f in fields if f != "pk"}')
+      that already handles the non-related case.
+    weight: 3
+  - id: FC3
+    description: Does not alter the handling of genuinely invalid related-field ordering
+      references (e.g., 'missing_related__id' or 'parent__missing_field'), preserving
+      the existing error-appending code path in the except block.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that a model with Meta.ordering containing a related-field__pk
+      pattern (e.g., 'option__pk') passes _check_ordering without producing a models.E015
+      error, directly addressing the regression described in the PR.
+    weight: 3
+  - id: SA2
+    description: Adds a test case in the invalid_models_tests suite (or equivalent)
+      that exercises _check_ordering with a related-field__pk ordering value and asserts
+      no errors are returned.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing test for models.E015 is removed, weakened,
+      or skipped; the patch only adds coverage for the __pk case without relaxing
+      assertions on genuinely invalid orderings.
+    weight: 3
+  - id: I2
+    description: Confirms that the public _check_ordering API and Model.check() method
+      signatures remain unchanged, preserving backward compatibility for callers.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that the fix treats 'pk' as a valid terminal component of
+      a related-field ordering path at runtime, stopping traversal and suppressing
+      the E015 error without entering the error-appending branch for valid related__pk
+      expressions.
+    weight: 3
+  - id: R2
+    description: Ensures that truly nonexistent related-field orderings (e.g., 'parent__nonexistent_field')
+      still produce models.E015, confirming the fix is narrowly scoped to the 'pk'
+      alias and does not inadvertently suppress legitimate errors.
+    weight: 2

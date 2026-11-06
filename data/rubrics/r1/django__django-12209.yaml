@@ -1,0 +1,60 @@
+metadata:
+  task_summary: Fix _save_table in django/db/models/base.py so that saving a model
+    instance with an explicit pk value does not force INSERT when the pk field has
+    a default, restoring the pre-Django-3.0 INSERT-then-UPDATE behaviour.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `_save_table` method in `django/db/models/base.py` and
+      no unrelated production files, keeping the diff minimal and focused on the INSERT/UPDATE
+      decision logic.
+    weight: 2
+  - id: FC2
+    description: Adds a `not pk_set` (or equivalent) condition to the force-INSERT
+      guard block in `_save_table`, so that the block only activates when the primary
+      key was not explicitly supplied by the caller.
+    weight: 3
+  - id: FC3
+    description: Preserves the existing comment near the force-INSERT guard (e.g.,
+      'Skip an UPDATE when adding an instance and primary key has a default') or updates
+      it to accurately reflect the refined condition including the pk_set check.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the case described in the PR where `Sample(pk=s0.pk, name='Test
+      1').save()` on a model whose pk field has `default=uuid4` previously performed
+      INSERT+UPDATE but in Django 3.0 incorrectly performed two INSERTs, by ensuring
+      the update path is taken when a pk value is explicitly set.
+    weight: 3
+  - id: SA2
+    description: 'Preserves the original intention from ticket 29260: still forces
+      INSERT (skips the UPDATE attempt) when `_state.adding` is True, the pk field
+      has a default, and no explicit pk value was provided by the caller.'
+    weight: 3
+  - id: SA3
+    description: Restores correct `loaddata` behaviour so that loading a fixture containing
+      explicit pk values for already-existing objects performs an UPDATE rather than
+      a failing INSERT.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Does not weaken any existing test assertions in `tests/force_insert_update/tests.py`
+      or `tests/model_fields/test_uuid.py` (no test removals, no `skip` decorators,
+      no loosened assertions).
+    weight: 2
+  - id: I2
+    description: Does not alter the public `save()` or `save_base()` method signatures
+      or their documented `force_insert`/`force_update` parameters.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that saving a new instance without an explicit pk on a model
+      with a `default`-bearing pk field still results in a direct INSERT (the UPDATE
+      attempt is skipped), maintaining the performance optimisation introduced in
+      ticket 29260.
+    weight: 3
+  - id: R2
+    description: Ensures that saving an instance whose `_state.adding` is True but
+      whose pk was explicitly set (i.e., `pk_set` is True) attempts an UPDATE first,
+      falling back to INSERT only if no row was matched, matching Django 2.2 behaviour.
+    weight: 3

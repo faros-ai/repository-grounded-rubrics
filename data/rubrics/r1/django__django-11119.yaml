@@ -1,0 +1,49 @@
+metadata:
+  task_summary: Engine.render_to_string() must pass autoescape=self.autoescape when
+    constructing Context so that an Engine configured with autoescape=False is respected.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/template/engine.py and no unrelated files — the fix
+      is confined to the Engine class source.
+    weight: 2
+  - id: FC2
+    description: Changes the Context() construction call inside render_to_string to
+      pass autoescape=self.autoescape as a keyword argument.
+    weight: 3
+  - id: FC3
+    description: Avoids altering the Engine.__init__ signature, the Context class,
+      or any other public API surface not required by the fix.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the stated bug: when an Engine is created with autoescape=False,
+      the Context built in render_to_string now receives autoescape=False instead
+      of the default True.'
+    weight: 3
+  - id: SA2
+    description: Preserves the existing guard that skips Context re-wrapping when
+      the caller already passes a Context instance (the 'isinstance(context, Context)'
+      branch remains unchanged).
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms no test is weakened or removed — any existing tests for
+      render_to_string or Engine autoescape behavior remain intact or are updated
+      to match the corrected behavior.
+    weight: 1
+  - id: I2
+    description: Confirms the public signature of Engine.render_to_string(template_name,
+      context=None) is preserved without adding or removing parameters.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: When Engine is instantiated with autoescape=False and render_to_string
+      is called with a plain dict context, the constructed Context carries autoescape=False
+      so HTML-special characters (e.g. '<', '>') are rendered without escaping.
+    weight: 3
+  - id: R2
+    description: When Engine is instantiated with the default autoescape=True (backward-compatible
+      case), render_to_string continues to produce an autoescaped output, maintaining
+      existing behavior.
+    weight: 2

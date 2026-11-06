@@ -1,0 +1,53 @@
+metadata:
+  task_summary: Fix AttributeError when block-multiplying a BlockMatrix containing
+    ZeroMatrix blocks, caused by sympy.core.numbers.Zero appearing instead of ZeroMatrix
+    in the result of self.blocks*other.blocks.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sympy/matrices/expressions/blockmatrix.py and only that
+      file (or the corresponding test file) — no unrelated modules are changed.
+    weight: 2
+  - id: FC2
+    description: Changes are localised to the BlockMatrix class or its helpers (e.g.,
+      _blockmul, colblocksizes, rowblocksizes, or bc_matmul) in sympy/matrices/expressions/blockmatrix.py,
+      rather than patching unrelated classes.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause identified in the PR description: entries
+      in self.blocks*other.blocks that evaluate to sympy.core.numbers.Zero (scalar)
+      instead of ZeroMatrix, by converting or replacing such entries with a properly
+      shaped ZeroMatrix.'
+    weight: 3
+  - id: SA2
+    description: Ensures that block_collapse(b * b * b) does not raise an AttributeError
+      when b is a BlockMatrix containing ZeroMatrix blocks, matching the scenario
+      in the PR description.
+    weight: 3
+  - id: SA3
+    description: Ensures that colblocksizes and rowblocksizes properties do not fail
+      when a block entry is a scalar Zero (sympy.core.numbers.Zero) without a .cols
+      or .rows attribute.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: 'Preserves the public API of BlockMatrix._blockmul: it still accepts
+      another BlockMatrix and returns a BlockMatrix (no change to the method signature
+      or return type contract).'
+    weight: 2
+  - id: I2
+    description: Does not weaken any existing tests in sympy/matrices/expressions/tests/test_blockmatrix.py
+      (no skips, xfails, or deletions of existing assertions).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Guarantees that all block entries in the BlockMatrix returned by
+      _blockmul have a .rows and .cols attribute (i.e., are MatrixExpr instances),
+      so subsequent calls to colblocksizes and rowblocksizes succeed without AttributeError.
+    weight: 3
+  - id: R2
+    description: 'Produces the correct mathematical result: block_collapse(b * b *
+      b) for b = BlockMatrix([[a, ZeroMatrix(2,2)], [ZeroMatrix(2,2), ZeroMatrix(2,2)]])
+      yields a matrix whose off-diagonal and lower blocks are zero.'
+    weight: 2

@@ -1,0 +1,57 @@
+metadata:
+  task_summary: Fix autodoc_typehints_description_target='documented' failing to add
+    rtype when Napoleon generates ':returns:' instead of ':return:' fields.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `augment_descriptions_with_types` function in `sphinx/ext/autodoc/typehints.py`
+      to handle the `'returns'` field name (Napoleon-generated) in addition to `'return'`,
+      so that `has_description` is populated when Napoleon's `:returns:` field is
+      present.
+    weight: 3
+  - id: FC2
+    description: Confines changes to `sphinx/ext/autodoc/typehints.py` without modifying
+      unrelated modules (e.g., does not alter `sphinx/ext/napoleon/docstring.py` or
+      other extension files).
+    weight: 2
+  - id: FC3
+    description: Adds a test or fixture exercising the combination of Napoleon's `:returns:`
+      output with `autodoc_typehints_description_target='documented'`, verifying that
+      an `rtype` field is produced when a return description exists but no explicit
+      type annotation appears in the docstring.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause stated in the PR description: the condition
+      checking for a return description in `augment_descriptions_with_types` now recognizes
+      both `''return''` and `''returns''` as equivalent field-name prefixes, matching
+      what Napoleon emits (`:returns:`).'
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior for the `autodoc_typehints_description_target='all'`
+      path (the `modify_field_list` function) — the fix does not incorrectly alter
+      the `'all'` code path, which uses different logic (`arguments` dict rather than
+      `has_description`).
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the fix does not weaken or remove any existing assertions
+      in tests related to `augment_descriptions_with_types` or `autodoc_typehints_description_target`.
+    weight: 2
+  - id: I2
+    description: Confirms that the public function signature of `augment_descriptions_with_types`
+      in `sphinx/ext/autodoc/typehints.py` remains unchanged (same parameters and
+      return type), preserving backward compatibility for any callers.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when a Napoleon-processed docstring contains a `:returns:`
+      field (with trailing 's') and the function has a type-annotated return, `augment_descriptions_with_types`
+      adds an `rtype` node to the field list — i.e., `'return'` is added to `has_description`
+      via the branch that checks `parts[0] == 'returns'` or equivalent.
+    weight: 3
+  - id: R2
+    description: Maintains backward compatibility so that plain Sphinx-style `:return:`
+      fields (without trailing 's') still add `'return'` to `has_description`, preserving
+      the existing behavior for non-Napoleon docstrings.
+    weight: 2

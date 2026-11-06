@@ -1,0 +1,56 @@
+metadata:
+  task_summary: Fix proxy authentication failure (HTTP 407) caused by a charset mismatch
+    when percent-decoding credentials extracted from proxy URLs.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the credential-extraction logic in requests/utils.py, specifically
+      within or around the get_auth_from_url function.
+    weight: 3
+  - id: FC2
+    description: Confines changes to the proxy credential encoding path (requests/utils.py
+      or requests/auth.py) without altering unrelated files or adding new dependencies.
+    weight: 2
+  - id: FC3
+    description: Keeps the change minimal and does not modify the public signature
+      of get_auth_from_url (it still accepts a url argument and returns a two-tuple).
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the charset mismatch between unquote() (which defaults
+      to UTF-8) and _basic_auth_str (which encodes credentials with latin-1), so that
+      percent-encoded non-ASCII bytes such as %e9 in a proxy URL are decoded consistently.
+    weight: 3
+  - id: SA2
+    description: Ensures that proxy credentials containing special characters (e.g.,
+      percent-encoded bytes that are not valid UTF-8 sequences) are preserved correctly
+      when constructing the Proxy-Authorization header, preventing a spurious 407
+      response.
+    weight: 3
+  - id: SA3
+    description: Does not change the handling of standard ASCII proxy credentials
+      (e.g., simple alphanumeric user:pass), so existing proxy setups continue to
+      work.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Does not weaken or skip any existing test cases for get_auth_from_url
+      (e.g., does not remove parametrize entries, does not add pytest.mark.skip, does
+      not change expected values to match broken behavior).
+    weight: 3
+  - id: I2
+    description: Preserves the public API of get_auth_from_url so callers in adapters.py
+      (proxy_headers) and sessions.py (rebuild_proxies) continue to work without modification.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Adds a structural check or uses an encoding argument (such as encoding='latin-1'
+      or equivalent) in the unquote() call(s) inside get_auth_from_url so that single-byte
+      percent-escape sequences like %e9 decode to the correct latin-1 character rather
+      than a Unicode replacement character.
+    weight: 3
+  - id: R2
+    description: Maintains correct decoding for multi-byte UTF-8 percent-encoded sequences
+      (e.g., %C3%A9 for U+00E9) so that credentials encoded in UTF-8 are also handled
+      without corruption.
+    weight: 2

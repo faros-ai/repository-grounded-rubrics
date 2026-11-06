@@ -1,0 +1,64 @@
+metadata:
+  task_summary: Fix HashedFilesMixin.post_process() to stop yielding duplicate entries
+    for the same file across multiple processing passes.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies post_process() in django/contrib/staticfiles/storage.py
+      to avoid yielding the same original filename more than once across the initial
+      pass and the subsequent adjustable-file passes.
+    weight: 3
+  - id: FC2
+    description: Confines changes to django/contrib/staticfiles/storage.py (the HashedFilesMixin
+      class) without modifying unrelated files such as collectstatic.py or other management
+      commands.
+    weight: 2
+  - id: FC3
+    description: Introduces a deduplication mechanism (such as a set or dict tracking
+      already-yielded names) inside post_process() so that only the final result for
+      each file is yielded.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures post_process() yields each original filename at most once,
+      matching the expected behavior described in the PR where 'admin/css/base.css'
+      should appear only once in output.
+    weight: 3
+  - id: SA2
+    description: Ensures the single yield per file reflects the final hashed name
+      (last pass result), not an intermediate hash value, consistent with the PR's
+      expected output showing only 'admin/css/base.6b517d0d5813.css'.
+    weight: 2
+  - id: SA3
+    description: Ensures files that require no changes across passes (such as 'admin/css/dashboard.css')
+      are still yielded exactly once rather than once per pass.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing public signature of post_process() (accepting
+      paths, dry_run, and **options) without altering the tuple structure (name, hashed_name,
+      processed) of yielded values.
+    weight: 3
+  - id: I2
+    description: Preserves the RuntimeError yield for 'All' when max_post_process_passes
+      is exceeded, keeping error-surface behavior intact.
+    weight: 2
+  - id: I3
+    description: Avoids weakening or skipping any existing tests in tests/staticfiles_tests/test_storage.py
+      (no additions of skip markers or removal of assertions).
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Ensures collectstatic's collect() appends each original_path to post_processed_files
+      only once, so the post-processed count in the summary output matches the number
+      of distinct post-processed files.
+    weight: 3
+  - id: R2
+    description: Maintains that all adjustable files still undergo multiple processing
+      passes internally (the loop over max_post_process_passes is preserved) so nested
+      URL references are resolved correctly.
+    weight: 2
+  - id: R3
+    description: Preserves dry_run early-return behavior so that no yields occur and
+      no files are modified when dry_run=True.
+    weight: 1

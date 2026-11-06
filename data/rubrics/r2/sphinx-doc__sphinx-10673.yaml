@@ -1,0 +1,68 @@
+metadata:
+  task_summary: Allow 'genindex', 'modindex', and 'search' to be listed in a toctree
+    directive without producing 'toctree contains reference to nonexisting document'
+    warnings.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sphinx/directives/other.py parse_content to skip the 'nonexisting
+      document' warning branch for the special docnames 'genindex', 'modindex', and
+      'search'.
+    weight: 3
+  - id: FC2
+    description: Modifies sphinx/environment/adapters/toctree.py (inside _entries_from_toctree
+      or resolve) to handle the special docnames 'genindex', 'modindex', and 'search'
+      so that they do not trigger the KeyError path that emits a 'nonexisting document'
+      warning.
+    weight: 3
+  - id: FC3
+    description: Confines changes to toctree-related files (sphinx/directives/other.py
+      and/or sphinx/environment/adapters/toctree.py) without unrelated file churn
+      in unrelated modules.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Adds a conditional check (in parse_content or equivalent toctree
+      parsing code) that treats 'genindex', 'modindex', and 'search' analogously to
+      the 'self' or URL special-case branches, adding them to toctree entries without
+      emitting a warning.
+    weight: 3
+  - id: SA2
+    description: Ensures the special docnames 'genindex', 'modindex', and 'search'
+      are added to toctree['entries'] (not to toctree['includefiles']) so they are
+      listed in the TOC but not treated as source documents to rebuild.
+    weight: 2
+  - id: SA3
+    description: Adds a handler in the toctree resolution path (_entries_from_toctree
+      or equivalent) that constructs a reference node (nodes.reference with a resolved
+      refuri) for 'genindex', 'modindex', and 'search' rather than looking them up
+      in self.env.tocs.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the existing warning for genuinely nonexisting documents
+      (docnames other than 'genindex', 'modindex', 'search') is preserved and not
+      weakened or removed.
+    weight: 3
+  - id: I2
+    description: Confirms that the existing 'self' and URL (url_re) special-case handling
+      in parse_content and _entries_from_toctree is left intact and not modified.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that including 'genindex', 'modindex', or 'search' in a toctree
+      directive produces no WARNING log messages containing 'toctree contains reference
+      to nonexisting document', as evidenced by a conditional guard on those names
+      before the warning call.
+    weight: 3
+  - id: R2
+    description: Ensures that resolved toctree entries for 'genindex', 'modindex',
+      and 'search' produce clickable reference nodes with correct internal URIs (e.g.,
+      'genindex.html', 'py-modindex.html', 'search.html') rather than empty or broken
+      links.
+    weight: 2
+  - id: R3
+    description: 'Maintains backward-compatible behavior for all existing non-special
+      toctree entries: real document names, URLs, and ''self'' continue to resolve
+      as before without any change in warning behavior or link generation.'
+    weight: 2

@@ -1,0 +1,60 @@
+metadata:
+  task_summary: Make RenameModel.database_forwards and database_backwards a no-op
+    when the model already has an explicit db_table defined, to avoid spurious foreign-key
+    drops/recreations and table recreations.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the RenameModel.database_forwards method in django/db/migrations/operations/models.py
+      to add a guard that skips all schema operations when old_model._meta.db_table
+      equals new_model._meta.db_table.
+    weight: 3
+  - id: FC2
+    description: Limits changes to django/db/migrations/operations/models.py (the
+      RenameModel class) without modifying unrelated migration infrastructure files
+      such as autodetector.py or the schema editor backends.
+    weight: 2
+  - id: FC3
+    description: Adds or updates at least one test in the migrations test suite (e.g.
+      tests/migrations/test_operations.py) that exercises RenameModel when the model
+      has an explicit db_table option, verifying no table rename or FK alteration
+      occurs.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that RenameModel.database_forwards returns early (is a no-op
+      at the database level) when the old model and new model share the same db_table
+      value, as required by the PR description.
+    weight: 3
+  - id: SA2
+    description: Ensures that RenameModel.database_backwards also becomes a no-op
+      when db_table is explicitly set on the model, by symmetrically applying the
+      same guard used in database_forwards.
+    weight: 3
+  - id: SA3
+    description: Preserves the state-level rename in RenameModel.state_forwards so
+      that the Django app registry reflects the new model name even when the database
+      operation is skipped.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the existing RenameModel behavior (table rename, FK
+      repointing, M2M table rename) is preserved when the model does NOT have an explicit
+      db_table set.
+    weight: 3
+  - id: I2
+    description: Confirms that no existing test assertions in test_operations.py or
+      test_optimizer.py are weakened, skipped, or removed to accommodate the new behavior.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when old_model._meta.db_table equals new_model._meta.db_table,
+      schema_editor.alter_db_table is never called for the main table, preventing
+      the spurious foreign-key constraint drops and recreations described in the PR
+      for Postgres.
+    weight: 3
+  - id: R2
+    description: Ensures that when the db_table guard is active, schema_editor.alter_field
+      is not called for related objects pointing to the renamed model, avoiding the
+      sqlite table-recreation side effect described in the PR.
+    weight: 2

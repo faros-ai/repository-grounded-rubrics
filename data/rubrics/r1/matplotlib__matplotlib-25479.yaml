@@ -1,0 +1,58 @@
+metadata:
+  task_summary: Fix confusing colormap name handling where registering a colormap
+    under a name different from its internal .name attribute causes lookup failures
+    when using plt.set_cmap.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies ColormapRegistry.register() in lib/matplotlib/cm.py to update
+      the stored copy's .name attribute to match the registry key (name) when they
+      differ.
+    weight: 3
+  - id: FC2
+    description: Confines changes to the colormap registration or lookup logic (e.g.,
+      cm.py, colors.py, or pyplot.py) without introducing unrelated file modifications.
+    weight: 2
+  - id: FC3
+    description: Adds a test (anywhere in the test suite) that registers a colormap
+      under a name different from its internal .name attribute and verifies that the
+      registered name can be used to retrieve or apply it.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that when mpl.colormaps.register(cmap, name=name) or cm.register_cmap(name=name,
+      cmap=cmap) is called with a name that differs from cmap.name, the colormap stored
+      in the registry has its .name attribute set to the registry key (name), not
+      the original cmap.name.
+    weight: 3
+  - id: SA2
+    description: Ensures that plt.set_cmap('my_cmap_name') followed by a plotting
+      call (or rcParams lookup) correctly references the registered name 'my_cmap_name'
+      rather than the colormap's internal .name attribute.
+    weight: 3
+  - id: SA3
+    description: Preserves the existing behavior where colormaps registered without
+      an explicit name argument still use cmap.name as the registry key.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: 'Confirms that the public API of ColormapRegistry.register() (parameters:
+      cmap, name, force) is preserved with no signature changes.'
+    weight: 2
+  - id: I2
+    description: Confirms that no existing tests for colormap equality, registration,
+      or lookup are weakened, removed, or marked as skip/xfail.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that after registering a colormap via mpl.colormaps.register(cmap,
+      name='my_cmap_name') where cmap.name == 'some_cmap_name', retrieving the colormap
+      via mpl.colormaps['my_cmap_name'] returns an object whose .name attribute is
+      'my_cmap_name' (not 'some_cmap_name').
+    weight: 3
+  - id: R2
+    description: Ensures that rcParams['image.cmap'] is set to the registry-registered
+      name (e.g., 'my_cmap_name') after calling set_cmap with that name, so that subsequent
+      no-argument get_cmap() or _ensure_cmap(None) calls succeed without raising a
+      ValueError or KeyError.
+    weight: 3

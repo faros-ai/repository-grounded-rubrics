@@ -1,0 +1,56 @@
+metadata:
+  task_summary: Fix strip_accents_unicode so that strings already in NFKD form (containing
+    combining characters) are correctly stripped of their accent code points.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the def strip_accents_unicode( function body in sklearn/feature_extraction/text.py
+      and no other unrelated files.
+    weight: 3
+  - id: FC2
+    description: Removes or restructures the early-return branch inside strip_accents_unicode
+      that returns s unchanged when normalized == s, which is the root cause of the
+      bug.
+    weight: 3
+  - id: FC3
+    description: Preserves the unicodedata.normalize('NFKD', s) call and the combining-character
+      filter (unicodedata.combining) in the updated implementation.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that strip_accents_unicode applied to a two-code-point string
+      already in NFKD form (e.g., chr(110) + chr(771)) strips the combining tilde
+      and returns just the base letter, matching the expected result described in
+      the PR.
+    weight: 3
+  - id: SA2
+    description: Ensures that strip_accents_unicode applied to a precomposed string
+      (e.g., chr(241), LATIN SMALL LETTER N WITH TILDE) still correctly strips the
+      accent and returns the base letter, preserving the existing behavior.
+    weight: 2
+  - id: SA3
+    description: Adds or updates a test that exercises strip_accents_unicode on a
+      string already in NFKD form (a multi-code-point sequence containing a combining
+      character) to confirm the accent is removed.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms the public signature of strip_accents_unicode(s) is unchanged
+      (single string argument, returns a string).
+    weight: 3
+  - id: I2
+    description: Confirms that no existing test assertions for strip_accents_unicode
+      are weakened, removed, or skipped in the diff.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Guarantees that both a precomposed accented character and its NFKD-decomposed
+      equivalent (same visual glyph, different code-point sequences) are normalized
+      to the same output string by strip_accents_unicode, resolving the inconsistency
+      reported in the PR.
+    weight: 3
+  - id: R2
+    description: Preserves the behavior that plain ASCII strings passed to strip_accents_unicode
+      are returned unmodified (no combining characters to strip, no regression for
+      the common fast path).
+    weight: 2

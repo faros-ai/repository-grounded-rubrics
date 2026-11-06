@@ -1,0 +1,58 @@
+metadata:
+  task_summary: Fix SequentialFeatureSelector so that a one-time-use iterable of CV
+    splits (e.g. from LeaveOneGroupOut.split) can be passed as the cv parameter without
+    being exhausted after the first cross_val_score call.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sklearn/feature_selection/_sequential.py and no unrelated
+      production files, keeping the change local to the SequentialFeatureSelector
+      implementation.
+    weight: 2
+  - id: FC2
+    description: Adds logic (in fit or a method it calls) that converts the cv iterable
+      to a list-like structure before it is passed repeatedly to cross_val_score,
+      ensuring the iterable is not consumed on the first use.
+    weight: 3
+  - id: FC3
+    description: Avoids modifying _CVIterableWrapper or check_cv in sklearn/model_selection/_split.py,
+      keeping the fix self-contained in the feature selection module.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause described in the PR: the cv iterable passed
+      to SequentialFeatureSelector is exhausted after the first call to cross_val_score
+      in _get_best_new_feature_score, causing an IndexError in _aggregate_score_dicts
+      on subsequent calls.'
+    weight: 3
+  - id: SA2
+    description: Ensures that an iterable of (train, test) index arrays such as those
+      produced by LeaveOneGroupOut.split can be passed as cv and used across all iterations
+      of the greedy feature selection loop.
+    weight: 3
+  - id: SA3
+    description: Adds a test (anywhere in the diff) that exercises SequentialFeatureSelector
+      with a cv argument that is a generator or iterable of splits (e.g., from a CV
+      splitter's split method), confirming the fit succeeds.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing public API of SequentialFeatureSelector, keeping
+      the cv parameter signature and all other parameters unchanged.
+    weight: 3
+  - id: I2
+    description: Confirms that passing an integer or a CV splitter object (not an
+      iterable) as cv still works correctly, i.e. the fix does not break the existing
+      non-iterable cv code paths.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Guarantees that every iteration of the greedy feature selection loop
+      in _get_best_new_feature_score receives the same full set of CV splits, preventing
+      an empty-scores error from cross_val_score returning an empty list.
+    weight: 3
+  - id: R2
+    description: Ensures the conversion of the cv iterable to a reusable form happens
+      exactly once per fit call, avoiding redundant re-materialization on every cross_val_score
+      call inside the loop.
+    weight: 2

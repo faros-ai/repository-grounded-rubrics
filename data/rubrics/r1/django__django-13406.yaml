@@ -1,0 +1,57 @@
+metadata:
+  task_summary: Fix QuerySet with values()/values_list() returning model instances
+    instead of dicts when recreated from a pickled query object.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the query setter or QuerySet.__setstate__ (in django/db/models/query.py)
+      to update _iterable_class when the assigned query has a non-empty values_select.
+    weight: 3
+  - id: FC2
+    description: Confines production-code changes to django/db/models/query.py (and/or
+      closely related ORM files), without touching unrelated files.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test that exercises the pickling round-trip of
+      a values() or values_list() queryset's query object and reassigns it to a new
+      QuerySet.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that assigning a pickled-then-unpickled query from a values()
+      queryset to prices2.query causes prices2 to return dicts rather than model instances,
+      matching the stated expected behavior in the PR description.
+    weight: 3
+  - id: SA2
+    description: Handles the values_list() case (ValuesListIterable, NamedValuesListIterable,
+      or FlatValuesListIterable) in addition to the values() case (ValuesIterable),
+      since both rely on the same values_select mechanism.
+    weight: 2
+  - id: SA3
+    description: Preserves the documented pattern of pickling queryset.query alone
+      (not the whole queryset) for later re-evaluation, without requiring the caller
+      to also set _iterable_class manually.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the public query setter API so that code assigning queryset.query
+      directly continues to work without requiring any additional caller changes.
+    weight: 3
+  - id: I2
+    description: Does not weaken any existing pickling tests (e.g., test_deferred_load_qs_pickling
+      or test_ticket7813) by removing assertions or adding skip markers.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: When values_select on the assigned query is empty (plain all() queryset),
+      _iterable_class remains ModelIterable so that non-values queries are not broken.
+    weight: 3
+  - id: R2
+    description: Adds a structural guard (conditional branch or explicit _iterable_class
+      assignment) triggered by a non-empty query.values_select, preventing the ModelIterable
+      path from being taken for values/values_list queries.
+    weight: 3
+  - id: R3
+    description: Ensures no AttributeError is raised when iterating or printing a
+      QuerySet whose query was loaded from pickle and whose values_select is non-empty.
+    weight: 2

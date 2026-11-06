@@ -1,0 +1,56 @@
+metadata:
+  task_summary: 'Fix ugly rendering of Python Enum values as default arguments in
+    autodoc function signatures by returning ''ClassName.MemberName'' instead of the
+    default repr ''<ClassName.MemberName: value>''.'
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `object_description` function in `sphinx/util/inspect.py`
+      to handle `enum.Enum` instances specially, rather than falling through to the
+      generic `repr()` path.
+    weight: 3
+  - id: FC2
+    description: Adds an `isinstance(object, enum.Enum)` (or equivalent `isenumattribute`)
+      guard branch inside `object_description` prior to the generic `repr()` call.
+    weight: 3
+  - id: FC3
+    description: Confines changes to the enum-rendering logic rather than introducing
+      unrelated modifications across unrelated files or modules.
+    weight: 2
+  - id: FC4
+    description: Adds a test case in the test suite that exercises `object_description`
+      with an `enum.Enum` instance and asserts the output is in `ClassName.MemberName`
+      format (e.g., `MyEnum.ValueA`) rather than the repr format.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Returns a string in the form `ClassName.MemberName` (e.g., `MyEnum.ValueA`)
+      from `object_description` when called with an `enum.Enum` instance, matching
+      the expected behavior from the PR description.
+    weight: 3
+  - id: SA2
+    description: 'Ensures the fix applies to the code path that renders default parameter
+      values in `stringify_signature`, so that autodoc-generated signatures display
+      enum defaults like `MyEnum.ValueA` instead of `<MyEnum.ValueA: 10>`.'
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves correct behavior of `object_description` for non-enum types
+      (dict, set, frozenset, and other objects) so existing tests for dictionary/set/frozenset
+      sorting are not broken.
+    weight: 3
+  - id: I2
+    description: Does not weaken or skip any existing tests in `tests/test_util_inspect.py`
+      or `tests/test_ext_autodoc.py` to make the patch pass.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: 'Produces a stable, human-readable string (using `.__class__.__name__`
+      or `type(...).__qualname__` and `.name` attributes of the enum member) that
+      does not include the angle-bracket repr format `<ClassName.MemberName: value>`.'
+    weight: 3
+  - id: R2
+    description: Handles all `enum.Enum` subclasses generically (not just a specific
+      enum class), so that any enum member passed as a default value is rendered cleanly
+      regardless of the enum's values or types.
+    weight: 2

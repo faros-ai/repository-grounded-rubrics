@@ -1,0 +1,56 @@
+metadata:
+  task_summary: Fix double-superscript LaTeX rendering for secondquant creation operators
+    (e.g., Bd(a)**2 should render as {b^\dagger_{0}}^{2} not b^\dagger_{0}^{2}).
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies code in sympy/physics/secondquant.py or sympy/printing/latex.py
+      to address the double-superscript bug where creation operator LaTeX containing
+      '^' is raised to a power.
+    weight: 3
+  - id: FC2
+    description: Avoids unrelated file changes beyond the minimal set needed to fix
+      the double-superscript issue in secondquant operator LaTeX printing.
+    weight: 2
+  - id: FC3
+    description: Modifies or adds logic so that a base whose LaTeX string already
+      contains '^' (e.g., 'b^\\dagger_{...}' or 'a^\\dagger_{...}') is wrapped in
+      curly braces or parentheses before appending a power superscript.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that the LaTeX output for Bd(a)**2 (CreateBoson raised to
+      a power) wraps the operator in braces, producing a form like '{b^\\dagger_{0}}^{2}'
+      rather than 'b^\\dagger_{0}^{2}'.
+    weight: 3
+  - id: SA2
+    description: Ensures that the analogous fermionic creation operator Fd raised
+      to a power (e.g., Fd(p)**2) is also protected against double superscripts, producing
+      a form like '{a^\\dagger_{p}}^{2}'.
+    weight: 2
+  - id: SA3
+    description: Confirms the fix applies parenthesize_super (or equivalent brace-wrapping)
+      to base expressions whose LaTeX representation contains '^', consistent with
+      the existing parenthesize_super mechanism in sympy/printing/latex.py.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing latex output for single creation operators
+      (i.e., without a power), so that latex(Bd(i)) still produces 'b^\\dagger_{i}'
+      and latex(Fd(p)) still produces 'a^\\dagger_{p}'.
+    weight: 3
+  - id: I2
+    description: Does not weaken or remove existing test assertions for secondquant
+      latex output (e.g., assertions checking 'b^\\dagger_{i}' or 'a^\\dagger_{p}').
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Produces valid LaTeX for Bd(a)**2 where the creation operator base
+      is enclosed in braces before the exponent, eliminating the double-superscript
+      sequence that causes rendering failures in LaTeX/Jupyter.
+    weight: 3
+  - id: R2
+    description: Maintains correct latex output for annihilation operators raised
+      to powers (e.g., B(a)**2 producing 'b_{0}^{2}') since their LaTeX contains no
+      '^' and should not be affected by the fix.
+    weight: 2

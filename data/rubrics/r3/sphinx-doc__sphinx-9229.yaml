@@ -1,0 +1,67 @@
+metadata:
+  task_summary: Fix inconsistent type alias documentation where 'alias of ...' text
+    is shown even when a user-provided docstring exists, by suppressing the auto-generated
+    text when a docstring is present.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `update_content` method of `GenericAliasMixin` in `sphinx/ext/autodoc/__init__.py`
+      to suppress 'alias of ...' when a docstring already exists for the object.
+    weight: 3
+  - id: FC2
+    description: Modifies the `update_content` method of `NewTypeMixin` in `sphinx/ext/autodoc/__init__.py`
+      to suppress 'alias of ...' when a docstring already exists for the object.
+    weight: 3
+  - id: FC3
+    description: Modifies the `update_content` method of `TypeVarMixin` in `sphinx/ext/autodoc/__init__.py`
+      to suppress 'alias of TypeVar(...)' when a docstring already exists for the
+      object.
+    weight: 3
+  - id: FC4
+    description: Confines all changes to `sphinx/ext/autodoc/__init__.py` (and optionally
+      test files), with no unrelated file churn in other modules or dependencies.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that when a type alias (such as a `Dict`, `Union`, or `Callable`
+      alias) has a user-provided next-line docstring comment, the rendered documentation
+      shows that docstring instead of (or without) 'alias of ...' text.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior of showing 'alias of ...' text when
+      a type alias has no user-provided docstring, keeping backward-compatible output
+      for undocumented aliases.
+    weight: 3
+  - id: SA3
+    description: Applies the docstring-presence check to both `DataDocumenter` and
+      `AttributeDocumenter` code paths, since both inherit from `GenericAliasMixin`,
+      `NewTypeMixin`, and `TypeVarMixin`.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing tests for undocumented type aliases (e.g.,
+      `test_autodata_GenericAlias`, `test_autodata_NewType`, `test_autodata_TypeVar`)
+      are not weakened or removed.
+    weight: 2
+  - id: I2
+    description: Confirms that the public signatures of `update_content`, `get_doc`,
+      `add_content`, and `should_suppress_directive_header` in `DataDocumenterMixinBase`,
+      `GenericAliasMixin`, `NewTypeMixin`, and `TypeVarMixin` are preserved (no parameter
+      removals or renames).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: 'Ensures that a `GenericAlias` type alias with a docstring comment
+      (e.g., `#: A list of int` before `T = List[int]`) renders only the user''s docstring
+      in output, without the ''alias of ...'' line appended.'
+    weight: 3
+  - id: R2
+    description: Ensures that a `NewType` or `TypeVar` type alias with a docstring
+      comment renders only the user's docstring, without the 'alias of ...' or 'alias
+      of TypeVar(...)' line appended.
+    weight: 3
+  - id: R3
+    description: Maintains that a type alias with no docstring still receives the
+      'alias of ...' text, so the fix does not suppress useful auto-generated content
+      for undocumented aliases.
+    weight: 2

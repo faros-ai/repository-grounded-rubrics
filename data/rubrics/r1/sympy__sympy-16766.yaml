@@ -1,0 +1,55 @@
+metadata:
+  task_summary: Add _print_Indexed support to PythonCodePrinter in sympy/printing/pycode.py
+    so that Indexed expressions are printed as valid Python bracket notation instead
+    of emitting a 'Not supported in Python' warning comment.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Adds a _print_Indexed method definition somewhere in sympy/printing/pycode.py,
+      either inside PythonCodePrinter or AbstractPythonCodePrinter.
+    weight: 3
+  - id: FC2
+    description: Confines changes to the minimal set of files needed; avoids unrelated
+      edits to files outside sympy/printing/pycode.py and its test file.
+    weight: 2
+  - id: FC3
+    description: Adds test coverage (in sympy/printing/tests/test_pycode.py or equivalent)
+      that exercises _print_Indexed via PythonCodePrinter or pycode() with an IndexedBase
+      expression.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements _print_Indexed such that it produces Python bracket notation
+      of the form 'base[index]' (e.g., 'p[0]') for a single-index Indexed expression
+      like IndexedBase('p')[0].
+    weight: 3
+  - id: SA2
+    description: Implements _print_Indexed such that multiple indices are joined with
+      ', ' inside the brackets (e.g., 'A[i, j]') for multi-index Indexed expressions.
+    weight: 2
+  - id: SA3
+    description: Calls self._print() on each index argument rather than using str()
+      directly, so that index sub-expressions are rendered through the printer's own
+      formatting logic.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves all existing test assertions in test_pycode.py for PythonCodePrinter,
+      MpmathPrinter, NumPyPrinter, and SciPyPrinter without weakening, skipping, or
+      removing them.
+    weight: 3
+  - id: I2
+    description: Does not alter the public pycode() function signature or its existing
+      behavior for non-Indexed expressions.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that calling pycode() or PythonCodePrinter().doprint() on
+      an Indexed expression no longer adds the expression to _not_supported, eliminating
+      the '# Not supported in Python' comment from the output.
+    weight: 3
+  - id: R2
+    description: Ensures that the printed base name is derived from the IndexedBase
+      label (e.g., 'p' for IndexedBase('p')) rather than a repr or internal object
+      string.
+    weight: 2

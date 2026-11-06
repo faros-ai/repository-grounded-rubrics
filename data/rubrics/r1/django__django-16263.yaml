@@ -1,0 +1,90 @@
+metadata:
+  task_summary: Strip unused annotations (not referenced by filters, other annotations,
+    or ordering) from count() queries to improve performance, analogous to how select_related
+    is already stripped.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies `get_count` in `django/db/models/sql/query.py` to strip
+      unused annotations before calling `get_aggregation`.
+    weight: 3
+  - id: FC2
+    description: Implements annotation-stripping logic that checks which annotation
+      aliases are referenced by the `where` clause, `order_by`, or other annotations
+      (e.g., via `Ref` or traversing source expressions).
+    weight: 3
+  - id: FC3
+    description: Uses `set_annotation_mask` or equivalent mechanism (e.g., modifying
+      `annotation_select_mask`) to suppress unused annotations in the cloned query
+      inside `get_count`, rather than removing annotations from `self.annotations`
+      on the original queryset.
+    weight: 2
+  - id: FC4
+    description: Avoids modifying files unrelated to the annotation-stripping optimization
+      (e.g., no unrelated changes to compiler, migrations, or forms modules).
+    weight: 2
+  - id: FC5
+    description: Adds or updates tests covering the case where `QuerySet.annotate(...).count()`
+      with an unused annotation produces the correct count result.
+    weight: 1
+  - id: FC6
+    description: Adds or updates tests verifying that annotations referenced by a
+      `filter()` clause are NOT stripped during `count()`, preserving correctness.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Strips annotations that are not referenced by any filter (`where`),
+      ordering (`order_by` / `extra_order_by`), or other annotations during `count()`
+      queries, matching the PR description's stated optimization goal.
+    weight: 3
+  - id: SA2
+    description: Preserves annotations that ARE referenced by filters or ordering
+      (i.e., does not strip an annotation like `num_books` when it appears in a `filter(num_books__gt=1)`
+      call).
+    weight: 3
+  - id: SA3
+    description: Mirrors the existing precedent of stripping `select_related` in count
+      queries (as noted in the PR description), applying the same logic of ignoring
+      SELECT-only information that does not affect the COUNT result.
+    weight: 2
+  - id: SA4
+    description: Preserves annotations that are referenced by other annotations (i.e.,
+      does not strip an annotation `a` when another kept annotation `b` references
+      `a` via a `Ref` or `F` expression).
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public `QuerySet.count()` and `Query.get_count()`
+      signatures remain unchanged (no new required parameters introduced).
+    weight: 3
+  - id: I2
+    description: Confirms that existing tests for `annotate(...).count()` where the
+      annotation is used in a filter are not weakened, removed, or skipped.
+    weight: 2
+  - id: I3
+    description: Avoids stripping annotations on the original (pre-clone) query object;
+      the optimization must be applied only to the cloned query inside `get_count`.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that `Book.objects.annotate(Count('chapters')).count()` (an
+      annotation unused in filters or ordering) produces the same integer result as
+      `Book.objects.count()`, demonstrable by the structural logic that unreferenced
+      aggregate annotations are excluded from the COUNT subquery.
+    weight: 3
+  - id: R2
+    description: Ensures that when an annotation is referenced in a `filter()` call
+      (e.g., `annotate(num_books=Count('book')).filter(num_books__gt=1).count()`),
+      the annotation is retained so the WHERE clause resolves correctly and the count
+      is not wrong.
+    weight: 3
+  - id: R3
+    description: Ensures that annotations referenced only in `order_by()` are also
+      retained during count, because the PR description explicitly lists ordering
+      as a dependency that prevents stripping.
+    weight: 2
+  - id: R4
+    description: 'Ensures backward compatibility: querysets with no annotations, or
+      with all annotations referenced, behave identically before and after the patch
+      (the optimization is a no-op in those cases).'
+    weight: 2

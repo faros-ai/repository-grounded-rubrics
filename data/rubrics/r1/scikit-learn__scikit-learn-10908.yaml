@@ -1,0 +1,54 @@
+metadata:
+  task_summary: Fix CountVectorizer.get_feature_names() to not raise NotFittedError
+    when a vocabulary parameter was provided at initialization but fit() has not been
+    called.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the get_feature_names method inside sklearn/feature_extraction/text.py
+      to add a _validate_vocabulary() call (guarded by a check such as 'not hasattr(self,
+      "vocabulary_")') before delegating to _check_vocabulary(), mirroring the pattern
+      already used in transform().
+    weight: 3
+  - id: FC2
+    description: Confines changes to sklearn/feature_extraction/text.py (and optionally
+      its test file); avoids unrelated file churn in other modules.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements the fix so that calling get_feature_names() on a CountVectorizer
+      initialized with a vocabulary parameter (e.g., CountVectorizer(vocabulary=vocabulary))
+      no longer raises NotFittedError, matching the behavior described in the PR description.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior where get_feature_names() on an unfitted
+      CountVectorizer with no vocabulary parameter still raises an appropriate error
+      (NotFittedError or ValueError), consistent with the PR description's statement
+      that only the vocabulary-provided case should be fixed.
+    weight: 2
+  - id: SA3
+    description: 'Ensures the fix follows the same pattern already used in transform():
+      conditionally call _validate_vocabulary() when vocabulary_ has not yet been
+      set, then call _check_vocabulary().'
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public signature of get_feature_names() (no parameters
+      beyond self) is preserved unchanged.
+    weight: 3
+  - id: I2
+    description: Confirms that existing tests for get_feature_names() (such as those
+      asserting ValueError on an empty/unfitted vocabulary) are not weakened, removed,
+      or skipped in the patch.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that after the fix, calling get_feature_names() on a CountVectorizer
+      with a vocabulary parameter provided at construction (but never fit) returns
+      the list of vocabulary terms sorted by their index, without raising any exception.
+    weight: 3
+  - id: R2
+    description: Ensures that calling get_feature_names() on a CountVectorizer that
+      has been properly fit() still returns correct feature names, so the fix does
+      not regress the normal fitted-vectorizer workflow.
+    weight: 2

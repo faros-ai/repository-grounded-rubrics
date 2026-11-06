@@ -1,0 +1,59 @@
+metadata:
+  task_summary: Add a --skip-checks CLI option to the runserver management command
+    so developers can bypass system checks during development.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/core/management/commands/runserver.py to add --skip-checks
+      argument registration in add_arguments, analogous to how migrate.py adds it.
+    weight: 3
+  - id: FC2
+    description: Modifies django/core/management/commands/runserver.py inner_run method
+      to guard self.check() call with a condition based on the skip_checks option,
+      so system checks are skipped when the flag is provided.
+    weight: 3
+  - id: FC3
+    description: Modifies django/core/management/commands/runserver.py inner_run method
+      to guard self.check_migrations() call with a condition based on the skip_checks
+      option, so migration checks are also skipped when the flag is provided.
+    weight: 2
+  - id: FC4
+    description: Avoids modifying files unrelated to the runserver command (e.g.,
+      does not alter django/core/management/base.py or django/contrib/staticfiles/management/commands/runserver.py
+      beyond what the feature requires).
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements --skip-checks as a boolean flag (action='store_true')
+      on the runserver command, consistent with how other management commands such
+      as migrate expose this option.
+    weight: 3
+  - id: SA2
+    description: Ensures the --skip-checks flag is exposed through add_arguments in
+      django/core/management/commands/runserver.py rather than relying solely on BaseCommand.create_parser
+      auto-registration, because requires_system_checks is set to [] (falsy) on the
+      runserver Command.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing behavior where, without --skip-checks, system
+      checks and migration checks are still performed inside inner_run (the guarded
+      branches fall through to the original self.check() and self.check_migrations()
+      calls).
+    weight: 3
+  - id: I2
+    description: Confirms that the requires_system_checks = [] class attribute on
+      runserver Command is retained (or equivalently left unchanged), so that BaseCommand
+      does not double-run system checks via its execute() method.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: When --skip-checks is passed, the 'Performing system checks...' message
+      and self.check() call in inner_run are bypassed, preventing the 15-20 second
+      delay described in the PR for each server reload.
+    weight: 3
+  - id: R2
+    description: When --skip-checks is not passed, runserver behaves identically to
+      before the patch, displaying 'Performing system checks...' and running both
+      self.check() and self.check_migrations() in inner_run.
+    weight: 2

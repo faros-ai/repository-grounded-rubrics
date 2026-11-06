@@ -1,0 +1,60 @@
+metadata:
+  task_summary: Fix accessing .chunks/.chunksizes on zarr-backed xarray Datasets/DataArrays
+    triggering full data loading into memory by avoiding the use of v.data (which
+    calls v.values for non-duck-arrays) in get_chunksizes.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `get_chunksizes` function in `xarray/core/common.py`
+      to avoid calling `v.data` (which triggers `v.values` and loads data for non-duck-array
+      backends like zarr).
+    weight: 3
+  - id: FC2
+    description: Confines the core fix to the minimal set of files necessary (e.g.,
+      `xarray/core/common.py` and/or `xarray/core/variable.py`) without unrelated
+      churn in other modules.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test (anywhere in the test suite) that exercises
+      `chunks` or `chunksizes` on a zarr-backed or lazily-indexed Variable/Dataset
+      without triggering data loading.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Replaces the `hasattr(v.data, 'chunks')` pattern in `get_chunksizes`
+      with a check against `v._data` (or equivalent, such as `v.chunks`) that does
+      not trigger `v.values` or numpy conversion.
+    weight: 3
+  - id: SA2
+    description: Ensures that `Dataset.chunks` and `DataArray.chunksizes` return meaningful
+      chunk information for zarr-backed (non-dask) arrays by consulting `encoding`
+      (e.g., `preferred_chunks`) or inspecting `v._data` directly.
+    weight: 2
+  - id: SA3
+    description: Preserves the existing behavior of `get_chunksizes` for dask-backed
+      variables (arrays whose `_data` already has a `chunks` attribute), so dask chunk
+      consistency checking still works.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public signatures of `get_chunksizes`, `Variable.chunksizes`,
+      `Variable.chunks`, `Dataset.chunks`, and `DataArray.chunksizes` are not changed
+      (same name, same return types).
+    weight: 3
+  - id: I2
+    description: Confirms that no existing tests related to `chunks`, `chunksizes`,
+      or `get_chunksizes` are deleted, skipped, or weakened (e.g., no added `pytest.mark.skip`
+      or removal of assertions).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that accessing `.chunks` or `.chunksizes` on a zarr-backed
+      Dataset or DataArray (opened without dask) does not call `v.data` (which would
+      invoke `v.values` and trigger `np.asarray` on a `LazilyIndexedArray`), so no
+      remote I/O is performed.
+    weight: 3
+  - id: R2
+    description: Ensures that `get_chunksizes` still raises `ValueError` with the
+      message 'Object has inconsistent chunks along dimension' when dask-chunked variables
+      have conflicting chunk sizes along the same dimension.
+    weight: 2

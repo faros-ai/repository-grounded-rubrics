@@ -1,0 +1,53 @@
+metadata:
+  task_summary: Fix a KeyError in MigrationAutodetector.only_relation_agnostic_fields
+    when a custom ForeignKey field hardcodes its 'to' argument and removes it from
+    deconstruct() kwargs.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies exactly the `only_relation_agnostic_fields` method in `django/db/migrations/autodetector.py`
+      to fix the KeyError, without changing unrelated files.
+    weight: 3
+  - id: FC2
+    description: Replaces the bare `del deconstruction[2]['to']` with a form that
+      tolerates a missing 'to' key (such as `.pop('to', None)`) rather than adding
+      a separate key-existence guard.
+    weight: 2
+  - id: FC3
+    description: Adds a regression test (anywhere in the test suite) that exercises
+      `only_relation_agnostic_fields` or the autodetector's `_detect_changes` / `changes`
+      path with a custom ForeignKey field whose `deconstruct()` omits the 'to' key.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause described in the PR: the `del deconstruction[2][''to'']`
+      line in `only_relation_agnostic_fields` raising `KeyError` when the deconstructed
+      kwargs dict does not contain a ''to'' key.'
+    weight: 3
+  - id: SA2
+    description: Preserves the intent of `only_relation_agnostic_fields` to strip
+      the 'to' relation target from deconstructed kwargs when `field.remote_field`
+      and `field.remote_field.model` are truthy, regardless of whether 'to' is present
+      in kwargs.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms the fix does not weaken or skip the `if field.remote_field
+      and field.remote_field.model` guard that gates the 'to' removal, preserving
+      the original conditional logic.
+    weight: 2
+  - id: I2
+    description: Confirms no unrelated public API methods or their signatures in `MigrationAutodetector`
+      are renamed, removed, or altered by the patch.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when a custom ForeignKey field with `field.remote_field.model`
+      set but without a 'to' key in its deconstructed kwargs is processed, `only_relation_agnostic_fields`
+      completes without raising `KeyError`.
+    weight: 3
+  - id: R2
+    description: Ensures that standard ForeignKey fields that do include 'to' in their
+      deconstructed kwargs continue to have 'to' removed from the result returned
+      by `only_relation_agnostic_fields`, preserving rename-detection behavior.
+    weight: 2

@@ -1,0 +1,60 @@
+metadata:
+  task_summary: Fix i18n_patterns to support BCP 47 language tags containing both
+    script and region subtags (e.g., en-latn-us) by correcting the language_code_prefix_re
+    regex in django/utils/translation/trans_real.py.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `language_code_prefix_re` pattern in `django/utils/translation/trans_real.py`
+      to allow more than one `-`-or-`@`-delimited segment (i.e., changes the quantifier
+      on the repeated segment group from `?` to `*` or an equivalent greedy repetition).
+    weight: 3
+  - id: FC2
+    description: Confines the fix to `django/utils/translation/trans_real.py` (and
+      optionally related test files), without modifying unrelated source files such
+      as `django/urls/resolvers.py` or `django/middleware/locale.py`.
+    weight: 2
+  - id: FC3
+    description: Adds or updates at least one test case in the i18n test suite that
+      exercises `get_language_from_path` (or `language_code_prefix_re`) with a three-part
+      locale tag such as `en-latn-us` or `en-Latn-US`.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures the updated `language_code_prefix_re` captures locale strings
+      with script-and-region subtags like `en-latn-us` and `en-Latn-US` as a single
+      group, matching the RFC 5646 structure described in the PR.
+    weight: 3
+  - id: SA2
+    description: 'Preserves existing two-part locale matching behaviour: the updated
+      regex still matches paths such as `/en-us/` and `/de-at/` and still rejects
+      non-locale prefixes like `/de-simple-page/`.'
+    weight: 2
+  - id: SA3
+    description: Does not alter the `language_code_re` pattern (used for validation
+      in `check_for_language` and in `django/core/checks/translation.py`), which already
+      uses `(?:-[a-z0-9]{1,8})*` and correctly handles multi-segment tags.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms the public signatures of `get_language_from_path`, `get_language_from_request`,
+      and `LocalePrefixPattern` remain unchanged — no parameters added or removed.
+    weight: 2
+  - id: I2
+    description: Avoids weakening or removing existing assertions in the i18n test
+      suite, particularly those checking that `/de-simple-page/` returns `None` from
+      `get_language_from_path`.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures `get_language_from_path('/en-latn-us/')` can now extract
+      the language code `en-latn-us` (or a supported variant) instead of returning
+      `None`, as evidenced by the updated regex capturing all three hyphen-separated
+      segments.
+    weight: 3
+  - id: R2
+    description: Ensures the updated `language_code_prefix_re` still does not greedily
+      consume path segments beyond the language prefix — the third capture group `(/|$)`
+      or equivalent boundary guard must remain so that subsequent URL path components
+      are not consumed.
+    weight: 2

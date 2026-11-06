@@ -1,0 +1,55 @@
+metadata:
+  task_summary: Fix decorated __init__ methods being skipped in napoleon docs when
+    obj.__globals__ does not contain the class due to decoration.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the _skip_member function in sphinx/ext/napoleon/__init__.py
+      to unwrap the decorated obj before accessing obj.__globals__ or obj.__module__.
+    weight: 3
+  - id: FC2
+    description: Introduces an unwrapping call (e.g., inspect.unwrap or a similar
+      utility) somewhere in the _skip_member logic so the underlying function's __globals__
+      is used instead of the wrapper's __globals__.
+    weight: 3
+  - id: FC3
+    description: Confines all changes to sphinx/ext/napoleon/__init__.py (and optionally
+      test files), without modifying unrelated files or modules.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause stated in the PR description: the decorated
+      obj''s __globals__ does not contain the class, causing cls_is_owner to be set
+      to False for decorated __init__ methods.'
+    weight: 3
+  - id: SA2
+    description: Ensures the fix applies to the else branch (cls = obj.__globals__[cls_path])
+      that handles simple (non-dotted) cls_path lookups, which is the direct failure
+      path described in the PR.
+    weight: 3
+  - id: SA3
+    description: Ensures the fix also handles the obj.__module__ access used in the
+      dotted cls_path branch (importlib.import_module(obj.__module__)), so decorated
+      methods with nested class paths are also fixed.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: 'Preserves the existing exception handling (except Exception: cls_is_owner
+      = False) around the class lookup, so unwrapping failures do not cause unhandled
+      exceptions.'
+    weight: 2
+  - id: I2
+    description: Does not weaken or remove existing _skip_member test cases for non-decorated
+      methods (e.g., SampleClass._private_doc, SampleError.__special_doc__).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a decorated __init__ method with a docstring and napoleon_include_init_with_doc=True
+      results in cls_is_owner=True, so the method is included in the docs rather than
+      skipped.
+    weight: 3
+  - id: R2
+    description: 'Maintains backward compatibility for non-decorated methods: undecorated
+      __init__ and other class members are still correctly identified via __globals__
+      or importlib lookup.'
+    weight: 2

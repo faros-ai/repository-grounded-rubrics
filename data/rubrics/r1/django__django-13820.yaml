@@ -1,0 +1,61 @@
+metadata:
+  task_summary: Refine the namespace-package detection in MigrationLoader.load_disk
+    to permit migration loading from regular packages that lack __file__ (e.g., frozen
+    environments) by additionally checking isinstance(module.__path__, list).
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the namespace-package guard in django/db/migrations/loader.py
+      so that the condition checks both the absence of __file__ and whether __path__
+      is not a list, rather than relying solely on getattr(module, '__file__', None)
+      being falsy.
+    weight: 3
+  - id: FC2
+    description: Confines all production-code changes to django/db/migrations/loader.py
+      without touching unrelated source files (e.g., no changes to django/apps/, django/core/,
+      or other migration submodules).
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test (anywhere in the test suite) that exercises
+      loading migrations from a module whose __file__ is absent but whose __path__
+      is a plain list, confirming the module is treated as migrated rather than unmigrated.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Replaces the sole __file__-based guard with a compound condition
+      that treats a module as a namespace package only when its __path__ is not an
+      ordinary list, matching the PR description's proposal to augment getattr(m,
+      '__file__', None) with isinstance(m.__path__, list).
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior for genuine namespace packages (those
+      whose __path__ is not a plain list, e.g., the _NamespacePath case), still adding
+      them to unmigrated_apps and skipping migration loading.
+    weight: 3
+  - id: SA3
+    description: Retains the separate guard that skips modules without a __path__
+      attribute at all (i.e., the 'not hasattr(module, __path__)' check for non-package
+      modules like migrations.py), unchanged from the pre-patch logic.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the test covering test_loading_namespace_package (migration
+      directories without __init__.py) is not weakened, removed, or made to skip,
+      ensuring namespace packages are still rejected.
+    weight: 2
+  - id: I2
+    description: Confirms the public API of MigrationLoader (constructor signature,
+      load_disk, build_graph, migrated_apps, unmigrated_apps) remains unchanged in
+      the diff.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a frozen-environment regular package (no __file__, but
+      __path__ is a list) is added to migrated_apps rather than unmigrated_apps so
+      its migrations are discovered and loaded.
+    weight: 3
+  - id: R2
+    description: Ensures that a normal (non-frozen) regular package with a __file__
+      continues to be processed exactly as before, with no regression in migration
+      discovery for standard environments.
+    weight: 2

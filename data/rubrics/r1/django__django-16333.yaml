@@ -1,0 +1,51 @@
+metadata:
+  task_summary: UserCreationForm.save() should call self.save_m2m() so that ManyToManyField
+    data is persisted when commit=True, matching the behavior of the parent ModelForm.save().
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the UserCreationForm.save() method inside django/contrib/auth/forms.py
+      to add a call to self.save_m2m() in the commit=True branch.
+    weight: 3
+  - id: FC2
+    description: Confines edits to django/contrib/auth/forms.py and test-related files
+      only, without modifying unrelated files such as django/forms/models.py or other
+      contrib modules.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test in tests/auth_tests/test_forms.py that exercises
+      UserCreationForm.save() with a custom User model that has a ManyToManyField,
+      verifying the M2M data is saved.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements the fix so that UserCreationForm.save(commit=True) calls
+      self.save_m2m() after user.save(), mirroring the behavior described in the PR
+      description for ModelForm.save().
+    weight: 3
+  - id: SA2
+    description: Handles the commit=False case by attaching self.save_m2m to the form
+      instance (i.e., self.save_m2m = self._save_m2m), so callers who manually save
+      can still trigger M2M saving, consistent with ModelForm.save() semantics.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: 'Preserves the existing behavior of UserCreationForm.save() for models
+      without ManyToManyFields: user.set_password() is still called and the user is
+      still returned.'
+    weight: 3
+  - id: I2
+    description: Does not weaken or remove any existing assertions in the UserCreationForm
+      tests (e.g., no removal of password mismatch or password validation checks).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when UserCreationForm.save(commit=True) is called on
+      a form with ManyToManyField data, the related objects are linked to the newly
+      created user instance via the M2M relationship.
+    weight: 3
+  - id: R2
+    description: Ensures that when UserCreationForm.save(commit=False) is called,
+      the returned user has not yet been saved and a save_m2m callable is available
+      on the form for deferred M2M saving.
+    weight: 2

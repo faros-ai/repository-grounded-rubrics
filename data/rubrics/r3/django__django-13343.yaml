@@ -1,0 +1,59 @@
+metadata:
+  task_summary: Fix FileField.deconstruct() to return a reference to the original
+    callable storage parameter instead of the evaluated Storage instance.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/db/models/fields/files.py and no other unrelated
+      production files, keeping the diff minimal and focused on the FileField callable
+      storage deconstruction bug.
+    weight: 2
+  - id: FC2
+    description: Preserves the original callable passed to the storage parameter somewhere
+      in FileField.__init__ (e.g., as a separate attribute such as self._storage)
+      before overwriting self.storage with the evaluated result.
+    weight: 3
+  - id: FC3
+    description: Updates FileField.deconstruct() so that when the original storage
+      argument was callable, it places the callable reference (not the evaluated Storage
+      instance) into kwargs['storage'].
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Implements the behavior described in the PR: when FileField is deconstructed
+      after being initialized with a callable storage, the deconstructed kwargs contain
+      the original callable rather than the evaluated Storage object.'
+    weight: 3
+  - id: SA2
+    description: Ensures that deconstruct() for a FileField initialized with a non-callable
+      storage continues to place the storage instance directly in kwargs, preserving
+      backward-compatible behavior for the non-callable case.
+    weight: 2
+  - id: SA3
+    description: Ensures that runtime access to self.storage on a FileField initialized
+      with a callable still returns the evaluated Storage instance (not the callable),
+      so file operations at runtime are unaffected by the fix.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the existing TypeError check (that callable storage
+      must return a subclass/instance of Storage) is preserved and not removed or
+      weakened.
+    weight: 2
+  - id: I2
+    description: Confirms that the deconstruct() method continues to omit storage
+      from kwargs when the storage is the default_storage, preserving the existing
+      short-circuit condition.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a FileField initialized with a callable storage function
+      can be deconstructed and reconstructed (e.g., via makemigrations) with a reference
+      to the callable, so migrations remain environment-agnostic as described in the
+      PR.
+    weight: 3
+  - id: R2
+    description: Ensures that evaluating storage at deconstruction time (the old broken
+      behavior) is eliminated, so that the deconstructed repr does not contain an
+      inline Storage instance when the original parameter was callable.
+    weight: 2

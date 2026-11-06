@@ -1,0 +1,59 @@
+metadata:
+  task_summary: Fix linkcheck so that HTTP error status codes (e.g. 404, 500) are
+    reported instead of 'Anchor not found' when the server returns an error for a
+    URL with a fragment.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sphinx/builders/linkcheck.py and no other unrelated production
+      files, keeping the change confined to the linkcheck builder module.
+    weight: 3
+  - id: FC2
+    description: Adds a call to response.raise_for_status() in the anchor-checking
+      branch (the branch guarded by 'if anchor and self.app.config.linkcheck_anchors:')
+      inside check_uri(), so HTTP errors surface before the anchor search is performed.
+    weight: 3
+  - id: FC3
+    description: Preserves the existing 'Anchor not found' exception path so it is
+      still raised when the server responds successfully (2xx) but the anchor is absent
+      from the HTML.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that when the server replies with a 4xx or 5xx status code
+      for a URL containing a fragment, the broken-link message reflects the HTTP error
+      (e.g. '404 Client Error') rather than 'Anchor not found'.
+    weight: 3
+  - id: SA2
+    description: Ensures that the fix applies only when linkcheck_anchors is True
+      and the URL has an anchor fragment, matching the exact scenario described in
+      the PR.
+    weight: 2
+  - id: SA3
+    description: Produces output consistent with the linkcheck_anchors=False case
+      for HTTP errors, as stated in the PR expected behavior.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the existing HTTPError handling block (which returns
+      'working' for 401, 'ignored' for 503, and 'broken' for other HTTP errors) is
+      reused or extended to cover the anchor-check branch, rather than introducing
+      a separate inconsistent error-handling path.
+    weight: 2
+  - id: I2
+    description: Confirms that no tests are weakened or removed — existing assertions
+      such as 'Anchor not found' for valid-server/missing-anchor cases remain intact
+      in test_build_linkcheck.py.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a 404 response for a URL with a fragment (e.g. https://google.com/test.txt#test)
+      is classified as 'broken' with an HTTP error message rather than 'broken' with
+      'Anchor not found', producing a stable, specific error message a test can assert
+      against.
+    weight: 3
+  - id: R2
+    description: 'Ensures that anchor checking still works correctly for successful
+      (2xx) responses: if the anchor is present the link is ''working'', and if absent
+      the link is ''broken'' with ''Anchor not found''.'
+    weight: 2

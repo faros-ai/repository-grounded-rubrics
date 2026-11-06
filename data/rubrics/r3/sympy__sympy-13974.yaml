@@ -1,0 +1,74 @@
+metadata:
+  task_summary: Fix evaluation of powers of TensorProduct expressions so that tensor_product_simp
+    and expand(tensorproduct=True) correctly simplify expressions like TensorProduct(A,B)**2.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sympy/physics/quantum/tensorproduct.py as the primary (and
+      ideally only) changed production file, keeping edits confined to the tensor
+      product simplification logic.
+    weight: 3
+  - id: FC2
+    description: Adds or modifies handling for Pow nodes (where the base is a TensorProduct)
+      in tensor_product_simp or tensor_product_simp_Mul so that a power is expanded
+      into repeated multiplication before simplification.
+    weight: 3
+  - id: FC3
+    description: Adds or modifies _eval_expand_tensorproduct in the TensorProduct
+      class to handle Pow arguments (e.g. an arg that is a Pow whose base is a TensorProduct)
+      and expand them into repeated factors.
+    weight: 2
+  - id: FC4
+    description: Avoids removing or altering existing branches in tensor_product_simp
+      that correctly handle Add, Mul, Commutator, and AntiCommutator nodes.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that tensor_product_simp applied to tp(1,1)**2 (i.e. TensorProduct(1,1)*TensorProduct(1,1))
+      produces TensorProduct(1,1) or the evaluated scalar 1, matching the expected
+      result shown in the PR description.
+    weight: 3
+  - id: SA2
+    description: Ensures that tensor_product_simp applied to TensorProduct(1,Pauli(3))*TensorProduct(1,Pauli(3))
+      evaluates to TensorProduct(1, 1) (since Pauli(3)**2 = 1), matching Out[9] of
+      the PR description.
+    weight: 3
+  - id: SA3
+    description: Ensures that expand(tensorproduct=True) on a power of a TensorProduct
+      correctly simplifies the expression, not leaving it as e.g. TensorProduct(A,B)**2
+      unchanged.
+    weight: 2
+  - id: SA4
+    description: Adds at least one test case in the test suite for tensor_product_simp
+      or expand(tensorproduct=True) exercising power expressions of TensorProduct.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing tests such as test_tensor_product_simp and
+      test_tensor_product_expand are not weakened, removed, or skipped.
+    weight: 3
+  - id: I2
+    description: Confirms that the public API signatures of tensor_product_simp and
+      TensorProduct._eval_expand_tensorproduct are preserved (no parameter additions
+      or removals that would break callers).
+    weight: 2
+  - id: I3
+    description: Avoids mass renames or unrelated refactoring of symbols, functions,
+      or imports in tensorproduct.py.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures the Pow-handling branch in tensor_product_simp converts TensorProduct(A,B)**n
+      into tensor_product_simp_Mul(TensorProduct(A,B)*...*TensorProduct(A,B)) (n times)
+      or an equivalent expansion, so the Mul simplification path is reached.
+    weight: 3
+  - id: R2
+    description: Ensures the fix handles only integer (or positive integer) exponents
+      without introducing infinite recursion or pathological loops when encountering
+      symbolic or non-integer exponents.
+    weight: 2
+  - id: R3
+    description: 'Confirms backward compatibility: tensor_product_simp on non-power
+      Mul expressions like TensorProduct(A,B)*TensorProduct(C,D) still returns TensorProduct(A*C,
+      B*D) as before.'
+    weight: 2

@@ -1,0 +1,59 @@
+metadata:
+  task_summary: Fix NumPy 1.24 deprecation warnings in Colormap.__call__ caused by
+    assigning out-of-bound integers (256, 257, 258) to uint8 arrays when indexing
+    with _i_over, _i_under, and _i_bad.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the Colormap.__call__ method in lib/matplotlib/colors.py
+      to address the out-of-bound integer assignment into uint8 arrays.
+    weight: 3
+  - id: FC2
+    description: Confines all changes to lib/matplotlib/colors.py without modifying
+      unrelated files.
+    weight: 2
+  - id: FC3
+    description: Adds a code path (near or within the existing 'if xa.dtype.kind ==
+      "f"' block) that ensures xa is cast to an integer type capable of holding values
+      up to N+2 before the _i_over, _i_under, and _i_bad index assignments.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that when X has an integer dtype (kind 'u' or 'i', such as
+      uint8), xa is converted to a wider integer type (e.g., via astype(int)) before
+      the assignments 'xa[xa > self.N - 1] = self._i_over', 'xa[xa < 0] = self._i_under',
+      and 'xa[mask_bad] = self._i_bad'.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing float-path logic where 'if xa.dtype.kind ==
+      "f"' multiplies by N, clips, and converts to int, without removing or weakening
+      that branch.
+    weight: 2
+  - id: SA3
+    description: Does not introduce any new NumPy deprecation warnings related to
+      out-of-bound integer conversion in the Colormap.__call__ code path.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public API signature of Colormap.__call__(self,
+      X, alpha=None, bytes=False) is unchanged.
+    weight: 3
+  - id: I2
+    description: Confirms that existing tests in test_colors.py are not weakened,
+      skipped, or removed as part of this fix.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that calling a colormap with a uint8 input array (e.g., np.empty((0,),
+      dtype=np.uint8)) no longer attempts to assign integer values 256, 257, or 258
+      directly into a uint8-typed xa array.
+    weight: 3
+  - id: R2
+    description: Ensures that calling a colormap with float inputs continues to return
+      correct RGBA output by preserving the float-to-int conversion path.
+    weight: 2
+  - id: R3
+    description: Ensures that calling a colormap with a signed integer dtype input
+      (e.g., int16 or int32) also avoids out-of-bound integer assignment, since the
+      fix handles all integer kinds, not only uint8.
+    weight: 1

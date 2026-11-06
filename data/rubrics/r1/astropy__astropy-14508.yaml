@@ -1,0 +1,68 @@
+metadata:
+  task_summary: Fix `io.fits.Card._format_float()` to prefer Python's compact `str()`
+    representation of floats before falling back to the `.16G` format, preventing
+    unnecessary float expansion that causes comment truncation.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `_format_float` function in `astropy/io/fits/card.py`
+      as the primary (and ideally sole) site of the fix.
+    weight: 3
+  - id: FC2
+    description: Avoids unrelated changes to other files outside of `astropy/io/fits/card.py`
+      (and optionally its test file), keeping the diff minimal and confined to the
+      float-formatting concern.
+    weight: 2
+  - id: FC3
+    description: Removes or replaces the unconditional `f"{value:.16G}"` as the initial
+      representation in `_format_float`, replacing it with logic that first tries
+      a shorter representation.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements logic in `_format_float` that first attempts Python's
+      native string representation of the float (e.g., via `str(value)` or equivalent
+      shortest-round-trip approach) before resorting to the `.16G` format.
+    weight: 3
+  - id: SA2
+    description: Preserves the fallback to a high-precision format (such as `.16G`)
+      when the shorter representation exceeds 20 characters, ensuring the 20-character
+      limit is still enforced.
+    weight: 3
+  - id: SA3
+    description: Retains the existing exponent normalization logic (zero-padding exponents
+      to two digits) so that Windows-style three-digit exponents are still normalized
+      correctly.
+    weight: 2
+  - id: SA4
+    description: Retains the logic that appends `.0` to ensure the formatted float
+      always contains a decimal point or exponent marker, preserving FITS compliance
+      for integer-valued floats.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public API of `Card` (keyword, value, comment arguments
+      and their types) is unchanged, with no new required parameters introduced.
+    weight: 3
+  - id: I2
+    description: Confirms that existing tests for float and complex card formatting
+      (e.g., `test_floating_point_value_card`, `test_complex_value_card`, `test_invalid_float_cards`)
+      are not weakened, skipped, or removed.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that `_format_float(0.009125)` produces a string no longer
+      than 8 characters (e.g., `'0.009125'`) rather than the bloated 18-character
+      `'0.009124999999999999'`, preventing the VerifyWarning comment-truncation for
+      HIERARCH cards.
+    weight: 3
+  - id: R2
+    description: Ensures that floats whose shortest string representation exceeds
+      20 characters still get truncated to fit within the 20-character FITS field
+      limit, avoiding regressions for very long float strings.
+    weight: 2
+  - id: R3
+    description: Ensures that complex-valued cards (using `_format_float` for both
+      real and imaginary parts) continue to format correctly without raising errors
+      or producing malformed output.
+    weight: 2

@@ -1,0 +1,81 @@
+metadata:
+  task_summary: Refactor BaseForm._clean_fields() and BaseForm.changed_data to access
+    field values via BoundField objects, and move per-field change-detection logic
+    into a BoundField._did_change() method.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Adds a _did_change() method (or similarly named method like did_change)
+      to the BoundField class in django/forms/boundfield.py that encapsulates the
+      per-field changed-data logic.
+    weight: 3
+  - id: FC2
+    description: Refactors BaseForm.changed_data in django/forms/forms.py to delegate
+      per-field logic to BoundField (e.g., calling bf._did_change()), reducing the
+      method body substantially from its original ~20-line loop.
+    weight: 3
+  - id: FC3
+    description: Adds a _bound_items() helper method to BaseForm in django/forms/forms.py
+      that yields (name, BoundField) pairs, enabling iteration over bound fields by
+      name.
+    weight: 2
+  - id: FC4
+    description: Refactors BaseForm._clean_fields() in django/forms/forms.py to access
+      initial values via the BoundField's initial property (e.g., self[name].initial
+      or bf.initial) rather than calling self.get_initial_for_field(field, name) directly
+      for the disabled-field branch.
+    weight: 3
+  - id: FC5
+    description: Confines all changes to django/forms/forms.py and django/forms/boundfield.py
+      (and optionally test files), without modifying unrelated modules.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements BoundField._did_change() to contain the show_hidden_initial
+      branching logic (including the hidden_widget/to_python/ValidationError path
+      and the field.has_changed() call) that was previously inline in BaseForm.changed_data.
+    weight: 3
+  - id: SA2
+    description: 'Ensures BaseForm.changed_data is simplified to a list comprehension
+      (or equivalent) iterating over BoundField objects and calling the new per-field
+      method, matching the pattern described in the PR: [name for name, bf in self._bound_items()
+      if bf._did_change()].'
+    weight: 2
+  - id: SA3
+    description: Fixes the divergence between the value used in BaseForm._clean_fields()
+      for a disabled field and the value returned by the corresponding BoundField.initial
+      property, so they use the same initial value (including microsecond stripping
+      for datetime widgets that lack microsecond support).
+    weight: 3
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the public API of BaseForm.changed_data as a cached_property
+      returning a list of field names that changed, without altering its signature
+      or return type.
+    weight: 3
+  - id: I2
+    description: Preserves the public API of BaseForm._clean_fields() without altering
+      its signature or the structure of self.cleaned_data it populates.
+    weight: 2
+  - id: I3
+    description: Does not weaken or remove any existing assertions in tests related
+      to changed_data or _clean_fields behavior (no deletion of test assertions, no
+      skip markers added).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that for a disabled DateTimeField with a callable initial
+      that returns a datetime with microseconds and a widget that does not support
+      microseconds, the value used in _clean_fields() matches bf.initial (i.e., microseconds
+      are stripped), fixing the bug described in the PR.
+    weight: 3
+  - id: R2
+    description: Maintains correct behavior of changed_data for fields with show_hidden_initial=True,
+      ensuring the hidden widget path (to_python, ValidationError fallback) is still
+      exercised through BoundField._did_change().
+    weight: 2
+  - id: R3
+    description: Maintains backward-compatible changed_data behavior for ordinary
+      (non-disabled, non-hidden-initial) fields by delegating to field.has_changed(initial_value,
+      data_value) using the same initial and data values as before the refactor.
+    weight: 2

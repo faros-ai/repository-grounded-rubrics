@@ -1,0 +1,54 @@
+metadata:
+  task_summary: Fix the posix fcntl branch of django/core/files/locks.py so that lock()
+    and unlock() return True on success and False on failure, replacing the always-False
+    'ret == 0' comparisons with try/except OSError blocks.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies only django/core/files/locks.py and makes no unrelated file
+      changes.
+    weight: 2
+  - id: FC2
+    description: Removes the 'ret = fcntl.flock(_fd(f), flags)' and 'return ret ==
+      0' lines from the posix lock() function and replaces them with a try/except
+      block.
+    weight: 3
+  - id: FC3
+    description: Removes the 'ret = fcntl.flock(_fd(f), fcntl.LOCK_UN)' and 'return
+      ret == 0' lines from the posix unlock() function and replaces them with a try/except
+      block.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements the posix lock() function so that a successful fcntl.flock()
+      call results in returning True, matching the PR description's required correction.
+    weight: 3
+  - id: SA2
+    description: Implements the posix unlock() function so that a successful fcntl.flock()
+      call with fcntl.LOCK_UN results in returning True, matching the PR description's
+      required correction.
+    weight: 3
+  - id: SA3
+    description: Catches OSError (not a broader exception class such as Exception)
+      in both lock() and unlock() to detect flock failure, as implied by the PR description
+      referencing Python's fcntl documentation.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the Windows (os.name == 'nt') branch of lock() and unlock()
+      in django/core/files/locks.py without modification.
+    weight: 2
+  - id: I2
+    description: Preserves the dummy lock() and unlock() functions in the ImportError/AttributeError
+      fallback branch without modification.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when fcntl.flock() raises OSError (e.g., LOCK_NB lock
+      contention), both lock() and unlock() return False rather than propagating the
+      exception.
+    weight: 3
+  - id: R2
+    description: Ensures that lock() and unlock() return True (not None or 0) when
+      fcntl.flock() succeeds, correcting the always-False behavior of 'None == 0'.
+    weight: 3

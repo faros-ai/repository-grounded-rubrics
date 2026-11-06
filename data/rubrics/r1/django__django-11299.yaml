@@ -1,0 +1,60 @@
+metadata:
+  task_summary: Fix CheckConstraint with OR+AND operators generating fully qualified
+    column names (table.column) instead of bare column names in SQLite and Oracle
+    by propagating the simple_col flag through recursive _add_q calls.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the recursive _add_q call for Node children in django/db/models/sql/query.py
+      to forward the simple_col parameter, so nested Q objects receive the same simple_col
+      value as their parent.
+    weight: 3
+  - id: FC2
+    description: Confines production code changes to django/db/models/sql/query.py
+      (specifically the _add_q method) without touching unrelated files such as schema
+      editors, migration operations, or expression classes.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test in the test_query.py file (or equivalent location)
+      that exercises build_where with a nested Q object combining OR and AND clauses,
+      verifying that all resulting column references are SimpleCol instances rather
+      than Col instances.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause described in the PR: the _add_q method''s
+      recursive call for Node children omits simple_col, causing nested Q clauses
+      (e.g., the AND sub-clause inside an OR CheckConstraint) to use Col (with table
+      prefix) instead of SimpleCol (bare column name).'
+    weight: 3
+  - id: SA2
+    description: Ensures that when build_where is called with a Q expression combining
+      OR and AND (e.g., Q(flag=True, field_1__isnull=False) | Q(flag=False)), all
+      column references in the generated WHERE clause use bare column names without
+      a table qualifier.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing tests in tests/queries/test_query.py that
+      assert SimpleCol instances in build_where results (test_simple_query, test_complex_query,
+      test_multiple_fields, test_foreign_key_exclusive, etc.) remain valid and are
+      not weakened or removed.
+    weight: 2
+  - id: I2
+    description: Confirms that the public signature of build_where, _add_q, and build_filter
+      in django/db/models/sql/query.py is not changed in a backward-incompatible way
+      (no removed parameters, no renamed methods).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a CheckConstraint whose check Q contains nested Q objects
+      connected with OR (where each sub-Q may itself combine AND conditions) generates
+      SQL with bare column references (e.g., "field_1" IS NOT NULL) rather than fully-qualified
+      ones (e.g., "new__app_testconstraint"."field_1" IS NOT NULL), preventing the
+      malformed schema error on SQLite and Oracle after table rename.
+    weight: 3
+  - id: R2
+    description: 'Ensures that the fix does not regress non-nested OR queries: a Q(num__gt=2)
+      | Q(num__lt=0) passed to build_where must still produce SimpleCol references
+      for both branches, consistent with existing behavior validated by test_complex_query.'
+    weight: 2

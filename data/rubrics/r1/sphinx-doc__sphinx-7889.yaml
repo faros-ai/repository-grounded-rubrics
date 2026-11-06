@@ -1,0 +1,53 @@
+metadata:
+  task_summary: Fix TypeError in autodoc mock's _make_subclass when a TypeVar (or
+    other non-str) is used as a generic subscript key, causing string concatenation
+    to fail.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sphinx/ext/autodoc/mock.py and only that file (no unrelated
+      file churn) to address the TypeError.
+    weight: 3
+  - id: FC2
+    description: Applies the fix inside _make_subclass or __getitem__ of _MockObject
+      so that a non-str name (such as a TypeVar) is converted to str before the concatenation
+      module + '.' + name.
+    weight: 3
+  - id: FC3
+    description: Updates the type annotation of the key parameter in _MockObject.__getitem__
+      (currently annotated as str) to accept Any or a broader type that reflects that
+      generic subscript keys may not be str.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause described in the PR: _make_subclass attempting
+      to concatenate a str to a TypeVar raises TypeError, which is prevented by ensuring
+      name is always treated as a str.'
+    weight: 3
+  - id: SA2
+    description: Ensures that building docs for a generically-typed class (a class
+      subscripted with a TypeVar, e.g., SomeClass[T]) no longer raises a TypeError
+      during autodoc mock processing.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: 'Confirms that existing _MockObject and _MockModule behavior is preserved:
+      __getitem__ on a _MockObject with a plain str key still returns a _MockObject
+      instance.'
+    weight: 2
+  - id: I2
+    description: Confirms that the public API of _make_subclass (its signature and
+      the returned type subclass) is unchanged except for guarding the name argument
+      with str().
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when _MockObject.__getitem__ is called with a TypeVar
+      (e.g., mock_obj[T] where T is a TypeVar), no TypeError is raised and a _MockObject
+      subclass instance is returned.
+    weight: 3
+  - id: R2
+    description: Ensures that __display_name__ on the resulting subclass still produces
+      a dotted-name string (module + '.' + str(name)) so repr() remains informative
+      and stable.
+    weight: 2

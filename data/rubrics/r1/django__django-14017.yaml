@@ -1,0 +1,63 @@
+metadata:
+  task_summary: Fix Q(...) & Exists(...) raising a TypeError by making Q._combine
+    handle conditional expressions (like Exists) or by adding __rand__/__ror__ support
+    so the & and | operators are commutative between Q and Exists.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/db/models/query_utils.py to fix the Q._combine method
+      or the Q class so it no longer raises TypeError when the operand is a conditional
+      non-Q expression.
+    weight: 3
+  - id: FC2
+    description: Confines changes to files directly relevant to Q combination logic
+      (e.g., django/db/models/query_utils.py and/or django/db/models/expressions.py)
+      without modifying unrelated files.
+    weight: 2
+  - id: FC3
+    description: Adds or modifies __rand__ and/or __ror__ somewhere in the diff (either
+      in the Q class or in the Combinable class) to enable Python's reflected operator
+      fallback when Q is the left operand and a conditional expression is the right
+      operand.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements the fix so that Q() & Exists(...) (Q as left operand)
+      no longer raises a TypeError, matching the PR description's stated broken case.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior of Exists(...) & Q(...) (Exists as
+      left operand), which already worked correctly per the PR description.
+    weight: 2
+  - id: SA3
+    description: Applies the same fix symmetrically to both the & and | operators
+      (i.e., Q() | Exists(...) is also handled), since both operators share the same
+      _combine path.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that Q._combine (or an equivalent path) still raises TypeError
+      or a meaningful error for operands that are neither Q instances nor conditional
+      expressions, preserving the type-safety of Q combination.
+    weight: 2
+  - id: I2
+    description: Avoids weakening any existing tests related to Q combination, __and__,
+      __or__, or TypeError behavior visible in the diff.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that Q() & Exists(...) produces a Q node wrapping both operands
+      (analogous to the already-working Exists(...) & Q() case shown in the PR description),
+      as evidenced by code that wraps a conditional expression in Q() before combining.
+    weight: 3
+  - id: R2
+    description: Ensures that the fix handles the conditional attribute check (getattr(other,
+      'conditional', False)) or an isinstance check against a suitable type, so only
+      genuinely boolean/conditional expressions are accepted by the Q combination
+      path, not arbitrary objects.
+    weight: 2
+  - id: R3
+    description: Preserves backward compatibility of Q(...) & Q(...) combining (the
+      original non-conditional path in Q._combine remains unchanged for pure Q-to-Q
+      combinations).
+    weight: 2

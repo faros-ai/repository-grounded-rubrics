@@ -1,0 +1,57 @@
+metadata:
+  task_summary: Fix _skip_member in sphinx/ext/napoleon/__init__.py so that a decorated
+    __init__ (e.g., wrapped via functools.wraps) is not erroneously skipped when napoleon_include_init_with_doc
+    is True.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sphinx/ext/napoleon/__init__.py and no other unrelated production
+      files, keeping the diff minimal and confined to the _skip_member function.
+    weight: 2
+  - id: FC2
+    description: Adds an unwrap step (using inspect.unwrap, sphinx.util.inspect.unwrap,
+      or equivalent __wrapped__ traversal) somewhere in the diff applied to obj before
+      accessing obj.__globals__ in _skip_member.
+    weight: 3
+  - id: FC3
+    description: Preserves the existing nested-class resolution path (the branch that
+      uses importlib.import_module and functools.reduce when '.' appears in cls_path)
+      without removing or altering it.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause stated in the PR description: that obj.__globals__
+      on a decorated method does not contain the class, by ensuring the unwrapped
+      (original) function''s __globals__ is used for cls_path lookup.'
+    weight: 3
+  - id: SA2
+    description: Ensures that cls_is_owner can evaluate to True for a decorated __init__
+      whose __qualname__ correctly identifies the owning class, so that napoleon_include_init_with_doc=True
+      takes effect.
+    weight: 3
+  - id: SA3
+    description: Retains the try/except Exception guard around the class-lookup logic
+      so that failures during unwrapping or __globals__ access still result in cls_is_owner=False
+      rather than an uncaught exception.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing test cases in tests/test_ext_napoleon.py
+      are removed, weakened, or marked skip as part of the fix.
+    weight: 2
+  - id: I2
+    description: 'Confirms that the public API of _skip_member (its signature: app,
+      what, name, obj, skip, options) remains unchanged.'
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Adds a test case (or equivalent coverage) that exercises _skip_member
+      with a decorated __init__ (wrapped via functools.wraps or a manual decorator
+      setting __wrapped__) and asserts it returns False (not skipped) when napoleon_include_init_with_doc
+      is True.
+    weight: 1
+  - id: R2
+    description: 'Ensures undecorated class methods still resolve correctly through
+      __globals__: the fix must not break the existing simple (non-nested) cls_path
+      lookup for non-decorated callables.'
+    weight: 2

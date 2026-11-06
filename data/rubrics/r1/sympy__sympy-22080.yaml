@@ -1,0 +1,60 @@
+metadata:
+  task_summary: Fix lambdify with modules=[] so that expressions like -Mod(x, y) are
+    correctly printed as -(x % y) rather than -x % y, by correcting the precedence
+    assigned to Mod when printed as a Python infix operator.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the _print_Mod method in sympy/printing/pycode.py to use
+      a precedence value consistent with Python's % operator (Mul-level, i.e. PRECEDENCE["Mul"]
+      = 50) rather than the Function-level precedence (PRECEDENCE["Func"] = 70).
+    weight: 3
+  - id: FC2
+    description: Confines changes to the printing subsystem (e.g., sympy/printing/pycode.py
+      or sympy/printing/precedence.py) without modifying unrelated files such as sympy/utilities/lambdify.py
+      or sympy/core/.
+    weight: 2
+  - id: FC3
+    description: Adds a test (in sympy/printing/tests/test_pycode.py or sympy/utilities/tests/test_lambdify.py)
+      that verifies correct printing or evaluation of an expression containing a negated
+      Mod term, such as -Mod(x, y) or a scalar multiple of Mod(x, y).
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that lambdify([x, y], -Mod(x, y), modules=[]) produces a
+      function that correctly evaluates to -3 (not 4) for inputs x=3, y=7, matching
+      the expected behavior from the PR description.
+    weight: 3
+  - id: SA2
+    description: Ensures that the generated source for lambdify with modules=[] wraps
+      the Mod infix expression in parentheses when it appears inside a sign-negated
+      Mul, i.e., produces -(x % y) rather than -x % y.
+    weight: 3
+  - id: SA3
+    description: Confirms that the fix applies specifically to PythonCodePrinter (used
+      when modules=[]) by changing how Mod's Python-operator precedence is communicated
+      to the parent printer, not by changing the default (non-modules=[]) behavior.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the existing test asserting prntr.doprint(Mod(x, 2))
+      == 'x % 2' (standalone Mod without outer negation) is preserved and not weakened
+      or removed.
+    weight: 2
+  - id: I2
+    description: Avoids changing the public API of lambdify (its signature and behavior
+      for other modules such as 'math', 'numpy', 'sympy') as no such changes are described
+      in the PR.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when a Mod expression is a direct factor inside a Mul
+      with a negative coefficient (e.g., -1 * Mod(x, y)), the printed Python code
+      wraps the infix form in parentheses so Python operator precedence of % does
+      not absorb the unary minus.
+    weight: 3
+  - id: R2
+    description: Ensures that expressions of the form k * Mod(a, b) for any scalar
+      multiplier k (positive or negative) are printed with the Mod infix form parenthesized
+      when necessary, not just for the specific case of -1 multiplier.
+    weight: 2

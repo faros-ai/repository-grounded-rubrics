@@ -1,0 +1,71 @@
+metadata:
+  task_summary: Adjust Field.__eq__, __hash__, and __lt__ in django/db/models/fields/__init__.py
+    to consider field.model so that inherited abstract model fields on different concrete
+    models compare as unequal.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies __eq__ inside the Field class in django/db/models/fields/__init__.py
+      to incorporate field.model into the equality comparison alongside creation_counter.
+    weight: 3
+  - id: FC2
+    description: Modifies __hash__ inside the Field class in django/db/models/fields/__init__.py
+      to incorporate field.model into the hash value alongside creation_counter.
+    weight: 3
+  - id: FC3
+    description: Modifies __lt__ inside the Field class in django/db/models/fields/__init__.py
+      to incorporate field.model into the ordering comparison, while keeping creation_counter
+      as the primary sort key.
+    weight: 2
+  - id: FC4
+    description: Confines all changes to django/db/models/fields/__init__.py (and
+      optionally tests), without modifying unrelated files or altering unrelated logic
+      in that file.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that two Field instances originating from the same abstract
+      model but attached to different concrete models (i.e., different field.model
+      values) compare as unequal via __eq__.
+    weight: 3
+  - id: SA2
+    description: Ensures that two Field instances originating from the same abstract
+      model but attached to different concrete models produce different hash values
+      via __hash__, so they are not deduplicated in a set.
+    weight: 3
+  - id: SA3
+    description: Preserves creation_counter as the primary ordering key in __lt__
+      so that existing field ordering (used by bisect.insort in options.py) is not
+      disrupted for fields on the same or unrelated models.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that __eq__ still returns NotImplemented (rather than False)
+      when the other object is not a Field instance, preserving the original isinstance
+      guard.
+    weight: 2
+  - id: I2
+    description: Confirms that __lt__ still returns NotImplemented (rather than raising)
+      when the other object is not a Field instance, preserving the original isinstance
+      guard.
+    weight: 1
+  - id: I3
+    description: Adds or updates tests covering the case where fields inherited from
+      an abstract model on two distinct concrete models are not equal and produce
+      distinct hashes.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that fields on the same concrete model (same field.model)
+      that share the same creation_counter still compare as equal, preserving backward-compatible
+      behavior for non-abstract-inheritance scenarios.
+    weight: 2
+  - id: R2
+    description: Ensures that placing B._meta.get_field('myfield') and C._meta.get_field('myfield')
+      (where B and C both inherit from an abstract model A) into a Python set results
+      in two distinct elements rather than one.
+    weight: 3
+  - id: R3
+    description: 'Ensures that __hash__ consistency with __eq__ is maintained: two
+      Field objects that compare equal via __eq__ must produce the same hash value.'
+    weight: 2

@@ -1,0 +1,62 @@
+metadata:
+  task_summary: Fix data loss when saving a parent model after assigning a related
+    object with a non-auto CharField primary key that is set after assignment to the
+    foreign key field.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/db/models/fields/related_descriptors.py (specifically
+      code in or near ForwardManyToOneDescriptor) to address the stale FK attname
+      issue after a non-auto PK is set post-assignment.
+    weight: 3
+  - id: FC2
+    description: Limits changes to the minimal set of files needed to fix the bug
+      — does not introduce unrelated file modifications outside of the FK/descriptor
+      mechanism and any accompanying test file.
+    weight: 2
+  - id: FC3
+    description: Adds or modifies a test (in tests/many_to_one/ or a related test
+      module) that exercises the scenario where a Product-like model with a non-auto
+      CharField primary key (e.g. 'sku') is assigned to a parent before the PK is
+      set, and verifies the FK is correctly persisted after save.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the scenario where order.product is assigned an unsaved
+      Product instance with an empty non-auto CharField PK, the PK is subsequently
+      set (e.g. product.sku = 'foo'), product is saved, and order.save() correctly
+      stores product_id = 'foo' rather than empty string.
+    weight: 3
+  - id: SA2
+    description: Adds logic (in ForwardManyToOneDescriptor.__get__, ForeignKey.pre_save,
+      or an equivalent location) that re-syncs the FK attname on the parent instance
+      from the cached related object's current PK value when they diverge.
+    weight: 3
+  - id: SA3
+    description: Preserves existing correct behavior where assigning Product(sku='foo')
+      before save (PK already set at assignment time) continues to work without regression.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Avoids weakening or skipping existing tests related to ForeignKey,
+      ForwardManyToOneDescriptor, or related descriptor behavior (no @skip, no deletion
+      of test assertions).
+    weight: 2
+  - id: I2
+    description: Preserves the public API of ForwardManyToOneDescriptor.__set__ —
+      does not change its signature or remove the setattr(instance, lh_field.attname,
+      ...) assignment behavior for the normal case where the related object's PK is
+      already set at assignment time.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that after order.product = Product(), product.sku = 'foo',
+      product.save(), order.save(), the value of order.product_id is 'foo' (the updated
+      PK) rather than empty string, by re-reading the PK from the cached related object
+      at a point before the parent is persisted.
+    weight: 3
+  - id: R2
+    description: Ensures the fix applies only when the related object's PK field is
+      non-auto (i.e., not an AutoField/BigAutoField/SmallAutoField), avoiding unintended
+      behavior changes for standard integer auto-increment PKs.
+    weight: 2

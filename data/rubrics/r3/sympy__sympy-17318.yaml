@@ -1,0 +1,61 @@
+metadata:
+  task_summary: Fix IndexError in sqrtdenest when processing expressions with complex
+    (non-real) surds that produce an empty surds list, so that undenable expressions
+    are returned unchanged.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies at least one of the files sympy/simplify/sqrtdenest.py or
+      sympy/simplify/radsimp.py to guard against the empty-surds case that triggers
+      the IndexError.
+    weight: 3
+  - id: FC2
+    description: Confines production-code changes to the sqrtdenest/radsimp logic
+      (e.g., `_sqrt_match`, `split_surds`, or `_split_gcd`) without altering unrelated
+      modules or making mass renames.
+    weight: 2
+  - id: FC3
+    description: Adds or modifies a test (anywhere in the test suite) that exercises
+      `sqrtdenest` with the complex expression `(3 - sqrt(2)*sqrt(4 + 3*I) + 3*I)/2`,
+      confirming the fix is covered.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Fixes the root cause of the `IndexError: tuple index out of range`
+      that occurs when `_split_gcd` is called with an empty surds list (i.e., adds
+      a guard before `_split_gcd(*surds)` is called with zero arguments, or before
+      `split_surds` is called on an expression with no Pow surd terms).'
+    weight: 3
+  - id: SA2
+    description: Preserves the contract that `sqrtdenest` returns the original expression
+      unchanged when the expression cannot be denested (rather than raising an exception),
+      consistent with the PR description stating 'If an expression cannot be denested
+      it should be returned unchanged'.
+    weight: 3
+  - id: SA3
+    description: Does not alter the return value of `sqrtdenest` for expressions that
+      can already be successfully denested (i.e., the fix is guarded to trigger only
+      on the problematic code path).
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the public API signature of `sqrtdenest` (its `expr` and
+      `max_iter` parameters) without adding or removing parameters.
+    weight: 2
+  - id: I2
+    description: Does not weaken, skip, or remove any existing passing tests in `test_sqrtdenest.py`
+      or `test_radsimp.py`.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that calling `sqrtdenest((3 - sqrt(2)*sqrt(4 + 3*I) + 3*I)/2)`
+      no longer raises `IndexError` but instead returns the input expression structurally
+      unchanged, as evidenced by the guard that prevents `_split_gcd` from being called
+      with an empty argument tuple.
+    weight: 3
+  - id: R2
+    description: Ensures that the fix handles the edge case where `surds` is empty
+      (i.e., when none of the Add terms in `p` are Pow expressions with half-integer
+      exponents) by either skipping the `split_surds` call or by guarding `_split_gcd`
+      against zero-length input.
+    weight: 2

@@ -1,0 +1,48 @@
+metadata:
+  task_summary: Fix TypeError when fitting HuberRegressor with boolean X by ensuring
+    X is converted to a float dtype during input validation.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the check_X_y call inside HuberRegressor.fit in sklearn/linear_model/huber.py
+      to include a dtype argument that forces conversion to a float type (e.g., np.float64
+      or [np.float64, np.float32]).
+    weight: 3
+  - id: FC2
+    description: Confines the fix to sklearn/linear_model/huber.py without introducing
+      unrelated changes to other linear model files or utility modules.
+    weight: 2
+  - id: FC3
+    description: Adds a test case (anywhere in the diff) that exercises HuberRegressor.fit
+      with a boolean X input, confirming the fix is tested.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that boolean X arrays are converted to float before being
+      passed to _huber_loss_and_gradient, eliminating the TypeError arising from the
+      unary negation operator applied to a boolean array at the X_non_outliers computation.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior for non-boolean numeric X inputs
+      (float32, float64) so that HuberRegressor.fit continues to work as before.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing tests in sklearn/linear_model/tests/test_huber.py
+      are removed, skipped, or have their assertions weakened.
+    weight: 2
+  - id: I2
+    description: Confirms that the public API signature of HuberRegressor.fit(self,
+      X, y, sample_weight=None) is unchanged.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that passing a boolean X to HuberRegressor.fit no longer
+      triggers a TypeError from numpy's unary negation of a boolean array inside _huber_loss_and_gradient,
+      by structural evidence that X is cast to float before the optimizer is called.
+    weight: 3
+  - id: R2
+    description: Ensures that fitting HuberRegressor with a boolean X produces the
+      same result as fitting with the equivalent float X (i.e., np.asarray(X_bool,
+      dtype=float)), supported by the dtype coercion added in check_X_y.
+    weight: 2

@@ -1,0 +1,69 @@
+metadata:
+  task_summary: Fix IndexVariable.copy(deep=True) dropping the original dtype (e.g.
+    '<U3') and casting unicode string indices to object.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the deep-copy branch inside IndexVariable.copy in xarray/core/variable.py
+      (around the PandasIndexAdapter construction for deep=True).
+    weight: 3
+  - id: FC2
+    description: Confines code changes to xarray/core/variable.py and/or xarray/core/indexing.py
+      without modifying unrelated files (e.g. dataset.py, dataarray.py, merge.py).
+    weight: 2
+  - id: FC3
+    description: Passes the original dtype (e.g. self._data.dtype) when constructing
+      the new PandasIndexAdapter in the deep-copy branch of IndexVariable.copy, so
+      the dtype keyword argument is explicitly supplied rather than left as None.
+    weight: 3
+  - id: FC4
+    description: Adds a regression test (in test_variable.py or a dataset/dataarray
+      test file) that exercises IndexVariable.copy(deep=True) with a unicode string
+      index (dtype '<U*') and asserts the dtype is preserved after copying.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that IndexVariable.copy(deep=True) preserves the '<U*' (unicode
+      string) dtype for an IndexVariable whose data has dtype kind 'U', matching the
+      behaviour described in the PR.
+    weight: 3
+  - id: SA2
+    description: Ensures that IndexVariable.copy(deep=False) (shallow copy) also preserves
+      the '<U*' dtype, as called out in the PR description ('DataArray.copy(deep=True/False)').
+    weight: 2
+  - id: SA3
+    description: Ensures that copy.copy() and copy.deepcopy() on a Dataset or DataArray
+      with a unicode coordinate produce the same dtype result as the direct .copy()
+      call, consistent with the PR's mention of copy.copy()/copy.deepcopy() being
+      affected.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing IndexVariable.copy API signature (deep=True,
+      data=None) without adding, removing, or reordering parameters.
+    weight: 3
+  - id: I2
+    description: Does not weaken or skip existing tests related to IndexVariable.copy
+      (e.g. test_copy_index, test_copy) by adding xfail markers or removing assertions.
+    weight: 2
+  - id: I3
+    description: Avoids changing the behaviour of IndexVariable.copy for non-unicode
+      dtypes (e.g. integer, float, datetime64) by preserving the same deep-copy logic
+      for those cases.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Produces an IndexVariable whose .dtype attribute equals the original
+      '<U*' dtype after deep copying, rather than np.dtype('O') (object), when the
+      source index has a unicode string dtype.
+    weight: 3
+  - id: R2
+    description: Produces a PandasIndexAdapter in the copied IndexVariable that carries
+      the correct non-object _dtype field, so that subsequent array conversions (e.g.
+      np.asarray) honour the original string dtype.
+    weight: 2
+  - id: R3
+    description: Maintains that the underlying pandas.Index object in the copy is
+      a distinct object from the original (i.e. a true deep copy), so mutations to
+      one do not affect the other.
+    weight: 2

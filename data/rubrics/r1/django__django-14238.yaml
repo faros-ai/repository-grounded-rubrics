@@ -1,0 +1,61 @@
+metadata:
+  task_summary: Fix AutoFieldMeta.__subclasscheck__ so that subclasses of BigAutoField
+    and SmallAutoField are recognized as subclasses of AutoField, preventing a spurious
+    ValueError when DEFAULT_AUTO_FIELD is set to such a subclass.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the __subclasscheck__ method inside AutoFieldMeta in django/db/models/fields/__init__.py
+      to fix the subclass check.
+    weight: 3
+  - id: FC2
+    description: Confines the fix to django/db/models/fields/__init__.py (or django/db/models/options.py)
+      without touching unrelated files or introducing extraneous changes.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test exercising DEFAULT_AUTO_FIELD set to a user-defined
+      subclass of BigAutoField or SmallAutoField without raising ValueError.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Replaces the exact-membership check 'subclass in self._subclasses'
+      in __subclasscheck__ with a proper subclass check (e.g., issubclass(subclass,
+      self._subclasses)) so that indirect subclasses of BigAutoField and SmallAutoField
+      pass the check.
+    weight: 3
+  - id: SA2
+    description: Ensures the fix does not alter the existing __instancecheck__ method
+      behavior, which already uses isinstance(instance, self._subclasses) and correctly
+      handles subclass instances.
+    weight: 2
+  - id: SA3
+    description: Preserves the ValueError raised in _get_default_pk_class when the
+      configured class is genuinely not a subclass of AutoField (e.g., TextField),
+      keeping the error message containing 'must subclass AutoField'.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public API of AutoFieldMeta, AutoField, BigAutoField,
+      and SmallAutoField is not changed (no removals of class definitions, method
+      signatures, or public attributes).
+    weight: 2
+  - id: I2
+    description: Confirms that no existing tests for non-auto-field DEFAULT_AUTO_FIELD
+      values (e.g., TextField) are weakened or removed.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that issubclass(MyBigAutoField, AutoField) returns True when
+      MyBigAutoField is a user-defined subclass of BigAutoField, by virtue of the
+      corrected __subclasscheck__ logic.
+    weight: 3
+  - id: R2
+    description: Ensures that issubclass(MySmallAutoField, AutoField) returns True
+      when MySmallAutoField is a user-defined subclass of SmallAutoField, covering
+      the symmetric SmallAutoField case mentioned in the PR description.
+    weight: 2
+  - id: R3
+    description: Ensures that direct subclasses BigAutoField and SmallAutoField themselves
+      still pass issubclass checks against AutoField, preserving backward compatibility
+      for the pre-existing behavior.
+    weight: 2

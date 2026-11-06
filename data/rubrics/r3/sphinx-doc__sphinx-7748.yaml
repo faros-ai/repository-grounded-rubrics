@@ -1,0 +1,91 @@
+metadata:
+  task_summary: Extend autodoc_docstring_signature to collect all consecutive overloaded
+    method signatures from the docstring, not just the first one.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies _find_signature in DocstringSignatureMixin (in sphinx/ext/autodoc/__init__.py)
+      so it collects multiple consecutive matching signature lines instead of stopping
+      after the first match.
+    weight: 3
+  - id: FC2
+    description: Updates the return type or return value of _find_signature so it
+      can return multiple (args, retann) pairs (e.g., a list of tuples) rather than
+      a single tuple or None.
+    weight: 3
+  - id: FC3
+    description: Modifies format_signature in DocstringSignatureMixin to handle multiple
+      results from _find_signature and join them with a newline separator so add_directive_header
+      renders each overload on a separate line.
+    weight: 3
+  - id: FC4
+    description: Modifies _new_docstrings in _find_signature to strip all consecutive
+      matched signature lines from the docstring body, not just the first matched
+      line.
+    weight: 2
+  - id: FC5
+    description: Updates DocstringStripSignatureMixin.format_signature to handle the
+      changed (list-returning) _find_signature return value without breaking attribute
+      signature stripping.
+    weight: 2
+  - id: FC6
+    description: Adds or modifies test fixtures (e.g., in target/__init__.py or target/docstring_signature.py)
+      to include a method or function whose docstring contains multiple consecutive
+      overloaded signatures.
+    weight: 1
+  - id: FC7
+    description: Confines changes to sphinx/ext/autodoc/__init__.py and relevant test/fixture
+      files only, without introducing unrelated file churn.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements support for picking up all overloaded signatures from
+      the docstring when autodoc_docstring_signature is True, matching the PR description's
+      requirement to handle SWIG-style multiple signatures.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior of stripping matched signature lines
+      from the rendered docstring body so the final output does not duplicate signature
+      text in the docstring body.
+    weight: 3
+  - id: SA3
+    description: Retains the base-name validation logic (comparing the matched function
+      name against valid_names such as self.objpath[-1] and __init__) when scanning
+      for multiple signatures.
+    weight: 2
+  - id: SA4
+    description: Adds test coverage (in test_ext_autodoc_configs.py or equivalent)
+      that asserts multiple overloaded signatures appear as separate directive header
+      lines in the autodoc output.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that autodoc_docstring_signature = False still bypasses
+      signature extraction, preserving backward-compatible behavior for users who
+      disable the feature.
+    weight: 3
+  - id: I2
+    description: Confirms that when only a single signature is present in the docstring,
+      the output is identical to the pre-patch single-signature behavior (no regression
+      for the common case).
+    weight: 3
+  - id: I3
+    description: Confirms that the deprecated encoding argument warnings in _find_signature
+      and get_doc are not removed or silenced.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Produces multiple separate directive header lines (e.g., meth(int),
+      meth(str)) in the rendered RST output when the docstring contains consecutive
+      overloaded signatures, using the existing sig.split('\n') mechanism in add_directive_header.
+    weight: 3
+  - id: R2
+    description: Stops collecting additional signatures when a docstring line no longer
+      matches py_ext_sig_re, ensuring that ordinary prose following the overloaded
+      signatures is preserved in the docstring body.
+    weight: 2
+  - id: R3
+    description: Ensures DocstringStripSignatureMixin (used for properties/attributes)
+      still strips all matched overloaded signature lines from the attribute's docstring
+      body rather than rendering them as content.
+    weight: 2

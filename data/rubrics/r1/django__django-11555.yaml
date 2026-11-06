@@ -1,0 +1,60 @@
+metadata:
+  task_summary: Fix a crash in find_ordering_name when a related model's Meta.ordering
+    contains expression objects (e.g., OrderBy or F(...).asc()) rather than plain
+    strings, because get_order_dir performs string indexing on these objects.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the find_ordering_name method in django/db/models/sql/compiler.py
+      to handle expression objects in opts.ordering, specifically the loop near 'for
+      item in opts.ordering' that calls find_ordering_name recursively.
+    weight: 3
+  - id: FC2
+    description: Confines all changes to django/db/models/sql/compiler.py (and optionally
+      test files), without modifying unrelated modules such as get_order_dir in django/db/models/sql/query.py
+      or any other production code files.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test covering the case where a parent model's Meta.ordering
+      contains expression objects (such as OrderBy or F expressions) and a child model
+      uses order_by() referencing the parent.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the crash that occurs when field is an OrderBy object (or
+      another expression with resolve_expression) rather than a string when iterating
+      over opts.ordering inside find_ordering_name, which is the root cause described
+      in the PR.
+    weight: 3
+  - id: SA2
+    description: Handles expression items found in opts.ordering (the related model's
+      Meta.ordering) by checking hasattr(item, 'resolve_expression') or isinstance(item,
+      OrderBy) before attempting string operations like get_order_dir.
+    weight: 3
+  - id: SA3
+    description: Respects the ordering direction encoded in expression objects (e.g.,
+      descending=True in an OrderBy), rather than silently discarding or ignoring
+      it when processing opts.ordering items.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing logic path for plain string ordering items
+      in find_ordering_name (including handling of '-' prefix via get_order_dir),
+      so that non-expression Meta.ordering strings continue to work as before.
+    weight: 3
+  - id: I2
+    description: Does not weaken or skip any existing ordering-related tests; all
+      pre-existing test assertions in tests/ordering/tests.py remain intact.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Prevents the crash (likely an AttributeError or TypeError from string
+      indexing an OrderBy object in get_order_dir) when a child model's query inherits
+      ordering from a related parent model whose Meta.ordering contains expression
+      objects.
+    weight: 3
+  - id: R2
+    description: Ensures that expression-based Meta.ordering items on a related model
+      produce valid SQL ORDER BY clauses when accessed through multi-table inheritance
+      order_by() calls, rather than raising an exception.
+    weight: 2

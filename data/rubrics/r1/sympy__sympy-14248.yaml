@@ -1,0 +1,73 @@
+metadata:
+  task_summary: Fix MatrixSymbol difference printing so that terms with negative coefficients
+    in MatAdd are rendered as subtractions (e.g., A - B) instead of sums with explicit
+    (-1) factors (e.g., (-1)*B + A).
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies `_print_MatAdd` in `sympy/printing/str.py` to handle negative-coefficient
+      terms rather than naively joining with ' + '.
+    weight: 3
+  - id: FC2
+    description: Modifies `_print_MatAdd` in `sympy/printing/latex.py` to detect and
+      handle negative-coefficient terms rather than naively joining with ' + '.
+    weight: 3
+  - id: FC3
+    description: Modifies `_print_MatAdd` in `sympy/printing/pretty/pretty.py` to
+      detect and handle negative-coefficient terms rather than naively joining with
+      ' + '.
+    weight: 3
+  - id: FC4
+    description: Avoids introducing changes to files unrelated to the three affected
+      printers (str, latex, pretty), keeping the diff minimal and focused.
+    weight: 2
+  - id: FC5
+    description: Adds or updates test coverage (in any of the printer test files)
+      for `MatAdd` expressions containing negatively-coefficiented terms, such as
+      `A - A*B - B`.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures the str printer produces output like `A - A*B - B` (using
+      `-` separator) rather than `(-1)*B + (-1)*A*B + A` for `A - A*B - B`.
+    weight: 3
+  - id: SA2
+    description: Ensures the latex printer produces output using ` - ` between terms
+      with negative coefficients rather than an explicit `-1` multiplier string like
+      `-1 B`.
+    weight: 3
+  - id: SA3
+    description: Ensures the pretty printer produces output using `-` as a subtraction
+      sign between terms rather than displaying `-B + -A*B + A` for `A - A*B - B`.
+    weight: 3
+  - id: SA4
+    description: Applies the fix to `MatAdd` expressions generally, not only to the
+      specific example `A - A*B - B` from the PR description, covering any term whose
+      leading coefficient is negative.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves correct output for `MatAdd` expressions where all terms
+      have positive coefficients (e.g., `A + B`, `2*A + B`), keeping `+` as the separator.
+    weight: 3
+  - id: I2
+    description: Does not weaken or remove existing assertions in `test_matAdd` or
+      `test_MatMul_MatAdd` tests that verify currently correct behavior.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Adds a conditional check in `_print_MatAdd` (in at least the str
+      printer) that detects when a MatAdd term has a negative leading coefficient,
+      analogous to the `_coeff_isneg` check already used in `_print_Add` and `_print_Add`
+      in latex.py.
+    weight: 3
+  - id: R2
+    description: Ensures that for a negatively-coefficiented MatMul term (such as
+      `(-1)*B` or `(-2)*C`), the printer outputs the positive part after a minus sign
+      rather than printing the raw negative-coefficient form.
+    weight: 3
+  - id: R3
+    description: Avoids introducing infinite recursion or circular dispatch between
+      `_print_MatAdd` and `_print_MatMul` when negating terms to extract their positive
+      representation.
+    weight: 2

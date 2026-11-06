@@ -1,0 +1,52 @@
+metadata:
+  task_summary: Fix the sign error in Quaternion.to_rotation_matrix() where m12 incorrectly
+    uses addition instead of subtraction for the q.b*q.a term.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies exactly the formula for m12 inside the to_rotation_matrix
+      method in sympy/algebras/quaternion.py, changing it from 2*s*(q.c*q.d + q.b*q.a)
+      to 2*s*(q.c*q.d - q.b*q.a).
+    weight: 3
+  - id: FC2
+    description: Confines changes to sympy/algebras/quaternion.py (or its test file)
+      and introduces no unrelated file modifications.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Corrects the sign of the m12 matrix element so that for a unit quaternion
+      rotating about the x-axis (q = (cos(x/2), sin(x/2), 0, 0)), the resulting 3x3
+      rotation matrix produces -sin(x) at position [1,2], matching the standard rotation
+      matrix for an x-axis rotation.
+    weight: 3
+  - id: SA2
+    description: Preserves the formula for m21 as 2*s*(q.c*q.d + q.b*q.a) (with addition),
+      so only the erroneous m12 element is changed.
+    weight: 3
+  - id: SA3
+    description: Updates the docstring example or test assertions in to_rotation_matrix
+      to reflect the corrected output for a quaternion rotating about the x-axis.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public signature of to_rotation_matrix(self, v=None)
+      is unchanged and that all other matrix elements (m00, m01, m02, m10, m11, m20,
+      m22) retain their original formulas.
+    weight: 2
+  - id: I2
+    description: Confirms that existing test assertions for to_rotation_matrix that
+      do not involve the m12 element (such as those using q1 = Quaternion(1, 2, 3,
+      4) or rotation about the z-axis) are not weakened or removed.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that for any unit quaternion q = (cos(t/2), sin(t/2), 0,
+      0) representing a rotation about the x-axis, the resulting matrix entry at row
+      1, column 2 evaluates to -sin(t) (not sin(t)), matching the standard SO(3) rotation
+      matrix convention.
+    weight: 3
+  - id: R2
+    description: Ensures that for the z-axis rotation quaternion q2 = (cos(theta/2),
+      0, 0, sin(theta/2)), the matrix at row 1, column 2 remains -sin(theta), confirming
+      the fix does not regress the already-correct z-axis case.
+    weight: 2

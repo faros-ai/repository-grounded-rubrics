@@ -1,0 +1,49 @@
+metadata:
+  task_summary: Fix TypeError in autodoc mock's _make_subclass when a generic-typed
+    class uses a TypeVar as the subscript key, causing string concatenation to fail.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sphinx/ext/autodoc/mock.py and no other production source
+      files, keeping the change minimal and local to the mock module.
+    weight: 3
+  - id: FC2
+    description: Alters _make_subclass or a caller of _make_subclass (such as __getitem__
+      or __getattr__) to coerce the name argument to str before it is used in string
+      concatenation with module.
+    weight: 3
+  - id: FC3
+    description: Adds or updates a test (anywhere in the diff) that exercises _MockObject
+      subscript access with a non-str key such as a TypeVar, covering the previously
+      failing generic-class scenario.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the TypeError raised when module + '.' + name is evaluated
+      with a TypeVar as name, matching the reported crash in autodoc's mock._make_subclass.
+    weight: 3
+  - id: SA2
+    description: Ensures __getitem__ on _MockObject (the entry point triggered by
+      SomeClass[T] syntax) passes a value that is safe to concatenate with a str into
+      _make_subclass.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves existing _MockObject, _MockModule, MockLoader, MockFinder,
+      and mock public symbols without renaming or removing them.
+    weight: 2
+  - id: I2
+    description: Does not weaken or skip any pre-existing test cases in tests/test_ext_autodoc_mock.py
+      (no added skipif, xfail, or removal of assertions).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that _MockObject.__getitem__ called with a TypeVar argument
+      returns a _MockObject instance rather than raising TypeError, enabling generic-typed
+      class subscript expressions like MockedBase[T] to succeed.
+    weight: 3
+  - id: R2
+    description: Confirms that existing non-generic usage of __getitem__ and __getattr__
+      on _MockObject continues to return _MockObject instances with correct __display_name__
+      strings of the form 'module.attr'.
+    weight: 2

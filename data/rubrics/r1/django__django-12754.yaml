@@ -1,0 +1,58 @@
+metadata:
+  task_summary: Fix FieldError when migrating a field from a parent model to a new
+    subclass in the same migration step by ensuring RemoveField runs before CreateModel
+    in the autodetector-generated operation order.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/db/migrations/autodetector.py and no other production
+      source files, keeping the change local to the migration autodetector.
+    weight: 2
+  - id: FC2
+    description: Adds logic inside generate_created_models (or a helper it calls)
+      that appends a dependency of the form (app_label, model_name, field_name, False)
+      — representing a required RemoveField — to the CreateModel dependencies list.
+    weight: 3
+  - id: FC3
+    description: Adds a test case in the migrations test suite that exercises the
+      scenario where a new subclass model is created and a same-named field is removed
+      from its parent model in the same migration step.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that when CreateModel for a new subclass model is generated
+      alongside a RemoveField for an identically-named field on an ancestor model,
+      the autodetector produces an operation ordering where RemoveField precedes CreateModel.
+    weight: 3
+  - id: SA2
+    description: Applies the dependency fix specifically when a field name in the
+      new model's fields also exists as a field being removed (present in old_field_keys
+      but absent from new_field_keys) from an ancestor model that appears in model_state.bases.
+    weight: 3
+  - id: SA3
+    description: Leaves the existing dependency on the base model being created (base_app_label,
+      base_name, None, True) intact alongside any new RemoveField dependency, so base-first
+      ordering is preserved.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing test assertions in the migrations test
+      suite are weakened, removed, or commented out.
+    weight: 2
+  - id: I2
+    description: Confirms that the public interface of MigrationAutodetector (its
+      constructor signature and changes() method signature) is unchanged.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a migration generated for the Readable-to-Book refactoring
+      scenario (CreateModel Book + RemoveField readable.title in same step) has RemoveField
+      listed before CreateModel in the operation sequence, preventing the FieldError
+      about 'Local field clashes with field of the same name from base class'.
+    weight: 3
+  - id: R2
+    description: Ensures that the existing behavior of _sort_migrations's stable topological
+      sort is sufficient to produce the correct order once the new dependency is registered
+      via add_operation, without introducing any additional special-case ordering
+      logic outside of the dependency mechanism.
+    weight: 1

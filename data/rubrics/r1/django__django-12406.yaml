@@ -1,0 +1,59 @@
+metadata:
+  task_summary: Suppress the blank/empty option in ModelChoiceField when the widget
+    is RadioSelect and the field is required (blank=False), because RadioSelect has
+    an inherent unfilled state that makes the '-------' option look like a valid choice.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `ModelChoiceField.__init__` method in `django/forms/models.py`
+      to set `self.empty_label = None` when the widget is `RadioSelect` and the field
+      is required, not only when `initial is not None`.
+    weight: 3
+  - id: FC2
+    description: Limits changes to the minimum necessary files — specifically `django/forms/models.py`
+      and/or `django/db/models/fields/related.py` — without unrelated file modifications
+      or dependency churn.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test in the model_forms or forms_tests suite that
+      exercises `ModelChoiceField` with `widget=forms.RadioSelect` and `required=True`,
+      asserting that no empty/blank choice (value `''` or `None`) is included.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements the condition that when a `ModelChoiceField` is required
+      and uses a `RadioSelect` widget, `empty_label` is set to `None`, preventing
+      a blank `'---------'` option from being rendered.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior where `ModelChoiceField` with a non-RadioSelect
+      widget (e.g., the default `Select`) still includes the `'---------'` empty option
+      when required, as the PR description only targets RadioSelect.
+    weight: 3
+  - id: SA3
+    description: Handles the widget argument correctly whether it is passed as a class
+      (e.g., `forms.RadioSelect`) or as an instance (e.g., `forms.RadioSelect()`),
+      since `Field.__init__` in `django/forms/fields.py` normalizes both forms.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: 'Preserves the existing condition `if required and (initial is not
+      None): self.empty_label = None` so that providing an `initial` value still suppresses
+      the empty option, ensuring no regression for that code path.'
+    weight: 2
+  - id: I2
+    description: Does not weaken or remove existing tests related to `empty_label`,
+      `ModelChoiceField`, or `RadioSelect` that were passing before the fix.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a `ModelForm` with a `ForeignKey(blank=False, null=True)`
+      field using `RadioSelect` widget renders no `<input type='radio' value=''>`
+      blank option when no instance is provided (new form), matching the PR description's
+      expected output.
+    weight: 3
+  - id: R2
+    description: Ensures that when `required=False` (i.e., the model field has `blank=True`)
+      and `RadioSelect` is used, the empty label is still rendered, so the suppression
+      is conditional on `required=True`.
+    weight: 2

@@ -1,0 +1,55 @@
+metadata:
+  task_summary: Fix resolve_lookup_value in django/db/models/sql/query.py to unpack
+    resolved sub-values into the tuple constructor so that named tuples passed as
+    __range arguments no longer raise TypeError.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the tuple-reconstruction expression inside resolve_lookup_value
+      in django/db/models/sql/query.py and nowhere else for the core fix.
+    weight: 3
+  - id: FC2
+    description: Avoids unrelated file churn — the diff does not rename files, alter
+      unrelated modules, or introduce dependency changes outside of the targeted function.
+    weight: 2
+  - id: FC3
+    description: Adds a test (in any test file) that exercises resolve_lookup_value
+      or a queryset filter such as __range with a named tuple argument, verifying
+      the fix.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Replaces the bare generator passed to type(value)(...) with an unpacked
+      form (e.g., using * expansion) so that named tuples can be constructed correctly
+      from resolved sub-values.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior for plain tuple and list values —
+      the fix does not break reconstruction of non-named tuple/list types.
+    weight: 3
+  - id: SA3
+    description: Targets only the isinstance(value, (list, tuple)) branch inside resolve_lookup_value,
+      matching the PR description's identification of that code path as the source
+      of the bug.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: 'Confirms that the public signature of resolve_lookup_value (arguments:
+      value, can_reuse, allow_joins) is not altered by the fix.'
+    weight: 2
+  - id: I2
+    description: Confirms that no existing tests related to __range or resolve_lookup_value
+      are removed or weakened (e.g., no skip decorators or assertion removals) in
+      the diff.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when value is a named tuple, the reconstructed return
+      value is an instance of the same named tuple type (type(value)) rather than
+      a plain tuple or generator.
+    weight: 3
+  - id: R2
+    description: Ensures that when value is a plain tuple or list containing expressions
+      (e.g., F() objects), those expressions are still resolved and the reconstructed
+      container is of the same type, preserving backward compatibility.
+    weight: 2

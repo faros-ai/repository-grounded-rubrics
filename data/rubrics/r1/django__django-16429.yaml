@@ -1,0 +1,55 @@
+metadata:
+  task_summary: Fix timesince() raising TypeError with USE_TZ=True and a datetime
+    interval of one month or more by passing tzinfo when constructing the pivot datetime.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/utils/timesince.py and no other production source
+      files, keeping the diff minimal and confined to the pivot-construction code
+      path.
+    weight: 3
+  - id: FC2
+    description: Adds tzinfo (derived from the input datetime d, e.g. d.tzinfo) as
+      an argument to the datetime.datetime() call that constructs the pivot object
+      inside the 'if years or months:' branch of timesince().
+    weight: 3
+  - id: FC3
+    description: Adds or updates a test exercising timesince() with a timezone-aware
+      datetime (USE_TZ=True or an explicit tzinfo) and an interval of at least one
+      month, matching the test scenario described in the PR description.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures the tzinfo argument passed to the pivot datetime.datetime()
+      constructor uses the same timezone information as the input datetime d, not
+      a hardcoded value, so the pivot inherits the correct offset.
+    weight: 3
+  - id: SA2
+    description: Preserves the case where d has no tzinfo (naive datetime) by passing
+      None or d.tzinfo (which evaluates to None) so naive-datetime behavior is unchanged.
+    weight: 2
+  - id: SA3
+    description: Does not alter the logic for computing pivot_year, pivot_month, or
+      the MONTHS_DAYS clamping — only adds the tzinfo argument to the datetime.datetime()
+      call.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms the public signatures of timesince() and timeuntil() (parameters
+      d, now, reversed, time_strings, depth) are unchanged.
+    weight: 3
+  - id: I2
+    description: Confirms no existing tests are weakened, skipped, or deleted (no
+      '@pytest.mark.skip', no removal of assertEqual/assertRaises calls in test_timesince.py).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that computing 'now - pivot' no longer raises TypeError when
+      now is timezone-aware and pivot is constructed with a matching tzinfo, because
+      both operands share offset-awareness.
+    weight: 3
+  - id: R2
+    description: Maintains correct timesince() output (e.g. '1 month') for timezone-aware
+      datetime objects that are one or more months in the past, as described in the
+      PR description test case.
+    weight: 2

@@ -1,0 +1,62 @@
+metadata:
+  task_summary: Add an edit_only (or equivalent) parameter to model formsets that
+    prevents creation of new objects regardless of extra POST data submitted.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Adds the new parameter (e.g., edit_only) to the signature of formset_factory
+      in django/forms/formsets.py and propagates it as a class attribute on the generated
+      formset class.
+    weight: 3
+  - id: FC2
+    description: Adds the new parameter (e.g., edit_only) to the signature of modelformset_factory
+      in django/forms/models.py and passes it through to formset_factory.
+    weight: 3
+  - id: FC3
+    description: Adds the new parameter (e.g., edit_only) to the signature of inlineformset_factory
+      in django/forms/models.py and passes it through to modelformset_factory.
+    weight: 2
+  - id: FC4
+    description: Modifies total_form_count or _construct_form or save_new_objects
+      (or equivalent) in BaseFormSet or BaseModelFormSet so that when the new flag
+      is active, no extra/new-object forms beyond initial_form_count are instantiated,
+      validated, or saved.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements the restriction server-side so that extra=0 is no longer
+      relied upon; the new flag enforces the edit-only constraint even when a client
+      submits additional TOTAL_FORMS data or extra POST fields.
+    weight: 3
+  - id: SA2
+    description: Ensures save_new_objects (or equivalent path) in BaseModelFormSet
+      returns an empty list or skips saving when the edit_only flag is set, preventing
+      any new database objects from being created.
+    weight: 3
+  - id: SA3
+    description: Adds the new parameter to the __all__ export list or otherwise preserves
+      its discoverability from django.forms.formsets or django.forms.models.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: 'Confirms that existing default behavior is unchanged: when the new
+      flag is absent or False, formsets continue to allow new object creation as before
+      (no regression in default extra/save_new_objects behavior).'
+    weight: 3
+  - id: I2
+    description: Confirms the patch does not weaken or skip existing formset tests
+      (no test deletions or @skip annotations added to existing test methods in test_formsets.py
+      or model_formsets tests).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Raises a ValidationError (or equivalent non-form error with a stable
+      error code such as 'too_many_forms' or a new dedicated code) when a client submits
+      more forms than initial_form_count while the edit_only flag is active, ensuring
+      tampered POST data is rejected.
+    weight: 2
+  - id: R2
+    description: When the edit_only flag is active, total_form_count returns at most
+      initial_form_count in the unbound (GET) case, ensuring no extra empty forms
+      are rendered to the user.
+    weight: 2

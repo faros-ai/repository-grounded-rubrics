@@ -1,0 +1,56 @@
+metadata:
+  task_summary: Add a `set_paths` method to `ContourSet` so callers can replace all
+    paths on the contour set without mutating the list returned by `get_paths`.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Implements `set_paths` as a method defined on `ContourSet` (in `lib/matplotlib/contour.py`),
+      overriding the base `Collection.set_paths` that raises `NotImplementedError`.
+    weight: 3
+  - id: FC2
+    description: Confines the diff to `lib/matplotlib/contour.py` (and optionally
+      its test file) without modifying unrelated source files such as `lib/matplotlib/collections.py`.
+    weight: 2
+  - id: FC3
+    description: Adds `set_paths` in the `ContourSet` class body near or alongside
+      the existing `get_transform` or `draw` methods rather than in a subclass such
+      as `QuadContourSet` or `TriContourSet`.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements `set_paths` so it accepts a sequence of paths as its sole
+      non-self argument, matching the `cs.set_paths(transformed_paths)` call pattern
+      described in the PR.
+    weight: 3
+  - id: SA2
+    description: Sets `self._paths` to the provided paths argument inside `set_paths`,
+      replacing the stored path list (matching the semantic of the Cartopy workaround
+      `paths[:] = transformed_paths`).
+    weight: 3
+  - id: SA3
+    description: Exposes `set_paths` as a public API method (no leading underscore),
+      consistent with the `cs.set_paths(transformed_paths)` usage shown in the PR
+      description.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing `get_paths` behaviour inherited from `Collection`
+      (returns `self._paths`) — the diff does not remove or alter any `get_paths`
+      implementation in `ContourSet`.
+    weight: 2
+  - id: I2
+    description: Avoids weakening existing tests (no removal of assertions, no addition
+      of `pytest.mark.skip`, and no conversion of `assert` statements to no-ops in
+      `lib/matplotlib/tests/test_contour.py`).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Marks the artist as stale (sets `self.stale = True`) inside `set_paths`,
+      so a subsequent `draw` call picks up the new paths without requiring an explicit
+      additional `changed()` call.
+    weight: 2
+  - id: R2
+    description: Ensures `set_paths` does not raise `NotImplementedError` at call
+      time by providing a concrete implementation body, overriding the base `Collection.set_paths`
+      which raises `NotImplementedError`.
+    weight: 3

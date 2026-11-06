@@ -1,0 +1,59 @@
+metadata:
+  task_summary: Fix autodoc's ModuleDocumenter to treat an explicitly empty __all__
+    = [] as a directive to show no members, rather than ignoring it and showing all
+    members.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the condition in get_object_members of ModuleDocumenter
+      (around line 1077 of sphinx/ext/autodoc/__init__.py) so that an empty list __all__
+      is no longer treated the same as None.
+    weight: 3
+  - id: FC2
+    description: Confines changes to sphinx/ext/autodoc/__init__.py and/or sphinx/util/inspect.py
+      without introducing unrelated file edits.
+    weight: 2
+  - id: FC3
+    description: Avoids changing the self.__all__ = None initialization or the type
+      annotation Optional[Sequence[str]] in a way that breaks the existing None-means-no-__all__
+      semantic.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements logic that distinguishes between self.__all__ is None
+      (no __all__ defined) and self.__all__ == [] (empty __all__), so that the empty
+      case returns an empty or fully-skipped member list.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior where self.__all__ is None causes
+      all module members to be returned without skipping (implicit module members
+      path).
+    weight: 3
+  - id: SA3
+    description: Preserves the existing behavior where a non-empty self.__all__ causes
+      members not listed in __all__ to have member.skipped = True.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that any existing tests related to __all__ handling (e.g.,
+      in tests/test_ext_autodoc.py) are not weakened, skipped, or removed.
+    weight: 2
+  - id: I2
+    description: Confirms the public API of ModuleDocumenter.get_object_members remains
+      compatible with callers (same return type Tuple[bool, ObjectMembers]).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: 'Ensures that when __all__ = [] is present on a module, automodule
+      with :members: produces no documented members (all are skipped or the returned
+      member list is empty).'
+    weight: 3
+  - id: R2
+    description: 'Ensures that when __all__ is absent from a module, automodule with
+      :members: continues to document all public module members as before.'
+    weight: 3
+  - id: R3
+    description: Ensures that the sort_members bysource path (around line 1102 using
+      if order == 'bysource' and self.__all__:) does not sort by __all__ when __all__
+      is an empty list, consistent with the fix.
+    weight: 1

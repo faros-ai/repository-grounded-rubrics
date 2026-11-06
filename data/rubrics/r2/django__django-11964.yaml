@@ -1,0 +1,55 @@
+metadata:
+  task_summary: Fix TextChoices/IntegerChoices so that str() on an enum member returns
+    the primitive value (e.g. 'first') instead of the enum representation (e.g. 'MyChoice.FIRST_CHOICE').
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/db/models/enums.py to add a __str__ method somewhere
+      in the Choices, TextChoices, or IntegerChoices class hierarchy that returns
+      the primitive value of the enum member.
+    weight: 3
+  - id: FC2
+    description: Confines the core fix to django/db/models/enums.py without making
+      unrelated changes to other production source files.
+    weight: 2
+  - id: FC3
+    description: Adds or updates tests (anywhere in the diff) that exercise str()
+      or __str__ on TextChoices or IntegerChoices enum members.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that calling str() on a TextChoices enum member returns the
+      plain string value (e.g. 'first' rather than 'MyChoice.FIRST_CHOICE'), matching
+      the PR description's stated requirement.
+    weight: 3
+  - id: SA2
+    description: Ensures that calling str() on an IntegerChoices enum member returns
+      the string representation of its integer value (e.g. '1' rather than 'MyChoice.VALUE'),
+      consistent with the PR description's intent of consistent primitive-type behavior.
+    weight: 2
+  - id: SA3
+    description: Ensures the fix applies to both freshly-created model instances and
+      database-retrieved instances, as described in the two failing test scenarios
+      in the PR description.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves existing TextChoices and IntegerChoices behavior such as
+      .value, .label, .choices, .values, .names, and .labels properties, which must
+      remain unchanged.
+    weight: 3
+  - id: I2
+    description: Does not weaken or skip any existing tests in the model_enums or
+      model_fields test modules.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that TextChoices members, which inherit from str, still compare
+      equal to their primitive string value (e.g. TextChoices.FIRST_CHOICE == 'first')
+      after the __str__ fix is applied.
+    weight: 2
+  - id: R2
+    description: Ensures that IntegerChoices members, which inherit from int, still
+      support arithmetic and integer comparisons (e.g. IntegerChoices.A + 1 == 2)
+      after the fix, since __str__ must not break the int mixin.
+    weight: 2

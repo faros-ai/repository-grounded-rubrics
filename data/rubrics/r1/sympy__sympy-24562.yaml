@@ -1,0 +1,51 @@
+metadata:
+  task_summary: Fix Rational('0.5', '100') returning 1/100100 instead of 1/200 due
+    to string multiplication when q is a string and p.q is used as a multiplier.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the Rational.__new__ method in sympy/core/numbers.py to
+      fix the string-multiplication bug when both p and q are passed as string arguments.
+    weight: 3
+  - id: FC2
+    description: Confines changes to sympy/core/numbers.py (the Rational.__new__ section)
+      without modifying unrelated files or introducing spurious imports.
+    weight: 2
+  - id: FC3
+    description: Ensures the fix converts q to a numeric type (via int(), Rational(),
+      or equivalent) before the q *= p.q multiplication in the Rational.__new__ body.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Corrects Rational('0.5', '100') to evaluate to 1/200, matching the
+      behavior of Rational(0.5, 100) as described in the PR.
+    weight: 3
+  - id: SA2
+    description: Preserves the correct behavior when both p and q are non-string numeric
+      types (e.g., Rational(1, 2), Rational(Integer(1), 2)) as exercised in the existing
+      test_Rational_new tests.
+    weight: 2
+  - id: SA3
+    description: Handles the case where q is a string representing an integer (e.g.,
+      '100') and p is a string representing a decimal (e.g., '0.5') without performing
+      Python string-repetition via the *= operator.
+    weight: 3
+  integrity_rubrics:
+  - id: I1
+    description: Avoids weakening existing tests in test_numbers.py or removing assertions
+      related to Rational construction with various input types.
+    weight: 2
+  - id: I2
+    description: Preserves the public API of Rational.__new__ (signature with p, q=None,
+      gcd=None) without removing or renaming parameters.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Produces Rational(1, 200) (i.e., 1/200) when called as Rational('0.5',
+      '100'), correcting the erroneous 1/100100 result caused by string multiplication.
+    weight: 3
+  - id: R2
+    description: Maintains backward compatibility so that Rational('1e2/1e-2'), Rational('3/4'),
+      and other single-string-argument forms continue to return the same results as
+      before the fix.
+    weight: 2

@@ -1,0 +1,57 @@
+metadata:
+  task_summary: Fix itermonomials to correctly filter monomials by total degree when
+    using the integer min_degrees argument, replacing the erroneous per-variable max-power
+    check with a total-degree sum check.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sympy/polys/monomials.py and no unrelated files are changed
+      (no churn outside the monomials module).
+    weight: 2
+  - id: FC2
+    description: Replaces the condition using max(powers.values()) with a condition
+      using sum(powers.values()) (or an equivalent total-degree check) in the commutative
+      branch of the total_degree=True path inside itermonomials.
+    weight: 3
+  - id: FC3
+    description: Applies the same total-degree fix (replacing max(powers.values())
+      with sum(powers.values()) or equivalent) in the non-commutative branch of the
+      total_degree=True path inside itermonomials.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures the fix targets the total_degree=True code path (i.e., when
+      max_degrees and min_degrees are integers, not lists), consistent with the PR
+      description showing scalar min_degrees=3 failing to return mixed-variable monomials
+      of total degree 3.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing list-based (total_degree=False) code path
+      in itermonomials unchanged, since the PR description only reports a bug in the
+      scalar integer case.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing test assertions for itermonomials are removed
+      or weakened (no deletion of assert lines from sympy/polys/tests/test_monomials.py).
+    weight: 3
+  - id: I2
+    description: 'Confirms that the public signature of itermonomials (parameters:
+      variables, max_degrees, min_degrees=None) is unchanged.'
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that for commutative variables with integer min_degrees=max_degrees=3,
+      itermonomials yields all monomials whose sum of exponents equals 3 (e.g., x1*x2**2,
+      x1**2*x2, x2*x3**2, etc.), not only pure-power monomials like x1**3.
+    weight: 3
+  - id: R2
+    description: Ensures that when min_degrees=0 (or None) and max_degrees is a positive
+      integer, itermonomials still yields S.One and all lower-degree monomials (backward-compatible
+      behavior).
+    weight: 2
+  - id: R3
+    description: Ensures that monomials with total degree strictly below min_degree
+      are excluded from the output when a positive integer min_degrees is supplied
+      to itermonomials.
+    weight: 2

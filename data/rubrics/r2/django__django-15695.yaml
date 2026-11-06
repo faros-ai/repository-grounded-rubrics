@@ -1,0 +1,63 @@
+metadata:
+  task_summary: Fix RenameIndex.database_backwards() so that when old_fields is set
+    (unnamed index case), it renames the index back to the auto-generated name instead
+    of being a no-op, allowing database_forwards() to be re-applied without crashing.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the database_backwards() method of RenameIndex in django/db/migrations/operations/models.py
+      to remove or replace the early-return no-op branch that was triggered when self.old_fields
+      is truthy.
+    weight: 3
+  - id: FC2
+    description: Confines the fix to django/db/migrations/operations/models.py (and
+      optionally tests/migrations/test_operations.py), without modifying unrelated
+      files such as schema editors, migration loaders, or other operation classes.
+    weight: 2
+  - id: FC3
+    description: 'Adds or extends a test case in tests/migrations/test_operations.py
+      that exercises the re-apply scenario described in the PR description: database_forwards,
+      database_backwards, then database_forwards again for an unnamed index (old_fields)
+      RenameIndex operation.'
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements logic in database_backwards() for the old_fields case
+      that looks up the current auto-generated index name (e.g., via schema_editor._constraint_names
+      or an equivalent mechanism) so it can be restored.
+    weight: 3
+  - id: SA2
+    description: Implements the actual rename in database_backwards() for the old_fields
+      case, renaming the index from new_name back to the auto-generated old name,
+      so the database state is consistent with project_state after backwards.
+    weight: 3
+  - id: SA3
+    description: Ensures that database_backwards() for the old_fields case raises
+      a ValueError (or equivalent) when the expected number of matching indexes is
+      not found, consistent with the existing error-checking pattern in database_forwards().
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing behavior of database_backwards() for the named-index
+      case (self.old_name is set), where names are swapped and database_forwards()
+      is called, without altering that code path.
+    weight: 3
+  - id: I2
+    description: Avoids mutating self.new_name or self.old_name as persistent side
+      effects in the old_fields code path of database_backwards(), consistent with
+      how the named-index backwards path restores swapped names after calling database_forwards().
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that after database_backwards() is called for an unnamed-index
+      RenameIndex, the index in the database carries the auto-generated name (not
+      new_name), so that a subsequent database_forwards() call can locate it via _constraint_names
+      and rename it to new_name without raising a ProgrammingError such as 'relation
+      already exists'.
+    weight: 3
+  - id: R2
+    description: Ensures that database_backwards() for the old_fields case uses the
+      from_state (or to_state, whichever reflects the post-forward state) to retrieve
+      the model and column names, rather than hard-coding or skipping the lookup,
+      so the correct auto-generated constraint name is resolved at runtime.
+    weight: 2

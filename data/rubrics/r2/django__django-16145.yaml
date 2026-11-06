@@ -1,0 +1,54 @@
+metadata:
+  task_summary: When `runserver 0:8000` is used, the startup message should display
+    `http://0.0.0.0:8000/` instead of `http://0:8000/` to match the actual bound address.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies `django/core/management/commands/runserver.py` as the sole
+      changed production-code file (no unrelated files are modified).
+    weight: 3
+  - id: FC2
+    description: Adds a conditional check (in `handle` or `inner_run` in `django/core/management/commands/runserver.py`)
+      that detects when `self.addr` equals the string `"0"` and expands it to `"0.0.0.0"`.
+    weight: 3
+  - id: FC3
+    description: Leaves all existing addr-handling logic for non-zero addresses (IPv4,
+      IPv6, FQDN, default fallback) intact and unmodified in `handle`.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures the startup message `Starting development server at %(protocol)s://%(addr)s:%(port)s/`
+      displays `0.0.0.0` (not `0`) when the user passes `0` as the host portion of
+      `addrport`.
+    weight: 3
+  - id: SA2
+    description: Preserves the behavior that the server binds to `0.0.0.0` (all interfaces)
+      when `0` is supplied as the address, consistent with the documented equivalence
+      of `runserver 0:8000` and `runserver 0.0.0.0:8000`.
+    weight: 2
+  - id: SA3
+    description: Does not alter behavior for other shorthand-or-alias addresses (e.g.,
+      bare port number without host, explicit `0.0.0.0`, localhost, IPv6 bracket addresses)
+      in the `handle` method.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing test cases in `tests/admin_scripts/tests.py`
+      for `ManageRunserver` (e.g., `test_runserver_addrport`, `test_runner_custom_defaults`)
+      are not weakened, removed, or have their expected values changed.
+    weight: 2
+  - id: I2
+    description: Avoids introducing mass renames or unrelated refactors to symbols
+      such as `naiveip_re`, `inner_run`, `handle`, or `assertServerSettings`.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Produces the display string `0.0.0.0` in the `addr` slot of the `Starting
+      development server at` message when `addrport` is `"0:8000"`, making the URL
+      clickable and consistent with documentation.
+    weight: 3
+  - id: R2
+    description: Preserves backward-compatible behavior when no `addrport` is supplied
+      (falls through to `self.default_addr`, which is `127.0.0.1`), so the default
+      startup message is unaffected.
+    weight: 2

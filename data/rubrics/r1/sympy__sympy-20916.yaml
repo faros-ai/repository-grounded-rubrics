@@ -1,0 +1,59 @@
+metadata:
+  task_summary: Fix pprint unicode formatting so that subscript digits on Greek letter
+    symbols (e.g., omega0 rendered as ω) are displayed as Unicode subscript characters
+    (ω₀) instead of plain digits (ω0).
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the regex pattern `_name_with_digits_p` in `sympy/printing/conventions.py`
+      (or an equivalent location in `split_super_sub`) to match Unicode letter characters,
+      not only ASCII `[a-zA-Z]`, so that Greek Unicode letters followed by digits
+      are correctly split.
+    weight: 3
+  - id: FC2
+    description: Confines the fix to the minimal necessary location — specifically
+      `split_super_sub` in `sympy/printing/conventions.py` and/or `pretty_symbol`
+      in `sympy/printing/pretty/pretty_symbology.py` — without modifying unrelated
+      files or introducing changes to unrelated printer modules.
+    weight: 2
+  - id: FC3
+    description: Adds at least one test case (in `sympy/printing/pretty/tests/test_pretty.py`
+      or `sympy/printing/tests/test_conventions.py`) that exercises a Greek-letter
+      symbol with a digit subscript, such as a symbol whose name consists of a Unicode
+      Greek character followed by a digit.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that `split_super_sub` correctly parses a name consisting
+      of Unicode non-ASCII letters (such as Greek characters) followed by digits,
+      splitting the digits into the subscript list rather than leaving them attached
+      to the name.
+    weight: 3
+  - id: SA2
+    description: Ensures that `pretty_symbol` returns a string with Unicode subscript
+      digits (e.g., '₀') rather than plain ASCII digits (e.g., '0') when given a symbol
+      whose printed name is a Greek Unicode character followed by a digit.
+    weight: 3
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the existing `test_super_sub` assertions in `sympy/printing/tests/test_conventions.py`
+      for ASCII-letter symbols (e.g., `split_super_sub('alpha_11')`, `split_super_sub('beta_13')`)
+      remain unchanged and are not weakened or removed.
+    weight: 3
+  - id: I2
+    description: Confirms that existing `test_upretty_greek`, `test_upretty_multiindex`,
+      and `test_upretty_sub_super` assertions in `sympy/printing/pretty/tests/test_pretty.py`
+      are preserved without modification or relaxation.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that `split_super_sub` treats a string of Unicode letter
+      characters (including Greek letters like omega rendered as ω) followed by digit
+      characters as having the letters in the name portion and the digits in the subscript
+      list, matching the behavior already exhibited for ASCII names like 'omega0'.
+    weight: 3
+  - id: R2
+    description: Ensures backward compatibility so that ASCII-only symbol names with
+      trailing digits (e.g., 'beta12', 'Y00') continue to have their trailing digits
+      split into the subscript list and rendered with Unicode subscript characters.
+    weight: 2

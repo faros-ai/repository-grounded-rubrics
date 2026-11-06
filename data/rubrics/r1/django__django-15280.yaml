@@ -1,0 +1,66 @@
+metadata:
+  task_summary: Fix deferred fields being incorrectly inherited when following prefetched
+    reverse relations back to the 'parent' object (e.g. User.objects.only('email').prefetch_related(profile__user)
+    where the inner user queryset uses only('kind') produces a User instance that
+    still reports 'kind' as deferred).
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/db/models/fields/related_descriptors.py and no unrelated
+      files (i.e., diff is confined to the descriptor logic and optional test files).
+    weight: 2
+  - id: FC2
+    description: 'Removes or guards the set_cached_value call inside ForwardManyToOneDescriptor.get_prefetch_queryset
+      (the block ''if not remote_field.multiple: for rel_obj in queryset: ... remote_field.set_cached_value(rel_obj,
+      instance)'') so that an outer instance with incorrect deferred fields is no
+      longer unconditionally cached onto the prefetched rel_obj.'
+    weight: 3
+  - id: FC3
+    description: Removes or guards the self.related.field.set_cached_value(rel_obj,
+      instance) call inside ReverseOneToOneDescriptor.get_prefetch_queryset so that
+      an outer instance with incorrect deferred fields is no longer unconditionally
+      cached onto the prefetched rel_obj.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause described in the PR: when a prefetch chain
+      navigates back to the same model (e.g. User -> Profile -> User), the inner queryset''s
+      instances must not inherit the deferred-field state of the outer queryset''s
+      instances.'
+    weight: 3
+  - id: SA2
+    description: Preserves the reverse-relation cache setup (set_cached_value) when
+      the instance being cached does NOT have mismatched deferred fields relative
+      to the rel_obj that was retrieved by the inner prefetch queryset, so that the
+      cache-priming optimization is not completely removed.
+    weight: 2
+  - id: SA3
+    description: Adds a regression test (in the prefetch_related test suite or an
+      equivalent location) that exercises User.objects.only('email').prefetch_related
+      with a nested Prefetch('profile', queryset=Profile.objects.prefetch_related(Prefetch('user',
+      queryset=User.objects.only('kind')))) and asserts that accessing user.profile.user.kind
+      does not execute an additional SQL query.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the existing get_prefetch_queryset return signature
+      (queryset, rel_obj_attr, instance_attr, single, cache_name, is_descriptor) is
+      unchanged for both ForwardManyToOneDescriptor and ReverseOneToOneDescriptor.
+    weight: 2
+  - id: I2
+    description: Confirms that no existing tests are weakened, skipped, or deleted
+      to accommodate the fix (no diff lines removing assertNumQueries assertions or
+      adding @skip decorators in test files).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that after the fix, user.profile.user.get_deferred_fields()
+      does not contain 'kind' when the inner queryset is User.objects.only('kind'),
+      so that accessing user.profile.user.kind does not trigger a database query.
+    weight: 3
+  - id: R2
+    description: Ensures the fix handles the ForeignKey variant (not just OneToOneField)
+      by guarding or adjusting the set_cached_value logic inside ForwardManyToOneDescriptor.get_prefetch_queryset,
+      consistent with the PR description noting 'this also happens if the relationship
+      between Profile and User is a ForeignKey'.
+    weight: 2

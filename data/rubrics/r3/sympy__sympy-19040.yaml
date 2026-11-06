@@ -1,0 +1,51 @@
+metadata:
+  task_summary: Fix factor() with extension=True/extension=[I] dropping factors in
+    multivariate polynomials by adding dmp_exclude/dmp_include logic to dmp_ext_factor
+    in factortools.py.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sympy/polys/factortools.py and confines changes to the dmp_ext_factor
+      function or its immediate call-sites, without unrelated file churn.
+    weight: 3
+  - id: FC2
+    description: Adds calls to dmp_exclude and dmp_include (imported from sympy.polys.densebasic)
+      within dmp_ext_factor to strip and restore unused variable levels before and
+      after multivariate factoring.
+    weight: 3
+  - id: FC3
+    description: Adds a regression test (in the polys test suite or polytools test
+      suite) exercising factor() or dmp_ext_factor on a multivariate polynomial such
+      as expand((x-1)*(y-1)) with extension=[I] or extension=True.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the reported bug where factor(expand((x-1)*(y-1)), extension=[I])
+      returned only x-1 instead of (x-1)*(y-1), as described in issue #18895.'
+    weight: 3
+  - id: SA2
+    description: Applies the fix in the algebraic-extension branch of dmp_ext_factor
+      (the branch reached when K0.is_Algebraic is True) rather than in unrelated factoring
+      paths.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves all existing dmp_ext_factor assertions in the test suite
+      (does not remove or weaken any assert in test_dmp_ext_factor).
+    weight: 3
+  - id: I2
+    description: Preserves the public API of factor(), factor_list(), and dmp_ext_factor()
+      without changing their signatures or return-value contracts.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that dmp_ext_factor calls dmp_exclude before factoring to
+      collapse unused variable levels, and calls dmp_include afterward to restore
+      those levels, mirroring the pattern already used for the ZZ domain in dmp_factor_list.
+    weight: 3
+  - id: R2
+    description: Ensures that factor() with extension=[I] on a polynomial that already
+      has no excluded levels (e.g., a genuinely bivariate polynomial like x**2 - 2*y**2
+      with extension=sqrt(2)) continues to produce correct factored output without
+      regression.
+    weight: 2

@@ -1,0 +1,58 @@
+metadata:
+  task_summary: Fix _query_cpu() in pylint/lint/run.py to never return 0, preventing
+    a crash when --jobs=0 is used in Kubernetes Pods where cpu.shares is 2 (giving
+    int(2/1024)=0).
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies only pylint/lint/run.py (and optionally a test file) to
+      fix the zero-CPU bug, without touching unrelated files.
+    weight: 2
+  - id: FC2
+    description: Applies the fix within or immediately around the _query_cpu() or
+      _cpu_count() function in pylint/lint/run.py, keeping the change local to that
+      function or its call site.
+    weight: 3
+  - id: FC3
+    description: Removes or replaces the bare avail_cpu = int(cpu_shares / 1024) expression
+      so that a fractional result less than 1 no longer truncates to 0.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that the value ultimately returned to the caller (from _query_cpu()
+      or _cpu_count()) is never 0, consistent with the PR description requirement
+      that the calculated CPU count must never be 0.
+    weight: 3
+  - id: SA2
+    description: Handles the specific Kubernetes scenario described in the PR where
+      cpu.cfs_quota_us is -1 (causing fallthrough to the cpu.shares branch) and cpu.shares
+      is 2, so that the result is at least 1.
+    weight: 2
+  - id: SA3
+    description: Preserves the existing behavior for the cpu.cfs_quota_us / cpu.cfs_period_us
+      branch so that valid quota-based CPU calculations (where cpu_quota > cpu_period)
+      are not affected.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the public signature of _cpu_count() as returning int (not
+      int | None), so callers like the --jobs=0 code path at run.py line 185 continue
+      to work without changes.
+    weight: 2
+  - id: I2
+    description: Does not weaken or skip any existing tests related to _query_cpu()
+      or _cpu_count() in the test suite.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Guarantees that multiprocessing.Pool receives a processes argument
+      of at least 1 when --jobs=0 is used in an environment where _query_cpu() previously
+      returned 0, preventing the ValueError 'Number of processes must be at least
+      1'.
+    weight: 3
+  - id: R2
+    description: Ensures that when _query_cpu() computes a CPU share that rounds down
+      to 0 via integer division, the result is treated as either None or clamped to
+      1, so _cpu_count() falls back to the host CPU count or returns 1 rather than
+      0.
+    weight: 3

@@ -1,0 +1,58 @@
+metadata:
+  task_summary: Fix factor() with extension=[I] dropping factors of multivariate polynomials
+    by correcting the square-free check in dmp_sqf_norm.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sympy/polys/sqfreetools.py to fix the square-free check
+      inside dmp_sqf_norm, which is the root cause of the incorrect factorization.
+    weight: 3
+  - id: FC2
+    description: Avoids modifying unrelated files beyond sympy/polys/sqfreetools.py
+      and test files; does not introduce changes to unrelated modules such as polytools.py,
+      factortools.py, or densearith.py.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test (in sympy/polys/tests/ or sympy/polys/tests/test_polytools.py)
+      that exercises factor() called with extension=[I] on a two-variable polynomial
+      such as expand((x-1)*(y-1)).
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Replaces or supplements the dmp_sqf_p(r, u, K.dom) call inside dmp_sqf_norm
+      with a check that tests square-freeness with respect to all u+1 variables of
+      the resultant r, not just the first variable.
+    weight: 3
+  - id: SA2
+    description: Preserves the overall loop structure of dmp_sqf_norm (incrementing
+      s and recomposing f until a truly square-free norm is found) so that the fix
+      only corrects the termination condition rather than rewriting the algorithm.
+    weight: 2
+  - id: SA3
+    description: Ensures the fix handles the case where the resultant r is univariate
+      (u == 0, delegated to dup_sqf_norm) without regression, keeping the dup_sqf_norm
+      path unchanged.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing dmp_ext_factor and dup_ext_factor test cases
+      (e.g., for sqrt(2) and sqrt(3) extensions, two-variable rings) are not removed
+      or weakened.
+    weight: 2
+  - id: I2
+    description: Confirms that the public API signatures of dmp_sqf_norm and dmp_sqf_p
+      are preserved (same parameters and return types) unless the PR description explicitly
+      requires otherwise.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that factor(expand((x-1)*(y-1)), extension=[I]) returns a
+      product containing both (x-1) and (y-1) as factors, not just (x-1), as indicated
+      by the corrected dmp_sqf_norm loop terminating only on a truly multivariate
+      square-free norm.
+    weight: 3
+  - id: R2
+    description: Ensures that factor(x**2 - 2*y**2, extension=sqrt(2)) still returns
+      (x + sqrt(2)*y)*(x - sqrt(2)*y), confirming that existing multivariate extension
+      factoring regressions are not introduced.
+    weight: 2

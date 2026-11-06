@@ -1,0 +1,56 @@
+metadata:
+  task_summary: Fix false 'duplicate term description' warnings emitted when two glossary
+    terms differ only in case (e.g. 'MySQL' vs 'mysql').
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies `make_glossary_term` in `sphinx/domains/std.py` to pass
+      the lowercased (or otherwise normalized) form of `termtext` to `make_id` so
+      that terms differing only in case share the same node_id and do not collide
+      in `document.ids`.
+    weight: 3
+  - id: FC2
+    description: Confines production-code changes to `sphinx/domains/std.py` (specifically
+      to `make_glossary_term` and/or related term-registration logic), without modifying
+      unrelated modules or files.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test case (anywhere in the test suite) that exercises
+      the glossary directive with two terms that differ only in case (e.g. 'MySQL'
+      and 'mysql') and asserts that no duplicate-term warning is emitted.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that glossary terms differing only in case (e.g. 'MySQL'
+      vs 'mysql') are treated as distinct entries and do not trigger the 'duplicate
+      term description' warning, matching the expected behavior described in the PR.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior that truly duplicate glossary terms
+      (same text, same case, appearing twice) still produce the 'duplicate term description'
+      warning.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the `note_object` call in `make_glossary_term` continues
+      to register the term with a lowercased key (i.e. `termtext.lower()`) so that
+      `:term:` cross-references remain case-insensitive.
+    weight: 3
+  - id: I2
+    description: Confirms that no existing passing test cases for glossary duplicate-detection,
+      term registration, or cross-referencing are weakened, skipped, or removed by
+      the patch.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when `make_id` receives the lowercased `termtext`, the
+      resulting `node_id` for 'MySQL' and 'mysql' is the same (e.g. 'term-mysql'),
+      so `document.note_explicit_target` does not produce a conflicting-id error for
+      case-variant terms.
+    weight: 3
+  - id: R2
+    description: Ensures that `:term:` cross-references to case-variant glossary terms
+      (e.g. `:term:\`mysql\`` resolving to a term defined as 'MySQL') continue to
+      resolve correctly, since both the `XRefRole(lowercase=True, ...)` setting and
+      `note_object` registration use the lowercased key.
+    weight: 2

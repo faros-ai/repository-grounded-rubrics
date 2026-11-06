@@ -1,0 +1,68 @@
+metadata:
+  task_summary: Fix ax.hist density y-axis not auto-scaled when using histtype='step'
+    by ensuring the correct data limits are registered for step-type histogram polygons.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the histogram-related code in lib/matplotlib/axes/_axes.py,
+      specifically in the section that handles histtype='step' or histtype='stepfilled'
+      polygon generation.
+    weight: 3
+  - id: FC2
+    description: Adds an explicit call to update_datalim or equivalent data-limit
+      registration (such as passing pts or corners to update_datalim) for the step/stepfilled
+      histogram patch path, paralleling how the 'bar' histtype registers its data
+      limits.
+    weight: 3
+  - id: FC3
+    description: Confines code changes to the hist-related code path and does not
+      modify unrelated functions, files, or import statements beyond what is needed
+      to fix the step histtype autoscaling.
+    weight: 2
+  - id: FC4
+    description: Adds or updates a test that exercises histtype='step' with density=True
+      and verifies that the resulting y-axis upper limit is at least as large as the
+      maximum histogram density value.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the root cause where histtype='step' polygons (created
+      via self.fill()) do not correctly inform the axes dataLim of the maximum histogram
+      height, causing the y-axis to not auto-scale to fit the full histogram.
+    weight: 3
+  - id: SA2
+    description: Ensures the fix applies to both 'step' and 'stepfilled' histogram
+      types (i.e., any histtype that enters the elif histtype.startswith('step') branch)
+      or provides a justified narrower scope.
+    weight: 2
+  - id: SA3
+    description: Preserves the existing behavior where histtype='bar' and histtype='barstacked'
+      histograms correctly auto-scale their y-axis when density=True is set.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Avoids weakening or skipping any existing histogram-related tests
+      (no added skip markers, no loosened tolerances, no removal of assertions in
+      tests covering histtype='step', histtype='stepfilled', or density=True).
+    weight: 3
+  - id: I2
+    description: Preserves the public API of ax.hist, including all existing parameters
+      (histtype, density, bins, orientation, stacked, bottom, etc.) and the tuple
+      return value (n, bins, patches).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that after the fix, calling ax.hist with histtype='step'
+      and density=True registers a dataLim y-maximum that equals (or tightly bounds
+      above) the maximum density value in the histogram tops array.
+    weight: 3
+  - id: R2
+    description: Ensures the fix correctly handles the horizontal orientation case
+      (orientation='horizontal') for histtype='step', where the independent axis is
+      y and the data-limit update must reflect x-axis density values.
+    weight: 2
+  - id: R3
+    description: Ensures the fix does not break the sticky_edges behavior for step
+      histograms, where patch.sticky_edges.y should still contain 0 (for vertical
+      orientation) so the y-axis bottom stays pinned at zero.
+    weight: 2

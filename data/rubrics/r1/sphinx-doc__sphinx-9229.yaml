@@ -1,0 +1,61 @@
+metadata:
+  task_summary: Fix inconsistent type alias documentation where GenericAliasMixin
+    and NewTypeMixin unconditionally append 'alias of ...' text even when a user-provided
+    docstring exists.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the update_content method of GenericAliasMixin in sphinx/ext/autodoc/__init__.py
+      to conditionally suppress 'alias of ...' when a docstring is present.
+    weight: 3
+  - id: FC2
+    description: Modifies the update_content method of NewTypeMixin in sphinx/ext/autodoc/__init__.py
+      to conditionally suppress 'alias of ...' when a docstring is present.
+    weight: 3
+  - id: FC3
+    description: Confines changes to sphinx/ext/autodoc/__init__.py (or closely related
+      autodoc files) without modifying unrelated modules.
+    weight: 2
+  - id: FC4
+    description: Adds or updates a test fixture or test case in the test suite that
+      covers a GenericAlias or NewType variable with a user-provided docstring to
+      verify 'alias of ...' is suppressed when a docstring exists.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that when a type alias (e.g., a GenericAlias such as Dict[str,
+      Any] or Union[str, None]) has a user-provided docstring, the rendered output
+      shows the docstring content instead of (or in addition to, per chosen fix strategy)
+      the 'alias of ...' default text.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior where a type alias without a user-provided
+      docstring still renders the 'alias of ...' text (no regression for undocumented
+      aliases).
+    weight: 3
+  - id: SA3
+    description: Applies the fix to both GenericAlias (checked via inspect.isgenericalias)
+      and NewType (checked via inspect.isNewType) so all alias kinds are consistently
+      handled.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms no existing tests for type alias documentation are weakened,
+      removed, or have their assertions loosened.
+    weight: 2
+  - id: I2
+    description: Confirms the public API of DataDocumenter, AttributeDocumenter, GenericAliasMixin,
+      and NewTypeMixin (class names, method signatures, objtype values) remains unchanged.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Adds logic (in update_content or an associated method of GenericAliasMixin/NewTypeMixin)
+      that calls get_doc() or checks for a docstring/comment before deciding whether
+      to append the 'alias of ...' text, ensuring the presence of a docstring suppresses
+      or replaces that default text.
+    weight: 3
+  - id: R2
+    description: Preserves the existing behavior of TypeVarMixin.update_content, which
+      always appends 'alias of TypeVar(...)' regardless of docstring presence, so
+      it is not inadvertently changed by the fix.
+    weight: 2

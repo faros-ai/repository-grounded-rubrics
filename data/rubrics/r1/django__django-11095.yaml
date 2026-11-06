@@ -1,0 +1,55 @@
+metadata:
+  task_summary: Add a ModelAdmin.get_inlines(request, obj=None) hook so subclasses
+    can dynamically set inlines based on the request or model instance without copying
+    the for-loop from get_inline_instances.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Implements a new method def get_inlines( in django/contrib/admin/options.py
+      that accepts request and obj=None parameters and returns the list of inline
+      classes (defaulting to self.inlines).
+    weight: 3
+  - id: FC2
+    description: Modifies get_inline_instances in django/contrib/admin/options.py
+      to iterate over self.get_inlines(request, obj) (or equivalent call to the new
+      hook) instead of hard-coding self.inlines.
+    weight: 3
+  - id: FC3
+    description: Confines production-code changes to django/contrib/admin/options.py
+      and does not modify unrelated admin files or introduce extraneous file changes.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Provides a default implementation of get_inlines that returns self.inlines,
+      preserving backward-compatible behavior when subclasses do not override it.
+    weight: 3
+  - id: SA2
+    description: Allows subclasses to override get_inlines with a signature of (self,
+      request, obj=None) to dynamically vary the inline classes based on request or
+      obj, as stated in the PR description.
+    weight: 2
+  - id: SA3
+    description: Documents get_inlines in docs/ref/contrib/admin/index.txt alongside
+      the existing get_inline_instances entry.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing get_inline_instances method signature (self,
+      request, obj=None) and its permission-filtering logic, so callers that depend
+      on it remain unaffected.
+    weight: 3
+  - id: I2
+    description: Avoids weakening or removing existing tests for get_inline_instances
+      in tests/modeladmin/tests.py or tests/generic_inline_admin/tests.py.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when get_inlines is not overridden, get_inline_instances
+      produces the same inline instances as before the patch (iterates over self.inlines
+      unchanged).
+    weight: 3
+  - id: R2
+    description: Ensures that when get_inlines is overridden to return a different
+      set of inline classes based on obj, get_inline_instances respects that dynamic
+      list and applies the usual permission checks to it.
+    weight: 2

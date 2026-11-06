@@ -1,0 +1,61 @@
+metadata:
+  task_summary: Fix SimpleLazyObject kwargs returned by TemplateView.get_context_data()
+    causing a crash when passed to DB queries (e.g. get_object_or_404) without explicit
+    str() conversion.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/views/generic/base.py and limits changes to the deprecation
+      warning mechanism for URL kwargs (i.e., the _wrap_url_kwargs_with_deprecation_warning
+      function or TemplateView.get method) without unrelated file churn.
+    weight: 3
+  - id: FC2
+    description: Removes or replaces the use of @SimpleLazyObject as a decorator on
+      the nested access_value function inside _wrap_url_kwargs_with_deprecation_warning,
+      since that decorator is the root cause of kwargs values becoming SimpleLazyObjects.
+    weight: 3
+  - id: FC3
+    description: Introduces an alternative mechanism (such as a custom lazy-wrapper
+      class with proper __conform__ or similar DB-adapter hooks, or a non-lazy approach
+      that emits the warning at access time) to replace the bare SimpleLazyObject
+      wrapping.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that URL kwargs passed to get_context_data() are no longer
+      plain SimpleLazyObject instances that break SQLite parameter binding, so code
+      like kwargs.get('offer_slug', '') can be used directly in get_object_or_404
+      without an explicit str() call.
+    weight: 3
+  - id: SA2
+    description: Preserves the RemovedInDjango40Warning deprecation warning behavior
+      so that accessing URL kwargs through context still emits the warning, consistent
+      with the stated deprecation introduced in 3.1.
+    weight: 2
+  - id: SA3
+    description: Keeps the TemplateView.get method comment indicating the deprecated
+      code path (RemovedInDjango40Warning) and the eventual replacement (context =
+      self.get_context_data() with no arguments).
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Does not weaken existing deprecation tests (e.g., test_template_params_warning)
+      by removing or relaxing assertions that the warning is raised when URL kwargs
+      are accessed via the context.
+    weight: 2
+  - id: I2
+    description: Preserves the public API of ContextMixin.get_context_data, TemplateView.get,
+      and _wrap_url_kwargs_with_deprecation_warning without removing or renaming them
+      (or if renamed, only in ways the PR description explicitly requires).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that values obtained via kwargs.get() in a subclass of TemplateView
+      behave as the actual wrapped type (e.g., a slug string) for purposes of database
+      query parameter binding, not as an opaque SimpleLazyObject.
+    weight: 3
+  - id: R2
+    description: Confirms that the deprecation warning is still emitted lazily (only
+      when the kwarg value is actually accessed, not unconditionally at request time)
+      to preserve the intent of the RemovedInDjango40Warning mechanism.
+    weight: 2

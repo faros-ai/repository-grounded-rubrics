@@ -1,0 +1,50 @@
+metadata:
+  task_summary: 'Deduplicate entries in Message.locations so that repeated (source,
+    line) pairs do not produce duplicate ''#: file:line'' comment lines in generated
+    .pot files.'
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies sphinx/builders/gettext.py and no other unrelated production
+      files, keeping the fix localized to the gettext builder.
+    weight: 2
+  - id: FC2
+    description: Adds deduplication logic for the locations/positions list in either
+      Message.__init__ or Catalog.__iter__ within sphinx/builders/gettext.py.
+    weight: 3
+  - id: FC3
+    description: Preserves the uuids list without deduplication, since each uuid value
+      is unique by design (generated via uuid4).
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Ensures that duplicate (source, line) tuples that appear in Catalog.metadata
+      are removed before being stored in Message.locations, directly addressing the
+      repeated ''#: file:line'' entries described in the PR.'
+    weight: 3
+  - id: SA2
+    description: Preserves insertion order when deduplicating locations so that the
+      first occurrence of each (source, line) pair is kept, consistent with the ordered
+      nature of the existing Catalog implementation (which uses OrderedDict).
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public interface of Message (text, locations, uuids
+      attributes) remains unchanged — no attributes are removed or renamed.
+    weight: 3
+  - id: I2
+    description: Confirms that the Catalog.add method and its metadata storage logic
+      are not altered, keeping the broader catalog accumulation behavior intact.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when the same (source, line) pair is recorded multiple
+      times for the same msgid (e.g., hair.rst:0 repeated four times), Message.locations
+      contains that pair only once, so the rendered .pot file shows each location
+      comment at most once per message.
+    weight: 3
+  - id: R2
+    description: Ensures that distinct (source, line) pairs for the same msgid are
+      all retained in Message.locations, so no valid location reference is accidentally
+      dropped during deduplication.
+    weight: 2

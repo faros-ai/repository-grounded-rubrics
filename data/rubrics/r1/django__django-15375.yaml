@@ -1,0 +1,62 @@
+metadata:
+  task_summary: Fix aggregate() with 'default' argument crashing with OperationalError
+    after annotate() due to missing is_summary on the Coalesce wrapper returned by
+    Aggregate.resolve_expression.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the Aggregate.resolve_expression method in django/db/models/aggregates.py
+      to ensure the Coalesce wrapper returned when a default value is provided carries
+      is_summary=True.
+    weight: 3
+  - id: FC2
+    description: Confines changes to the minimal set of files directly responsible
+      for the bug (aggregates.py and/or sql/query.py), avoiding unrelated file churn.
+    weight: 2
+  - id: FC3
+    description: Adds or modifies a test in the aggregation test suite exercising
+      annotate() followed by aggregate() with a default argument, matching the pattern
+      described in the PR (e.g., annotate(idx=F('id')).aggregate(Sum('id', default=0))).
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the root cause: the Coalesce returned from Aggregate.resolve_expression
+      when default is not None lacks is_summary=True, causing it to remain in the
+      inner query while the outer AggregateQuery''s annotation_select is empty, producing
+      ''SELECT FROM (...) subquery''.'
+    weight: 3
+  - id: SA2
+    description: Ensures the fix applies specifically to the code path where Aggregate.resolve_expression
+      returns Coalesce(c, default, ...) and sets is_summary consistently on that Coalesce
+      instance.
+    weight: 2
+  - id: SA3
+    description: Preserves the existing behavior of aggregate() with default when
+      no prior annotate() call is involved (i.e., the non-subquery code path in get_aggregation
+      remains unaffected).
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing tests for aggregate() with default (such as
+      test_aggregation_default_* tests in tests/aggregation/tests.py) are not removed,
+      weakened, or skipped.
+    weight: 2
+  - id: I2
+    description: Preserves the public API of Aggregate.__init__ and Aggregate.resolve_expression,
+      including the signature and behavior of the default parameter.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that after the fix, annotate() followed by aggregate() with
+      a default argument generates valid SQL with a non-empty SELECT clause in the
+      outer query (not 'SELECT FROM (...) subquery').
+    weight: 3
+  - id: R2
+    description: Ensures that the Coalesce-wrapped aggregate is correctly placed in
+      the outer AggregateQuery's annotation_select so the result value is returned
+      rather than a crash.
+    weight: 2
+  - id: R3
+    description: 'Confirms backward compatibility: aggregate() with default=0 on a
+      queryset without prior annotate() continues to produce correct SQL and results.'
+    weight: 2

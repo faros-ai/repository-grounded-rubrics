@@ -1,0 +1,65 @@
+metadata:
+  task_summary: Fix str(TextChoices.MEMBER) returning enum name format ('MyChoice.FIRST_CHOICE')
+    instead of the underlying value ('first') by overriding __str__ in TextChoices
+    and/or IntegerChoices in django/db/models/enums.py.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/db/models/enums.py and no other production source
+      files to implement the fix, keeping changes minimal and confined to the enum
+      definitions.
+    weight: 3
+  - id: FC2
+    description: Adds a __str__ method override (somewhere in django/db/models/enums.py)
+      to TextChoices or to a shared base that TextChoices inherits, so that calling
+      str() on a TextChoices member returns the underlying string value rather than
+      the enum's default name representation.
+    weight: 3
+  - id: FC3
+    description: Adds a __str__ method override (somewhere in django/db/models/enums.py)
+      to IntegerChoices or to a shared base that IntegerChoices inherits, ensuring
+      str() on an IntegerChoices member returns the string form of the integer value
+      rather than the enum's default name representation.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that str() applied to a freshly created TextChoices member
+      (e.g., MyChoice.FIRST_CHOICE where value is 'first') yields the plain string
+      value 'first', matching the PR description's acceptance criterion that test_created_object_is_str
+      passes.
+    weight: 3
+  - id: SA2
+    description: Preserves the .value attribute on TextChoices members returning the
+      raw string and on IntegerChoices members returning the raw integer, without
+      altering those existing semantics, consistent with the PR description's expectation
+      that retrieved objects also produce the primitive value.
+    weight: 2
+  - id: SA3
+    description: Does not change the choices, labels, names, or values class-level
+      properties on ChoicesMeta, since the PR description's issue is limited to the
+      str() output of enum members, not the choices metadata.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: 'Confirms that existing tests for repr() of IntegerChoices and TextChoices
+      members (e.g., repr(Suit.DIAMOND) == ''<Suit.DIAMOND: 1>'' and repr(YearInSchool.FRESHMAN)
+      == "<YearInSchool.FRESHMAN: ''FR''>") are not weakened or removed.'
+    weight: 2
+  - id: I2
+    description: Confirms that no test assertions in the model_enums test suite are
+      deleted or loosened to accommodate the behavioral change, and any new assertions
+      exercising str() on TextChoices or IntegerChoices members are additive only.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that a TextChoices member used as a field value on a newly
+      created model instance, when passed through str(), yields the underlying string
+      value (e.g., 'first') rather than the enum class-qualified name (e.g., 'MyChoice.FIRST_CHOICE'),
+      addressing the external-API serialization discrepancy described in the PR.
+    weight: 3
+  - id: R2
+    description: 'Ensures that IntegerChoices members behave symmetrically: str()
+      on an IntegerChoices member returns the string representation of the integer
+      value (e.g., ''1'') rather than the enum''s default name format (e.g., ''Suit.DIAMOND''),
+      so both numeric and text choice fields are consistent after the fix.'
+    weight: 2

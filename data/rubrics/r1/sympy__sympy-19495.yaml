@@ -1,0 +1,67 @@
+metadata:
+  task_summary: Fix ConditionSet._eval_subs to correctly substitute free variables
+    when the condition simplifies to True, instead of incorrectly using the substituted
+    value as the dummy variable.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the _eval_subs method in sympy/sets/conditionset.py to fix
+      the incorrect substitution behavior when old != sym.
+    weight: 3
+  - id: FC2
+    description: 'Removes or corrects the branch ''if cond is S.true: return ConditionSet(new,
+      Contains(new, base), base)'' inside _eval_subs, which incorrectly used the substituted
+      value as the dummy symbol.'
+    weight: 3
+  - id: FC3
+    description: Avoids modifying unrelated files outside of sympy/sets/conditionset.py
+      and its test file; no mass renames or dependency changes appear in the diff.
+    weight: 2
+  - id: FC4
+    description: Adds or updates test cases in the ConditionSet test file (e.g., test_subs_CondSet)
+      that exercise subs with an ImageSet as the base_set and a free variable in the
+      condition.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that ConditionSet(x, Contains(y, Interval(-1,1)), imageset(...)).subs(y,
+      Rational(1,3)) returns the substituted ImageSet (not a ConditionSet with 1/3
+      as dummy), matching the expected behavior described in the PR.
+    weight: 3
+  - id: SA2
+    description: Preserves correct behavior when the condition does NOT simplify to
+      S.true after substitution, so that self.func(self.sym, cond, base) is still
+      returned with the original dummy symbol self.sym.
+    weight: 2
+  - id: SA3
+    description: Ensures that substituting a free variable into ConditionSet gives
+      the same result as xreplace for the case described in the PR (condition simplifies
+      to True with an ImageSet base_set).
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing test cases for ConditionSet.subs (e.g., tests
+      involving FiniteSet base_set, dummy symbol replacement, and ValueError cases)
+      are not weakened, removed, or marked as skipped.
+    weight: 3
+  - id: I2
+    description: Confirms that the public API of ConditionSet (sym, condition, base_set
+      properties; __new__ signature) is unchanged.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: When condition.subs(old, new) evaluates to S.true and old is not
+      the dummy sym, _eval_subs returns the substituted base_set directly (consistent
+      with ConditionSet.__new__'s behavior of returning base_set when condition is
+      S.true), not a malformed ConditionSet.
+    weight: 3
+  - id: R2
+    description: When condition.subs(old, new) evaluates to S.false and old is not
+      the dummy sym, _eval_subs still returns EmptySet (either via self.func or directly),
+      consistent with the existing __new__ behavior.
+    weight: 2
+  - id: R3
+    description: Substituting the dummy symbol of a ConditionSet (old == sym) is unaffected
+      by the fix; the existing branching logic for that case (checking isinstance(new,
+      Symbol), assumptions, base_set change) remains intact.
+    weight: 2

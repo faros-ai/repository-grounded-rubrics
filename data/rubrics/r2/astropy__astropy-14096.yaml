@@ -1,0 +1,56 @@
+metadata:
+  task_summary: Fix SkyCoord.__getattr__ so that when a subclassed property raises
+    AttributeError internally, the misleading 'object has no attribute <property_name>'
+    message is not shown; instead the original AttributeError from within the property
+    propagates.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `__getattr__` method inside `astropy/coordinates/sky_coordinate.py`
+      and no other unrelated files are changed.
+    weight: 3
+  - id: FC2
+    description: Adds a guard (somewhere in the diff, before the final `raise AttributeError`)
+      that detects whether `attr` names a descriptor or property defined in the class's
+      MRO (e.g., checks `type(self).__mro__` or uses `object.__getattribute__`), so
+      that descriptors whose `__get__` raised `AttributeError` are distinguished from
+      truly missing attributes.
+    weight: 3
+  - id: FC3
+    description: Does not change the final `raise AttributeError` path for attributes
+      that genuinely do not exist on `SkyCoord` or its subclass.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that when a subclass property (e.g., `prop`) raises `AttributeError`
+      because it references a non-existent attribute (e.g., `random_attr`), the propagated
+      `AttributeError` message mentions `random_attr` (the root cause) rather than
+      `prop` (the property name).
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior where accessing a truly non-existent
+      attribute on a `SkyCoord` instance (one not defined anywhere in the class hierarchy)
+      still raises `AttributeError` with a message mentioning that attribute name.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing `AttributeError`-based test assertions
+      (e.g., `pytest.raises(AttributeError)`) in the test suite are weakened, removed,
+      or bypassed by the patch.
+    weight: 2
+  - id: I2
+    description: Confirms that the public `SkyCoord.__getattr__` API signature is
+      unchanged (no added parameters, no renamed method).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Produces a stable, specific `AttributeError` whose message refers
+      to `random_attr` (not `prop`) when a subclassed `SkyCoord` property internally
+      accesses a non-existent attribute, matching the root-cause error from within
+      the property.
+    weight: 3
+  - id: R2
+    description: Avoids introducing a regression for legitimate frame attribute access
+      (e.g., `sc.ra`, `sc.dec`, `sc.equinox`) still returning the correct values through
+      the `__getattr__` delegation paths in `sky_coordinate.py`.
+    weight: 2

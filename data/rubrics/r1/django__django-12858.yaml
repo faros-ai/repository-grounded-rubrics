@@ -1,0 +1,61 @@
+metadata:
+  task_summary: Fix _check_ordering in django/db/models/base.py to not raise models.E015
+    when Meta.ordering uses valid non-transform lookups (e.g. isnull) at the end of
+    a related-field traversal path.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the condition inside the except block of the related_fields
+      loop in `_check_ordering` within `django/db/models/base.py` to also check `fld.get_lookup(part)`
+      (or equivalent) in addition to `fld.get_transform(part)`, so that non-transform
+      lookups are accepted.
+    weight: 3
+  - id: FC2
+    description: Confines the fix to `django/db/models/base.py` (and optionally test
+      files), without modifying unrelated files such as `django/db/models/query_utils.py`,
+      `django/db/models/lookups.py`, or other core modules.
+    weight: 2
+  - id: FC3
+    description: Adds a test case (anywhere in the test suite) that exercises `_check_ordering`
+      with a `Meta.ordering` value containing a non-transform lookup (e.g. `isnull`)
+      at the end of a multi-level related-field path and asserts that no errors are
+      returned.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the exact scenario described in the PR: a multi-hop related-field
+      ordering string ending in a non-transform lookup (such as `supply__product__parent__isnull`)
+      no longer triggers `models.E015`.'
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior that still reports `models.E015`
+      when the ordering string refers to a genuinely nonexistent field or a field
+      that has no matching lookup or transform.
+    weight: 2
+  - id: SA3
+    description: Preserves the existing test `test_ordering_allows_registered_lookups`,
+      which checks that transform-based lookups (e.g. `test__lower`) remain valid
+      and produce no errors.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Avoids weakening or removing any existing test assertions in `tests/invalid_models_tests/test_models.py`
+      that cover `models.E015` for genuinely invalid ordering references.
+    weight: 3
+  - id: I2
+    description: Preserves the public signature of `_check_ordering` (still a classmethod
+      returning a list of `checks.Error`), without introducing new parameters or changing
+      its return type.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when the last part of a related-field ordering string
+      (e.g. `isnull`) raises `FieldDoesNotExist` but `fld.get_lookup(part)` returns
+      a non-None result, the code path does NOT append an E015 error to the errors
+      list.
+    weight: 3
+  - id: R2
+    description: Ensures that when `fld` is None (no field resolved yet) and the part
+      raises `FieldDoesNotExist`, an E015 error is still appended, maintaining the
+      existing guard against completely invalid paths.
+    weight: 2

@@ -1,0 +1,56 @@
+metadata:
+  task_summary: Fix FileField.deconstruct() to return the original callable storage
+    parameter instead of the evaluated Storage instance, so that runtime-variable
+    storage is preserved across makemigrations.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/db/models/fields/files.py and no other unrelated
+      production files, keeping the change minimal and local to the FileField storage
+      handling.
+    weight: 3
+  - id: FC2
+    description: Preserves the original callable passed as storage in FileField.__init__
+      (e.g., via a separate attribute such as self._storage) so that it can be referenced
+      later by deconstruct().
+    weight: 3
+  - id: FC3
+    description: Updates FileField.deconstruct() to emit the original callable reference
+      in kwargs['storage'] instead of the already-evaluated Storage instance when
+      storage was originally a callable.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that when FileField is constructed with a callable storage
+      argument, deconstruct() places the callable itself (not the result of calling
+      it) into the returned kwargs dict under the 'storage' key.
+    weight: 3
+  - id: SA2
+    description: 'Mirrors the behavior of the callable upload_to parameter: just as
+      a callable upload_to is stored and returned as-is by deconstruct(), a callable
+      storage is now stored and returned as-is by deconstruct().'
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the validation check (isinstance of Storage) performed
+      on the evaluated callable result in FileField.__init__ is retained, preserving
+      the existing TypeError guard for non-Storage callables.
+    weight: 2
+  - id: I2
+    description: 'Confirms that the deconstruct() behavior for non-callable storage
+      (i.e., a Storage instance passed directly) remains unchanged: if self.storage
+      is not default_storage, the instance is still placed in kwargs[''storage''].'
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that FileField.storage (the property or attribute used at
+      field access time, e.g., in FieldFile.__init__ and FileDescriptor.__get__) still
+      resolves to the evaluated Storage instance at runtime, so file operations like
+      save(), open(), and delete() are not broken.
+    weight: 3
+  - id: R2
+    description: Ensures that a FileField constructed with a callable storage can
+      be deconstructed and reconstructed (via the returned kwargs) to produce an equivalent
+      field, allowing makemigrations to serialize it as a callable reference rather
+      than a concrete Storage class.
+    weight: 2

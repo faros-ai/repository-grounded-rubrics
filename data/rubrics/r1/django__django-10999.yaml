@@ -1,0 +1,56 @@
+metadata:
+  task_summary: Fix standard_duration_re in django/utils/dateparse.py so that negative
+    durations with hours (e.g., '-1:15:30') are correctly parsed by adding '-?' to
+    the lookahead in the hours group.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/utils/dateparse.py and no other production source
+      files, keeping the fix minimal and confined to the broken regex.
+    weight: 3
+  - id: FC2
+    description: Updates the lookahead assertion inside the 'hours' group of standard_duration_re
+      from '(?=\d+:\d+)' to a form that includes '-?' before each digit sequence (e.g.,
+      '(?=-?\d+:-?\d+)'), exactly as suggested in the PR description.
+    weight: 3
+  - id: FC3
+    description: Leaves all other named groups of standard_duration_re (days, minutes,
+      seconds, microseconds) and the surrounding regex structure unchanged.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the exact defect described in the PR: the lookahead ''(?=\d+:\d+)''
+      inside the hours capture group of standard_duration_re rejects inputs where
+      minutes or seconds begin with a ''-'' sign.'
+    weight: 3
+  - id: SA2
+    description: Adds or updates test cases covering a negative-hours duration string
+      such as '-1:15:30' being parsed by parse_duration(), matching the class of inputs
+      cited in the PR description.
+    weight: 1
+  - id: SA3
+    description: Does not alter iso8601_duration_re or postgres_interval_re, since
+      the PR description identifies only standard_duration_re as the defective pattern.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that existing test cases for positive durations (e.g., '10:15:30',
+      '4 10:15:30') remain valid and that no previously passing assertions are removed
+      or weakened.
+    weight: 3
+  - id: I2
+    description: 'Confirms that the public signature and return type of parse_duration()
+      are unchanged: it still returns a datetime.timedelta or None.'
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that parse_duration('-1:15:30') now returns a non-None value
+      (matched by the updated standard_duration_re lookahead) rather than falling
+      through to iso8601_duration_re or postgres_interval_re, which do not recognise
+      this format.
+    weight: 3
+  - id: R2
+    description: Preserves correct parsing of purely positive HH:MM:SS strings such
+      as '10:15:30' and '100:200:300', which must still match standard_duration_re
+      after the lookahead change.
+    weight: 2

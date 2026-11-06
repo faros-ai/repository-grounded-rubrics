@@ -1,0 +1,56 @@
+metadata:
+  task_summary: Fix hist() ignoring the range= parameter when density=True by preserving
+    bin_range in hist_kwargs instead of replacing it.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the hist() implementation in lib/matplotlib/axes/_axes.py,
+      specifically in the region around line 6689 where hist_kwargs is assigned, without
+      touching unrelated files.
+    weight: 3
+  - id: FC2
+    description: Fixes the line that replaces hist_kwargs with dict(density=density)
+      so that bin_range is preserved (e.g., by using hist_kwargs.update or by including
+      the range key in the new dict), rather than silently dropping range from hist_kwargs.
+    weight: 3
+  - id: FC3
+    description: Keeps all changes confined to a minimal patch — does not introduce
+      refactoring, renames, or unrelated edits beyond what is needed to restore range=
+      respect under density=True.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that when density=True and a bin_range (range=) is provided
+      to hist(), the bin_range value is passed through to np.histogram (via hist_kwargs
+      or directly) so that the returned bins respect the specified range.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing behavior when density=False and range= is
+      specified, so the non-density code path remains unaffected by the fix.
+    weight: 2
+  - id: SA3
+    description: Preserves the existing behavior for the stacked=True path, where
+      the density normalization is handled separately and hist_kwargs is not overwritten
+      the same way.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Does not weaken, skip, or remove any existing hist-related tests
+      (such as test_hist_density, test_hist_unequal_bins_density, or test_hist_stacked_density)
+      in the test suite.
+    weight: 2
+  - id: I2
+    description: Preserves the public signature of hist() — parameters range, density,
+      normed, bins, stacked remain unchanged in name and position.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: When hist() is called with range=(lo, hi) and density=True, the first
+      bin edge equals lo and the last bin edge equals hi, matching the behavior that
+      already works when density=False.
+    weight: 3
+  - id: R2
+    description: When hist() is called with density=True but without an explicit range=,
+      the behavior is unchanged — bin edges are determined from the data extent, as
+      before the fix.
+    weight: 2

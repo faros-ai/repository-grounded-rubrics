@@ -1,0 +1,63 @@
+metadata:
+  task_summary: Allow 'genindex', 'modindex', and 'search' to be listed in a toctree
+    directive without emitting 'toctree contains reference to nonexisting document'
+    warnings.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the toctree parsing logic in sphinx/directives/other.py
+      to recognize 'genindex', 'modindex', and 'search' as valid special built-in
+      page names.
+    weight: 3
+  - id: FC2
+    description: Adds a condition in sphinx/directives/other.py parse_content (in
+      the branch guarded by 'elif docname not in self.env.found_docs') that bypasses
+      the 'nonexisting document' warning path when the docname is one of the special
+      pages.
+    weight: 3
+  - id: FC3
+    description: Appends the special page entry (title, docname) to toctree['entries']
+      in sphinx/directives/other.py when a built-in page name like 'genindex', 'modindex',
+      or 'search' is encountered, rather than emitting a warning.
+    weight: 2
+  - id: FC4
+    description: Limits file modifications to the toctree-related source files (e.g.,
+      sphinx/directives/other.py and/or sphinx/environment/adapters/toctree.py) without
+      introducing unrelated changes to other modules.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that listing 'genindex', 'modindex', and 'search' entries
+      in a toctree directive no longer triggers a 'toctree contains reference to nonexisting
+      document' warning, as required by the PR description.
+    weight: 3
+  - id: SA2
+    description: Treats the special page names as valid toctree entries that result
+      in navigation links, consistent with the PR description's goal of enabling toctree-based
+      sidebar inclusion.
+    weight: 2
+  - id: SA3
+    description: Handles all three special built-in pages ('genindex', 'modindex',
+      'search') uniformly, covering the full set described in the PR feature request.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing warning path for genuinely nonexisting documents
+      (i.e., documents not in found_docs and not a known special page), keeping the
+      warning visible for real user errors.
+    weight: 3
+  - id: I2
+    description: Confirms that the existing handling of URLs (url_re.match) and 'self'
+      references remains intact and unmodified after the patch.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when 'genindex', 'modindex', or 'search' appear in a
+      toctree, the entry is silently accepted and included in the navigation structure
+      rather than causing a build warning.
+    weight: 3
+  - id: R2
+    description: Ensures that explicit-title forms (e.g., 'My Index <genindex>') also
+      work without triggering a nonexisting-document warning, since the ref/docname
+      extraction logic runs before the special-page check.
+    weight: 1

@@ -1,0 +1,66 @@
+metadata:
+  task_summary: When DEFAULT_HASHING_ALGORITHM is 'sha1', SessionBase.encode() should
+    use the legacy pre-Django-3.1 format so that mixed-version deployments can decode
+    session data during the transition to Django 3.1.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the encode() method in django/contrib/sessions/backends/base.py
+      to branch on DEFAULT_HASHING_ALGORITHM.
+    weight: 3
+  - id: FC2
+    description: Adds or exposes a legacy encode path in django/contrib/sessions/backends/base.py
+      that produces the pre-Django-3.1 base64(hash:serialized) format (using _hash()
+      or base64 + serializer directly) rather than calling signing.dumps().
+    weight: 3
+  - id: FC3
+    description: Confines the session encode changes to django/contrib/sessions/backends/base.py
+      without modifying unrelated session backend files (db.py, file.py, cache.py,
+      cached_db.py, signed_cookies.py).
+    weight: 2
+  - id: FC4
+    description: Adds or updates tests in tests/sessions_tests/tests.py that exercise
+      encode() behavior when DEFAULT_HASHING_ALGORITHM is 'sha1'.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements the encode() branch so that setting DEFAULT_HASHING_ALGORITHM
+      to 'sha1' causes encode() to emit the legacy format, matching the PR description's
+      requirement of using legacy encode() when DEFAULT_HASHING_ALGORITHM == 'sha1'.
+    weight: 3
+  - id: SA2
+    description: Preserves the existing new-format encode() path (calling signing.dumps())
+      when DEFAULT_HASHING_ALGORITHM is not 'sha1' (i.e., is 'sha256' or absent),
+      so the default Django 3.1 behavior is unchanged.
+    weight: 3
+  - id: SA3
+    description: Ensures the legacy encode path produces output that decode() / _legacy_decode()
+      can successfully round-trip, so that pre-Django-3.1 instances can read the encoded
+      data.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public encode() and decode() method signatures
+      remain unchanged (no added required parameters), preserving backward compatibility
+      for callers of SessionBase.
+    weight: 2
+  - id: I2
+    description: Confirms that no existing tests for decode() or _legacy_decode()
+      are weakened, removed, or skipped in the diff.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: When DEFAULT_HASHING_ALGORITHM is 'sha1', encode() produces output
+      in the pre-Django-3.1 base64(hash:serialized) format rather than the signing.dumps()
+      format, so that older Django instances can decode it.
+    weight: 3
+  - id: R2
+    description: When DEFAULT_HASHING_ALGORITHM is 'sha256' (the default), encode()
+      continues to produce signing.dumps() output, preserving the Django 3.1 default
+      behavior unchanged.
+    weight: 2
+  - id: R3
+    description: The legacy encoding branch does not suppress or swallow SuspiciousSession
+      or other security exceptions that should still be raised when session data is
+      corrupted.
+    weight: 1

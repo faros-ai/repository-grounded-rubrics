@@ -1,0 +1,55 @@
+metadata:
+  task_summary: Fix stackplot to accept CN-style color aliases (e.g., 'C0', 'C2')
+    and stop permanently modifying the Axes property cycler when colors are provided.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Removes the call to axes.set_prop_cycle(color=colors) from lib/matplotlib/stackplot.py,
+      eliminating the root cause of both the ValueError and the unintended Axes cycler
+      mutation.
+    weight: 3
+  - id: FC2
+    description: Replaces the set_prop_cycle-based color mechanism in lib/matplotlib/stackplot.py
+      with direct per-call color assignment to fill_between calls when colors are
+      provided by the caller.
+    weight: 3
+  - id: FC3
+    description: Confines all changes to lib/matplotlib/stackplot.py without introducing
+      unrelated modifications to other production files such as axes/_base.py or rcsetup.py.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Implements handling so that CN-style color strings (matching the
+      pattern C followed by a digit, e.g., 'C2', 'C3', 'C4') are accepted as valid
+      entries in the colors argument of stackplot without raising ValueError.
+    weight: 3
+  - id: SA2
+    description: Ensures that when colors are provided to stackplot, the Axes property
+      cycler state (axes._get_lines prop_cycler) is not permanently altered after
+      the call, preserving cycler position for subsequent plot calls.
+    weight: 3
+  - id: SA3
+    description: Preserves the existing behavior that when no colors argument is provided,
+      stackplot falls back to consuming colors from the Axes property cycle via axes._get_lines.get_next_color().
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public signature of the stackplot function (parameters
+      x, args, labels, colors, baseline, kwargs) is unchanged.
+    weight: 2
+  - id: I2
+    description: Confirms that existing test cases for stackplot (test_stackplot and
+      test_stackplot_baseline) are not weakened, skipped, or removed.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that when colors is a sequence longer or shorter than the
+      number of stacked areas, the colors repeat cyclically across the fill_between
+      calls, consistent with the docstring statement that colors need not match the
+      number of provided y series.
+    weight: 2
+  - id: R2
+    description: Ensures that after a stackplot call with explicit colors, a subsequent
+      ax.plot() or similar call draws colors starting from where the Axes cycler was
+      before stackplot was called, not from a position reset by set_prop_cycle.
+    weight: 2

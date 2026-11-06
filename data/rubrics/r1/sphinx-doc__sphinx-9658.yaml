@@ -1,0 +1,62 @@
+metadata:
+  task_summary: Fix the 'Bases' section showing truncated names like 'torch.nn.' instead
+    of 'torch.nn.Module' when documenting classes that inherit from mocked modules.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies code in the mock or typing module (sphinx/ext/autodoc/mock.py
+      or sphinx/util/typing.py) to fix how mocked base classes are represented as
+      reST references.
+    weight: 3
+  - id: FC2
+    description: Confines changes to the minimal set of files needed to fix the mocked-class
+      base representation; avoids unrelated file churn in modules not involved in
+      the autodoc mock or restify pipeline.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test (in tests/test_ext_autodoc_mock.py or tests/test_util_typing.py)
+      that exercises restify or base-class rendering of a mocked object to prevent
+      regression.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the root cause where a mocked base class (e.g., an instance
+      of _MockObject with __qualname__ set to empty string '') produces a truncated
+      reference like 'torch.nn.' instead of 'torch.nn.Module'.
+    weight: 3
+  - id: SA2
+    description: Ensures that when restify is called on a _MockObject instance used
+      as a base class, the result uses the full qualified name (e.g., 'torch.nn.Module')
+      derived from __display_name__ or equivalent correct source.
+    weight: 3
+  - id: SA3
+    description: Preserves correct restify output for non-mocked classes (regular
+      Python classes, typing generics, builtins) by not altering their existing code
+      paths.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the fix does not weaken or skip any existing tests
+      in test_ext_autodoc_mock.py or test_util_typing.py (no added @pytest.mark.skip,
+      xfail, or removal of assertions).
+    weight: 2
+  - id: I2
+    description: 'Confirms that the public API of restify in sphinx/util/typing.py
+      remains unchanged (same signature: restify(cls: Optional[Type]) -> str).'
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that restify called on a _MockObject instance with __display_name__
+      of 'torch.nn.Module' produces a reST reference containing 'torch.nn.Module'
+      rather than 'torch.nn.' (the truncated form caused by empty __qualname__).
+    weight: 3
+  - id: R2
+    description: Ensures that the fix handles the case where _MockModule.__getattr__
+      returns an instance (via _make_subclass(name, self.__name__)()) so that __display_name__
+      or the class name is used to build the full qualified reference.
+    weight: 2
+  - id: R3
+    description: 'Confirms backward compatibility for classes inheriting from non-mocked
+      bases: the ''Bases:'' section in autodoc output for classes with real (non-mocked)
+      base classes continues to render correctly.'
+    weight: 2

@@ -1,0 +1,53 @@
+metadata:
+  task_summary: Fix Contains.as_set() to raise NotImplementedError instead of returning
+    a Contains object, which is not a Set and lacks as_relational.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies the `as_set` method inside `sympy/sets/contains.py` to raise
+      `NotImplementedError` rather than silently returning `self` or a non-Set object.
+    weight: 3
+  - id: FC2
+    description: Confines changes to the minimal set of files needed — primarily `sympy/sets/contains.py`
+      and optionally test files — without unrelated edits to unrelated modules.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test in the contains test file that asserts `Contains.as_set()`
+      raises `NotImplementedError` (e.g., using `raises(NotImplementedError, ...)`).
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that `Contains(x, Reals).as_set()` no longer returns a `Contains`
+      object, directly addressing the stated bug in the PR description.
+    weight: 3
+  - id: SA2
+    description: 'Adds a test or code path demonstrating that `Piecewise((6, Contains(x,
+      Reals)), (7, True))` no longer raises `AttributeError: ''Contains'' object has
+      no attribute ''as_relational''`, as described in the PR.'
+    weight: 2
+  - id: SA3
+    description: Preserves `Contains` as a subclass of `BooleanFunction` (not `Set`),
+      consistent with the PR description's statement that `Contains` is a boolean,
+      not a set.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the existing `Contains.eval`, `Contains.binary_symbols`,
+      and other public methods of `Contains` remain unchanged in the diff.
+    weight: 2
+  - id: I2
+    description: Confirms no test is weakened or removed — specifically that no `raises(NotImplementedError,
+      ...)` assertion for `Contains.as_set()` is deleted or replaced with a passing
+      assertion.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that calling `Contains(x, S.Reals).as_set()` raises `NotImplementedError`
+      at runtime, providing a clear error signal that rewriting as a Set is not yet
+      supported.
+    weight: 3
+  - id: R2
+    description: Ensures that `Contains` used as a condition in `Piecewise` (e.g.,
+      `Piecewise((6, Contains(x, Reals)), (7, True))`) does not raise `AttributeError`
+      due to the missing `as_relational` method on the returned object.
+    weight: 2

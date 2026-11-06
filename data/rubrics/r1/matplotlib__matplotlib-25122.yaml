@@ -1,0 +1,57 @@
+metadata:
+  task_summary: Remove incorrect np.abs() calls in mlab._spectral_helper window normalization
+    so that windows with negative values (e.g., flattop) produce correct PSD scaling.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies lib/matplotlib/mlab.py and no other unrelated production
+      files, keeping the diff minimal and confined to the window-correction lines.
+    weight: 2
+  - id: FC2
+    description: Removes np.abs() wrapping around window in the scale_by_freq branch
+      so that the normalization reads (window**2).sum() instead of (np.abs(window)**2).sum()
+      on or around line 427.
+    weight: 3
+  - id: FC3
+    description: Removes np.abs() wrapping around window in the non-scale_by_freq
+      branch so that the normalization reads window.sum()**2 instead of np.abs(window).sum()**2
+      on or around line 430.
+    weight: 3
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Aligns the PSD window power normalization with the scipy reference
+      implementation, which uses window.sum()**2 and (window**2).sum() without taking
+      np.abs of the window.
+    weight: 3
+  - id: SA2
+    description: Ensures the fix applies to both scale_by_freq=True and scale_by_freq=False
+      normalization branches, as both contain the erroneous np.abs calls described
+      in the bug report.
+    weight: 2
+  - id: SA3
+    description: Preserves the existing normalization logic structure (scale_by_freq
+      branch and non-scale_by_freq branch) and only removes the np.abs wrapping rather
+      than restructuring the conditional.
+    weight: 2
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that the public API of mlab._spectral_helper, psd, csd,
+      specgram, and related functions is unchanged (same parameters and return types).
+    weight: 2
+  - id: I2
+    description: Confirms no existing tests are weakened, skipped, or deleted to accommodate
+      the change.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Ensures that for windows with all non-negative values (e.g., Hann,
+      Hamming), the corrected window.sum()**2 and (window**2).sum() produce identical
+      results to the old np.abs-based expressions, preserving backward-compatible
+      behavior for standard windows.
+    weight: 2
+  - id: R2
+    description: Ensures that for windows with negative values such as flattop, the
+      corrected normalization (without np.abs) produces a different and physically
+      correct result, resolving the discrepancy highlighted by np.abs(window).sum()**2
+      - window.sum()**2 != 0.
+    weight: 3

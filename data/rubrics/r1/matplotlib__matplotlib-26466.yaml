@@ -1,0 +1,68 @@
+metadata:
+  task_summary: Fix _AnnotationBase.__init__ in text.py to store a copy of the xy
+    array instead of a reference, so that mutating the original array after calling
+    annotate does not change the annotation position.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies lib/matplotlib/text.py as the sole production-code file
+      changed, keeping the diff minimal and confined to the annotation xy-storage
+      logic.
+    weight: 3
+  - id: FC2
+    description: Changes the assignment `self.xy = xy` inside `_AnnotationBase.__init__`
+      so that a copy of the xy value is stored rather than the original reference
+      (e.g., by calling `tuple()`, `.copy()`, or an equivalent copy mechanism on the
+      xy argument).
+    weight: 3
+  - id: FC3
+    description: Does not alter the public signature of `_AnnotationBase.__init__`
+      or `Annotation.__init__` (parameter names and defaults remain identical).
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Addresses the case described in the PR where passing a numpy array
+      as the `xy` kwarg to `annotate` and later mutating that array would silently
+      move the annotation arrow target.
+    weight: 3
+  - id: SA2
+    description: Ensures that the fix applies at the point where `self.xy` is assigned
+      in `_AnnotationBase.__init__`, which is the single location that controls the
+      annotated point for both `Annotation` and any other subclass.
+    weight: 2
+  - id: SA3
+    description: Stores the xy position in a form that is decoupled from the caller's
+      array object, so that subsequent in-place mutations of the caller's array (e.g.,
+      `xy_0[1] = 3`) do not affect the stored annotation position.
+    weight: 3
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the ability to pass a plain tuple `(float, float)` or a
+      list as the `xy` argument without introducing errors (copy mechanism handles
+      non-array iterables correctly).
+    weight: 2
+  - id: I2
+    description: Does not weaken, remove, skip, or comment out any existing tests
+      in the test suite.
+    weight: 2
+  - id: I3
+    description: Avoids introducing unrelated import statements, dependency changes,
+      or refactors beyond the xy-copy fix.
+    weight: 1
+  runtime_rubrics:
+  - id: R1
+    description: Guarantees that `Annotation.xy` returns the coordinate values that
+      were provided at construction time, even after the caller mutates the original
+      array, because `self.xy` holds an independent copy.
+    weight: 3
+  - id: R2
+    description: 'Preserves backward-compatible behavior when `xytext` defaults to
+      `self.xy` (i.e., `if xytext is None: xytext = self.xy`), since the stored `self.xy`
+      is now an immutable-safe copy and unpacking it as `x, y = xytext` still functions
+      correctly.'
+    weight: 2
+  - id: R3
+    description: Maintains correct behavior of `_get_position_xy` which calls `self._get_xy(renderer,
+      self.xy, self.xycoords)`, relying on `self.xy` being a valid two-element sequence
+      after the copy is stored.
+    weight: 2

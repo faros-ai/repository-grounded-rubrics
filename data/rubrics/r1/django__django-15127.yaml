@@ -1,0 +1,63 @@
+metadata:
+  task_summary: Fix LEVEL_TAGS not being refreshed when MESSAGE_TAGS is changed via
+    @override_settings, so that Message.level_tag returns correct values during tests.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies django/contrib/messages/storage/base.py so that the level_tag
+      property no longer relies solely on the module-level LEVEL_TAGS constant that
+      was frozen at import time.
+    weight: 3
+  - id: FC2
+    description: Adds a setting_changed signal receiver (anywhere in the diff) that
+      responds to MESSAGE_TAGS changes and updates the LEVEL_TAGS value used by Message.level_tag,
+      either in django/test/signals.py or in a messages-app-specific location such
+      as django/contrib/messages/.
+    weight: 3
+  - id: FC3
+    description: Avoids modifying unrelated files beyond the minimal set needed to
+      wire the MESSAGE_TAGS signal handler and update the level_tag lookup mechanism.
+    weight: 2
+  - id: FC4
+    description: Removes or replaces the override_settings_tags workaround class in
+      tests/messages_tests/base.py (which manually patched base.LEVEL_TAGS in enable()
+      and disable()) now that the framework itself handles the update.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Ensures that Message.level_tag reflects the current MESSAGE_TAGS
+      setting at call time rather than the setting value frozen at module import,
+      directly addressing the reported empty-string level_tag symptom.
+    weight: 3
+  - id: SA2
+    description: Ensures the fix covers both the enter (override applied) and exit
+      (override removed) transitions of @override_settings so that LEVEL_TAGS is correct
+      both inside and after the override block.
+    weight: 2
+  - id: SA3
+    description: Updates test_custom_tags (or equivalent test) to use plain @override_settings
+      instead of the workaround override_settings_tags class, confirming the framework-level
+      fix is sufficient.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the public-facing Message.level_tag property signature
+      and return type (a string) so callers and templates remain unaffected.
+    weight: 2
+  - id: I2
+    description: Confirms that the fix does not weaken any existing test assertions
+      (e.g., expected tag values in test_level_tag and test_custom_tags remain the
+      same).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: When MESSAGE_TAGS is overridden via @override_settings during a test,
+      Message.level_tag returns the overridden tag string (e.g., 'bad' for ERROR)
+      rather than an empty string, as evidenced by the signal receiver calling utils.get_level_tags()
+      after the setting changes.
+    weight: 3
+  - id: R2
+    description: After @override_settings exits, Message.level_tag reverts to default
+      tags derived from constants.DEFAULT_TAGS, as evidenced by the signal receiver
+      restoring LEVEL_TAGS on the setting_changed signal's exit phase.
+    weight: 2

@@ -1,0 +1,51 @@
+metadata:
+  task_summary: 'Fix ds.merge(da) so that passing a DataArray to Dataset.merge() works
+    correctly instead of raising AttributeError: ''DataArray'' object has no attribute
+    ''items''.'
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies xarray/core/merge.py to handle DataArray inputs in the dataset_merge_method
+      or coerce_pandas_values function, rather than leaving a DataArray object untouched
+      where .items() is later called.
+    weight: 3
+  - id: FC2
+    description: Confines the fix to the merge-related code (xarray/core/merge.py
+      or xarray/core/dataset.py merge method) without unrelated file churn.
+    weight: 2
+  - id: FC3
+    description: Adds or updates a test (anywhere in the diff) that exercises ds.merge(da)
+      where da is a named DataArray, validating the scenario described in the PR description.
+    weight: 1
+  spec_alignment_rubrics:
+  - id: SA1
+    description: Adds a DataArray isinstance check in dataset_merge_method or coerce_pandas_values
+      (or equivalent path reached when Dataset.merge is called with a DataArray) so
+      that a DataArray is converted via to_dataset() or equivalent before iteration
+      over its items.
+    weight: 3
+  - id: SA2
+    description: Ensures that ds.merge(da) produces the same result as xr.merge([ds,
+      da]) for a named DataArray, matching the expected behavior described in the
+      PR description.
+    weight: 3
+  integrity_rubrics:
+  - id: I1
+    description: Preserves the existing Dataset.merge() public API signature (parameters
+      self, other, inplace, overwrite_vars, compat, join, fill_value) unchanged.
+    weight: 2
+  - id: I2
+    description: Avoids weakening or removing existing merge-related tests (no lines
+      deleting or commenting out existing test assertions in test_merge.py or test_dataset.py).
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: Prevents the AttributeError raised when calling .items() on a DataArray
+      by ensuring the DataArray is converted to a Dataset-like mapping before coerce_pandas_values
+      or dataset_merge_method iterates over it.
+    weight: 3
+  - id: R2
+    description: Maintains backward compatibility so that ds.merge(other_dataset)
+      and ds.merge(dict_like) continue to work correctly without being affected by
+      the new DataArray handling branch.
+    weight: 2

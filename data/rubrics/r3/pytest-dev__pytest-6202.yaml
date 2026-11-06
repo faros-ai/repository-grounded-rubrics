@@ -1,0 +1,56 @@
+metadata:
+  task_summary: Remove the erroneous s.replace('.[', '[') call in getmodpath in src/_pytest/python.py
+    that was corrupting parametrized test IDs containing dot-bracket sequences in
+    failure report headlines.
+axes:
+  file_change_rubrics:
+  - id: FC1
+    description: Modifies src/_pytest/python.py as the sole production-code change,
+      with no unrelated source files altered.
+    weight: 3
+  - id: FC2
+    description: Removes or replaces the s.replace expression inside def getmodpath(
+      in src/_pytest/python.py so that the raw joined string s is returned without
+      the dot-bracket substitution.
+    weight: 3
+  - id: FC3
+    description: Leaves the rest of def getmodpath( logic intact, keeping the listchain,
+      parts accumulation, and '.'.join(parts) steps unchanged in the diff.
+    weight: 2
+  spec_alignment_rubrics:
+  - id: SA1
+    description: 'Addresses the exact root cause described in the PR: the substitution
+      in getmodpath that caused parametrize IDs such as ''..['' to be silently mangled
+      to ''.['' in test report headlines.'
+    weight: 3
+  - id: SA2
+    description: Ensures getmodpath now returns the unmodified dot-joined path string
+      so that a parametrized test named test_boo[..[] is reported as test_boo[..[]
+      rather than test_boo[.[.
+    weight: 2
+  - id: SA3
+    description: Adds or updates a test that exercises getmodpath or the failure-report
+      headline with a parametrize ID that contains a dot-bracket sequence to confirm
+      the fix.
+    weight: 1
+  integrity_rubrics:
+  - id: I1
+    description: Confirms that no existing test assertions are weakened, removed,
+      or marked skip to accommodate the change, such as the assert items[i].getmodpath()
+      == ... lines in the test collection suite.
+    weight: 2
+  - id: I2
+    description: Preserves the public signature of def getmodpath(self, stopatmodule=True,
+      includemodule=False) unchanged in the diff.
+    weight: 2
+  runtime_rubrics:
+  - id: R1
+    description: 'Ensures that test node names not containing dot-bracket sequences
+      are unaffected: getmodpath for plain class method paths like TestX.testmethod_one
+      still returns TestX.testmethod_one without alteration.'
+    weight: 2
+  - id: R2
+    description: Ensures that parametrized test IDs containing dot-bracket sequences
+      are preserved verbatim in the modpath returned by reportinfo, so the failure-report
+      headline matches the actual full node name.
+    weight: 3
